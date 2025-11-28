@@ -55,6 +55,7 @@
 ```bash
 # Запуск из корневой директории проекта
 cd tests/
+python test_display_highscores.py
 python test_interface_improvements.py
 python test_interface_simple.py
 python test_strict_10_limit.py
