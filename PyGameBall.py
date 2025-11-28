@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 
 import random
 import math
@@ -62,6 +62,11 @@ def generate_tone_sound(frequency: float, duration: float, sample_rate: int = 44
     stereo_wave[:, 1] = wave_16bit
     
     return pygame.sndarray.make_sound(stereo_wave)
+
+
+def generate_paddle_sound() -> pygame.mixer.Sound:
+    """Генерирует 16-битный звук отскока от платформы (всегда одинаковый)"""
+    return generate_tone_sound(330, 0.15, volume=0.4)  # E4 - 330 Гц
 
 
 def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font) -> tuple[str, bool]:
@@ -342,7 +347,9 @@ def main() -> None:
     
     # Загрузка звуковых эффектов и генерация звуков удара по кубикам
     try:
-        paddle_bounce_sound = pygame.mixer.Sound("sounds/bounce.wav")
+        # Генерируем звук отскока от платформы
+        paddle_bounce_sound = generate_paddle_sound()
+        
         # Генерируем разные тональные звуки для ударов по кубикам
         brick_hit_sounds = [
             generate_tone_sound(440, 0.2),   # A4 - 440 Гц
