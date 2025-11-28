@@ -78,14 +78,26 @@ class HighScoreManager:
         if not self.highscores:
             return "Пока нет рекордов"
         
-        result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
-        result += "=" * 70 + "\n"
-        result += f"{'Место':<6} {'Игрок':<20} {'Очки':<8} {'Время':<8}\n"
-        result += "=" * 70 + "\n"
+        # Ширина колонок: длина заголовка + 2 пробела (слева и справа)
+        col_widths = {
+            'place': len('Место') + 2,      # 6 + 2 = 8
+            'player': len('Игрок') + 2,     # 8 + 2 = 22  
+            'score': len('Очки') + 2,       # 6 + 2 = 8
+            'time': len('Время') + 2        # 8 + 2 = 10
+        }
         
+        result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
+        result += "=" * sum(col_widths.values()) + "\n"
+        
+        # Заголовки
+        headers = f"{'Место':^{col_widths['place']}} {'Игрок':^{col_widths['player']}} {'Очки':^{col_widths['score']}} {'Время':^{col_widths['time']}}"
+        result += headers + "\n"
+        result += "=" * sum(col_widths.values()) + "\n"
+        
+        # Данные
         for i, score_data in enumerate(self.highscores, 1):
-            player_name = score_data["player_name"][:20]  # Ограничиваем до 20 символов
-            # Используем ljust для выравнивания по левому краю в рамках ширины столбца
-            result += f"{str(i):<6} {player_name:<20} {str(score_data['score']):<8} {score_data['time_formatted']:<8}\n"
+            player_name = score_data["player_name"][:col_widths['player']-2]  # Обрезаем до ширины колонки
+            row = f"{i:^{col_widths['place']}} {player_name:^{col_widths['player']}} {score_data['score']:^{col_widths['score']}} {score_data['time_formatted']:^{col_widths['time']}}"
+            result += row + "\n"
         
         return result

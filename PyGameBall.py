@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.4.3"
+VERSION = "1.4.4"
 
 import random
 import math
@@ -110,14 +110,12 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
         screen.blit(input_surface, input_rect)
         
         # Подсказка
-        hint = font.render("Нажмите Enter для продолжения", True, (200, 200, 200))
-        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
-        screen.blit(hint, hint_rect)
+        render_colored_hint(screen, font, "Нажмите Enter для продолжения", 
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 20))
         
         # Подсказка о музыке
-        music_hint = font.render("Нажмите M для включения/выключения музыки", True, (150, 150, 150))
-        music_hint_rect = music_hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
-        screen.blit(music_hint, music_hint_rect)
+        render_colored_hint(screen, font, "Нажмите M для отключения звука",
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50))
         
         pygame.display.flip()
     
@@ -162,12 +160,10 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
                 y_offset += 25
         
         # Подсказки для возврата и управления музыкой
-        hint1 = font.render("Нажмите ESC для возврата к игре", True, (150, 150, 150))
-        hint2 = font.render("Нажмите M для включения/выключения музыки", True, (150, 150, 150))
-        hint1_rect = hint1.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 70))
-        hint2_rect = hint2.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40))
-        screen.blit(hint1, hint1_rect)
-        screen.blit(hint2, hint2_rect)
+        render_colored_hint(screen, font, "Нажмите ESC для возврата к игре", 
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 70))
+        render_colored_hint(screen, font, "Нажмите M для отключения звука",
+                           (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT - 40))
         
         pygame.display.flip()
     
@@ -228,13 +224,12 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
         screen.blit(surf3, (SCREEN_WIDTH // 2 - 100, 300))
         
         # Подсказки
-        hint1 = font.render("Нажмите Enter для новой игры", True, (200, 200, 200))
-        hint2 = font.render("Нажмите H для просмотра рекордов", True, (200, 200, 200))
-        hint3 = font.render("Нажмите M для управления музыкой", True, (200, 200, 200))
-        
-        screen.blit(hint1, (SCREEN_WIDTH // 2 - 150, 400))
-        screen.blit(hint2, (SCREEN_WIDTH // 2 - 150, 430))
-        screen.blit(hint3, (SCREEN_WIDTH // 2 - 150, 460))
+        render_colored_hint(screen, font, "Нажмите Enter для новой игры", 
+                           (SCREEN_WIDTH // 2 - 150, 400))
+        render_colored_hint(screen, font, "Нажмите H для просмотра рекордов", 
+                           (SCREEN_WIDTH // 2 - 150, 430))
+        render_colored_hint(screen, font, "Нажмите M для отключения звука", 
+                           (SCREEN_WIDTH // 2 - 130, 460))
         
         pygame.display.flip()
     
@@ -326,6 +321,29 @@ def show_message(screen: pygame.Surface, font: pygame.font.Font, message: str) -
     screen.blit(surf, rect)
 
 
+def render_colored_hint(screen: pygame.Surface, font: pygame.font.Font, text: str, pos: tuple, base_color=(200, 200, 200), key_color=(255, 255, 0)) -> None:
+    """Отображает подсказку с выделенными ключевыми словами цветом"""
+    words = text.split()
+    x, y = pos
+    key_words = ['Enter', 'H', 'M', 'ESC']
+    
+    for word in words:
+        # Убираем знаки препинания для сравнения
+        clean_word = word.rstrip('.,:!?')
+        
+        if clean_word in key_words:
+            # Выделяем ключевое слово цветом
+            color = key_color
+        else:
+            color = base_color
+        
+        surf = font.render(word, True, color)
+        screen.blit(surf, (x, y))
+        x += surf.get_width() + font.size(' ')[0]  # добавляем пробел
+    
+    return x - pos[0]  # возвращаем ширину текста
+
+
 def draw_start_hint(screen: pygame.Surface, font: pygame.font.Font) -> None:
     text = "Для начала игры нажми ← или →"
     surf = font.render(text, True, (255, 255, 255))
@@ -356,11 +374,11 @@ def main() -> None:
             generate_tone_sound(523.25, 0.2), # C5 - ~523 Гц  
             generate_tone_sound(659.25, 0.2), # E5 - ~659 Гц
         ]
-        # Пытаемся загрузить фоновую музыку
+        # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
         try:
             pygame.mixer.music.load("sounds/S31-Night Prowler.ogg")
             pygame.mixer.music.set_volume(0.3)
-            pygame.mixer.music.play(-1)  # Цикличное воспроизведение фоновой музыки
+            # Музыка будет запущена после ввода имени игрока
         except pygame.error:
             print("Фоновая музыка не загружена")
     except pygame.error as e:
@@ -384,6 +402,13 @@ def main() -> None:
     
     # Ввод имени игрока
     player_name, music_enabled = get_player_name(screen, font, big_font)
+    
+    # Запускаем музыку после ввода имени (если она включена)
+    if music_enabled:
+        try:
+            pygame.mixer.music.play(-1)  # Цикличное воспроизведение фоновой музыки
+        except pygame.error:
+            print("Не удалось запустить фоновую музыку")
     
     # Отсчет времени игры
     game_start_time = time.time()

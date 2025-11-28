@@ -2,6 +2,13 @@
   {
     "player_name": "met",
     "score": 50,
+    "time_seconds": 96,
+    "time_formatted": "1:36",
+    "date": "2025-11-28 16:38"
+  },
+  {
+    "player_name": "met",
+    "score": 50,
     "time_seconds": 132,
     "time_formatted": "2:12",
     "date": "2025-11-28 16:21"
