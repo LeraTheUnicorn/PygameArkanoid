@@ -2,7 +2,7 @@
 ; Для компиляции требуется Inno Setup Compiler
 
 #define MyAppName "Arkanoid"
-"1.6.2"
+#define MyAppVersion "1.6.2"
 #define MyAppPublisher "Developer"
 #define MyAppURL "https://github.com/developer/arkanoid"
 #define MyAppExeName "Arkanoid_v{#MyAppVersion}.exe"
@@ -21,10 +21,10 @@ DefaultDirName={localappdata}\Games\Arkanoid
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=LICENSE.txt
-InfoBeforeFile=README_RELEASE.txt
+InfoBeforeFile=docs/README_RELEASE.txt
 OutputDir=installer
 OutputBaseFilename=Arkanoid_v{#MyAppVersion}_Setup
-SetupIconFile=icon.ico
+SetupIconFile=resources/icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -44,9 +44,10 @@ Name: "gamerecords"; Description: "Создать папку для сохран
 Source: "Arkanoid_v{#MyAppVersion}.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sounds\*"; DestDir: "{app}\sounds"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "images\*"; DestDir: "{app}\images"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "resources\highscores.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "highscores.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "README_RELEASE.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "docs\README_RELEASE.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
 ; Добавляем запись в реестр для корректной деинсталляции
