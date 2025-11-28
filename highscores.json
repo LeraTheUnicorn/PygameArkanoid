@@ -1,6 +1,27 @@
 [
   {
-    "player_name": "jjj",
+    "player_name": "met",
+    "score": 50,
+    "time_seconds": 53,
+    "time_formatted": "0:53",
+    "date": "2025-11-28 22:47"
+  },
+  {
+    "player_name": "test0",
+    "score": 50,
+    "time_seconds": 59,
+    "time_formatted": "0:59",
+    "date": "2025-11-28 22:25"
+  },
+  {
+    "player_name": "test1",
+    "score": 50,
+    "time_seconds": 74,
+    "time_formatted": "1:14",
+    "date": "2025-11-28 22:43"
+  },
+  {
+    "player_name": "test2",
     "score": 50,
     "time_seconds": 81,
     "time_formatted": "1:21",
@@ -21,14 +42,14 @@
     "date": "2025-11-28 17:45"
   },
   {
-    "player_name": "Дмитрий",
+    "player_name": "Павел",
     "score": 45,
     "time_seconds": 98,
     "time_formatted": "1:38",
     "date": "2025-11-28 17:30"
   },
   {
-    "player_name": "Елена",
+    "player_name": "Оксана",
     "score": 43,
     "time_seconds": 156,
     "time_formatted": "2:36",
@@ -47,26 +68,5 @@
     "time_seconds": 165,
     "time_formatted": "2:45",
     "date": "2025-11-28 16:45"
-  },
-  {
-    "player_name": "Максим",
-    "score": 38,
-    "time_seconds": 112,
-    "time_formatted": "1:52",
-    "date": "2025-11-28 16:30"
-  },
-  {
-    "player_name": "Ольга",
-    "score": 35,
-    "time_seconds": 198,
-    "time_formatted": "3:18",
-    "date": "2025-11-28 16:15"
-  },
-  {
-    "player_name": "Иван",
-    "score": 33,
-    "time_seconds": 178,
-    "time_formatted": "2:58",
-    "date": "2025-11-28 16:00"
   }
 ]

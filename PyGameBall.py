@@ -64,8 +64,11 @@ def generate_tone_sound(frequency: float, duration: float, sample_rate: int = 44
 
 
 def is_valid_player_name_char(char: str) -> bool:
-    """Проверяет, является ли символ допустимым для имени игрока (только буквы и цифры)"""
-    return char.isalnum()  # isalnum() возвращает True только для букв и цифр
+    """Проверяет, является ли символ допустимым для имени игрока"""
+    if not char:  # Проверяем пустые строки
+        return False
+    # Разрешаем буквы, цифры, пробелы, дефисы, подчеркивания и точки
+    return char.isalnum() or char in [' ', '-', '_', '.']
 
 
 def generate_paddle_sound() -> pygame.mixer.Sound:
@@ -97,7 +100,7 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
                     music_enabled, exit_game = show_highscores(screen, font, highscore_manager, exit_on_esc=False)
                     if exit_game:
                         return "", music_enabled, True  # Выход из игры
-                elif len(input_text) < 20 and is_valid_player_name_char(event.unicode):  # Ограничение длины имени и допустимых символов
+                elif len(input_text) < 20 and event.unicode and is_valid_player_name_char(event.unicode):  # Ограничение длины имени и допустимых символов
                     input_text += event.unicode
                 elif event.key == pygame.K_ESCAPE:
                     # Выход из игры
@@ -123,7 +126,7 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
         input_surface = font.render(input_text, True, (255, 255, 255))
         input_rect = input_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
         
-        # Проверяем валидность ввода - если есть недопустимые символы, меняем цвет фона на красный
+        # Проверяем валидность ввода - если есть недопустимые символы, рамка становится красной
         input_bg_color = (255, 100, 100) if input_text and not all(is_valid_player_name_char(c) for c in input_text) else (255, 255, 255)
         pygame.draw.rect(screen, input_bg_color, input_rect.inflate(20, 10), 2)
         screen.blit(input_surface, input_rect)

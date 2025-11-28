@@ -60,18 +60,19 @@ class HighScoreManager:
         # Проверяем, попадет ли результат в топ-10 БЕЗ обрезки до 10
         temp_scores = self.highscores.copy()
         temp_scores.append(new_score)
-        
+
         # Сортируем временный список БЕЗ обрезки
         temp_scores.sort(key=lambda item: (-item["score"], item["time_seconds"], item["player_name"]))
-        
+
         # Проверяем позицию нового результата в отсортированном списке
         for i, score_data in enumerate(temp_scores):
-            if score_data["player_name"] == player_name and score_data["score"] == score and score_data["time_seconds"] == game_time_seconds:
+            if score_data["player_name"] == player_name and score_data["score"] == score and score_data[
+                "time_seconds"] == game_time_seconds:
                 if i >= 10:  # 11-я позиция или ниже (индексы начинаются с 0)
                     # Результат не попал в топ-10
                     return False
                 break
-        
+
         # Результат попал в топ-10, добавляем и сохраняем
         self.highscores.append(new_score)
         self.sort_highscores()  # Теперь сортируем и обрезаем основной список
@@ -114,46 +115,36 @@ class HighScoreManager:
 
         # Формируем полную таблицу с заголовком для текстовых файлов
         result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
-        
+
         # Линия разделителя под заголовком (69 знаков равенства)
         result += "=" * 69 + "\n"
-        
+
         # Заголовки колонок
         result += "Место | Игрок                | Очки | Время  \n"
-        
+
         # Линия разделителя под заголовками (69 знаков равенства)  
         result += "=" * 69 + "\n"
-        
+
         # Данные с точным форматированием каждой колонки
         for i, score_data in enumerate(self.highscores, 1):
             # Форматирование места: точно как в правильном файле
             if i < 10:
                 place = f"   {i}.  "  # 3 пробела + число + точка + 2 пробела
             else:
-                place = f"  {i}.  "   # 2 пробела + число + точка + 2 пробела
-            
+                place = f"  {i}.  "  # 2 пробела + число + точка + 2 пробела
+
             # Форматирование имени игрока: 20 символов, выравнивание слева
             player_name = score_data["player_name"]
             player = f"{player_name[:20]:<20}"  # 20 символов, выравнивание слева
-            
+
             # Форматирование очков: точно 3 символа, выравнивание справа
             score = f"{score_data['score']:>3}"  # 3 символа, выравнивание справа
-            
+
             # Форматирование времени: 5 символов, выравнивание справа
             time = f"{score_data['time_formatted']:>5}"  # 5 символов, выравнивание справа
-            
+
             # Собираем строку точно как в правильном файле
             row = f"{place}| {player}| {score}  | {time}"
             result += row + "\n"
-
-        # Создаем текстовый файл с содержимым таблицы
-        # try:
-        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        #     filename = f"highscores_display_{timestamp}.txt"
-        #     with open(filename, 'w', encoding='utf-8') as f:
-        #         f.write(result)
-        #     print(f"[DEBUG] Содержимое таблицы сохранено в файл: {filename}")
-        # except Exception as e:
-        #     print(f"[DEBUG] Ошибка при сохранении файла таблицы: {e}")
 
         return result
