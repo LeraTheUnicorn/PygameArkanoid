@@ -424,7 +424,7 @@ def main() -> None:
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
         try:
-            pygame.mixer.music.load("sounds/S31-Night Prowler.ogg")
+            pygame.mixer.music.load("sounds/Night_Prowler.ogg")
             pygame.mixer.music.set_volume(0.3)
             # Музыка будет запущена после ввода имени игрока
         except pygame.error:

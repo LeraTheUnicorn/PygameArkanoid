@@ -128,7 +128,7 @@ class HighScoreManager:
             if i < 10:
                 place_field = f"   {i}.  |"  # 3 пробела + значение + точка + 2 пробела + разделитель
             else:
-                place_field = f"  {i}.  |"   # 2 пробела + значение + точка + 2 пробела
+                place_field = f"  {i}.  |"   # 2 пробела + значение + точка + 2 пробела + разделитель
             
             player_field = f"{player_name[:20]:<20}"  # 20 символов для имени игрока
             score_field = f"{score_data['score']:3d}"  # 3 символа для очков
@@ -137,5 +137,16 @@ class HighScoreManager:
             # Объединяем колонки с разделителями
             row = f"{place_field} {player_field} | {score_field} | {time_field}"
             result += row + "\n"
+
+        # Создаем текстовый файл с содержимым таблицы для проверки
+        try:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"highscores_display_{timestamp}.txt"
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(result)
+            print(f"[DEBUG] Содержимое таблицы сохранено в файл: {filename}")
+        except Exception as e:
+            print(f"[DEBUG] Ошибка при сохранении файла таблицы: {e}")
 
         return result
