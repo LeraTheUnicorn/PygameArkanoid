@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.1] - 2025-11-28
+
+- Fixed missing sound effects in the game
+- Added pygame.mixer initialization and sound loading system
+- Implemented paddle bounce sound effect (bounce.wav)
+- Added random brick hit sound effects (Jump1.wav, Jump2.wav, Jump3.wav)
+- Added background music (S31-Night Prowler.ogg)
+- Updated version to 1.3.1
+
 ## [1.3.0] - 2025-11-28
 
 - Fixed code error with multiple main() calls

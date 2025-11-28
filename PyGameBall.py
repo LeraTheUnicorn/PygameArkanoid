@@ -1,6 +1,6 @@
 # Arkanoid game
 # Version tracking
-VERSION = "1.2.0"
+VERSION = "1.3.1"
 
 import random
 import math
@@ -126,11 +126,32 @@ def draw_start_hint(screen: pygame.Surface, font: pygame.font.Font) -> None:
 
 def main() -> None:
     pygame.init()
+    pygame.mixer.init()  # Initialize audio mixer
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Арканоид")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("arial", 20)
     big_font = pygame.font.SysFont("arial", 42, bold=True)
+    
+    # Load sound effects
+    try:
+        paddle_bounce_sound = pygame.mixer.Sound("sounds/bounce.wav")
+        brick_hit_sounds = [
+            pygame.mixer.Sound("sounds/Jump1.wav"),
+            pygame.mixer.Sound("sounds/Jump2.wav"),
+            pygame.mixer.Sound("sounds/Jump3.wav"),
+        ]
+        # Try to load background music
+        try:
+            pygame.mixer.music.load("sounds/S31-Night Prowler.ogg")
+            pygame.mixer.music.set_volume(0.3)
+            pygame.mixer.music.play(-1)  # Loop background music
+        except pygame.error:
+            print("Background music not loaded")
+    except pygame.error as e:
+        print(f"Sound effects not loaded: {e}")
+        paddle_bounce_sound = None
+        brick_hit_sounds = None
 
     paddle = Paddle()
     ball = Ball()
@@ -196,12 +217,18 @@ def main() -> None:
                     offset = (ball.rect.centerx - paddle.rect.centerx) / (paddle.rect.width / 2)
                     ball.vel_x = int(max(-BALL_SPEED, min(BALL_SPEED, BALL_SPEED * offset)))
                     hits += 1
+                    # Play paddle bounce sound
+                    if paddle_bounce_sound:
+                        paddle_bounce_sound.play()
 
                 hit_index = ball.rect.collidelist(bricks)
                 if hit_index != -1:
                     ball.bounce_vertical()
                     bricks.pop(hit_index)
                     score += 1
+                    # Play random brick hit sound
+                    if brick_hit_sounds:
+                        brick_hit_sounds[random.randint(0, len(brick_hit_sounds) - 1)].play()
 
                 if ball.rect.bottom >= SCREEN_HEIGHT:
                     lives_left -= 1
@@ -258,29 +285,6 @@ if __name__ == "__main__":
     main()
 
 
-
-
-
-
-
-
-
-    main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    main()
 
 
 
