@@ -6,8 +6,9 @@
 import sys
 import os
 
-# Добавляем текущую директорию в путь для импорта модулей
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Добавляем родительскую директорию в путь для импорта модулей
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
 
 from highscores import HighScoreManager
 import json
@@ -60,7 +61,14 @@ def test_highscores_display_logic():
         
         # Проверяем что отображаются все 10 записей
         lines = display_text.split('\n')
-        score_lines = [line for line in lines if line.strip() and any(char.isdigit() for char in line[:3])]
+        score_lines = []
+        for line in lines:
+            line = line.strip()
+            if line and (line.startswith('1.') or line.startswith('2.') or line.startswith('3.') or 
+                        line.startswith('4.') or line.startswith('5.') or line.startswith('6.') or
+                        line.startswith('7.') or line.startswith('8.') or line.startswith('9.') or
+                        line.startswith('10.')):
+                score_lines.append(line)
         
         if len(score_lines) == 10:
             print(f"[OK] Отображается {len(score_lines)} записей (правильно)")
@@ -158,7 +166,7 @@ def test_score_limits():
         
         # Проверяем что это действительно топ-10
         scores = [score["score"] for score in manager.highscores]
-        expected_scores = list(range(50, 39, -1))  # 50, 49, 48, ..., 40
+        expected_scores = list(range(50, 40, -1))  # 50, 49, 48, ..., 41 (только первые 10)
         
         if scores == expected_scores:
             print("[OK] Сохранены именно топ-10 результатов")

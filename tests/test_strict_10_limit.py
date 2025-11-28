@@ -7,6 +7,11 @@ import json
 import os
 import sys
 import tempfile
+
+# Добавляем родительскую директорию в путь для импорта модулей
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
 from highscores import HighScoreManager
 
 def test_strict_10_limit():
