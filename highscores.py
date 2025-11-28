@@ -79,12 +79,13 @@ class HighScoreManager:
             return "Пока нет рекордов"
         
         result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
-        result += "=" * 60 + "\n"
-        result += f"{'Место':<6} {'Игрок':<15} {'Очки':<8} {'Время':<8}\n"
-        result += "=" * 60 + "\n"
+        result += "=" * 70 + "\n"
+        result += f"{'Место':<6} {'Игрок':<20} {'Очки':<8} {'Время':<8}\n"
+        result += "=" * 70 + "\n"
         
         for i, score_data in enumerate(self.highscores, 1):
-            player_name = score_data["player_name"][:12]  # Ограничиваем длину имени
-            result += f"{i:<6} {player_name:<15} {score_data['score']:<8} {score_data['time_formatted']:<8}\n"
+            player_name = score_data["player_name"][:20]  # Ограничиваем до 20 символов
+            # Форматируем строку с правильным выравниванием
+            result += f"{i:<6} {player_name:<20} {score_data['score']:<8} {score_data['time_formatted']:<8}\n"
         
         return result

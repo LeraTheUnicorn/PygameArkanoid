@@ -1,10 +1,11 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 import random
 import math
 import time
+import numpy as np
 from dataclasses import dataclass, field
 from typing import List
 
@@ -35,6 +36,32 @@ BRICK_PADDING = 10
 BRICK_OFFSET_TOP = 60
 
 MAX_LIVES = 3  # Максимальное количество жизней
+
+
+def generate_tone_sound(frequency: float, duration: float, sample_rate: int = 44100, volume: float = 0.3) -> pygame.mixer.Sound:
+    """Генерирует короткий тональный звук для звуковых эффектов"""
+    frames = int(duration * sample_rate)
+    t = np.linspace(0, duration, frames)
+    
+    # Генерируем синусоидальную волну с небольшим количеством гармоник для более богатого звука
+    wave = np.sin(2 * np.pi * frequency * t)
+    wave += 0.3 * np.sin(2 * np.pi * frequency * 2 * t)  # Первая гармоника
+    wave += 0.1 * np.sin(2 * np.pi * frequency * 3 * t)  # Вторая гармоника
+    
+    # Добавляем затухание
+    envelope = np.exp(-3 * t)  # Быстрое затухание
+    wave = wave * envelope
+    
+    # Нормализуем и приводим к 16-битному формату
+    wave = np.clip(wave * volume, -1.0, 1.0)
+    wave_16bit = (wave * 32767).astype(np.int16)
+    
+    # Создаем pygame Sound объект
+    stereo_wave = np.zeros((len(wave_16bit), 2), dtype=np.int16)
+    stereo_wave[:, 0] = wave_16bit
+    stereo_wave[:, 1] = wave_16bit
+    
+    return pygame.sndarray.make_sound(stereo_wave)
 
 
 def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font) -> str:
@@ -126,7 +153,7 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     waiting = False
-                elif event.key == pygame.K_h or event.key == pygame.K_H:
+                elif event.key == pygame.K_h:
                     # Показываем таблицу рекордов
                     show_highscores(screen, font, highscore_manager)
         
@@ -268,13 +295,14 @@ def main() -> None:
     # Инициализация менеджера рекордов
     highscore_manager = HighScoreManager()
     
-    # Загрузка звуковых эффектов
+    # Загрузка звуковых эффектов и генерация звуков удара по кубикам
     try:
         paddle_bounce_sound = pygame.mixer.Sound("sounds/bounce.wav")
+        # Генерируем разные тональные звуки для ударов по кубикам
         brick_hit_sounds = [
-            pygame.mixer.Sound("sounds/Jump1.wav"),
-            pygame.mixer.Sound("sounds/Jump2.wav"),
-            pygame.mixer.Sound("sounds/Jump3.wav"),
+            generate_tone_sound(440, 0.2),   # A4 - 440 Гц
+            generate_tone_sound(523.25, 0.2), # C5 - ~523 Гц  
+            generate_tone_sound(659.25, 0.2), # E5 - ~659 Гц
         ]
         # Пытаемся загрузить фоновую музыку
         try:
