@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .idea
 .kilocode
+.venv
 .Python
 build/
 develop-eggs/
