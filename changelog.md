@@ -1,35 +1,47 @@
-# Changelog
+# История изменений
+
+## [1.4.0] - 2025-11-28
+
+- Увеличена длина шлейфа от мяча в два раза (до 20 позиций)
+- Добавлен ввод имени игрока при старте игры
+- Добавлена система отсчета времени игры
+- Создан модуль highscores.py для управления рекордами
+- Добавлено сохранение результатов в файл highscores.json
+- Добавлено отображение таблицы топ-10 рекордов после завершения игры
+- Добавлена поддержка просмотра рекордов по клавише ESC во время игры
+- Переведены все комментарии в коде на русский язык
+- Обновлена версия до 1.4.0
 
 ## [1.3.1] - 2025-11-28
 
-- Fixed missing sound effects in the game
-- Added pygame.mixer initialization and sound loading system
-- Implemented paddle bounce sound effect (bounce.wav)
-- Added random brick hit sound effects (Jump1.wav, Jump2.wav, Jump3.wav)
-- Added background music (S31-Night Prowler.ogg)
-- Updated version to 1.3.1
+- Исправлена проблема с отсутствующими звуковыми эффектами в игре
+- Добавлена инициализация pygame.mixer и система загрузки звуков
+- Реализован звуковой эффект отскока от платформы (bounce.wav)
+- Добавлены случайные звуковые эффекты попадания по кубикам (Jump1.wav, Jump2.wav, Jump3.wav)
+- Добавлена фоновая музыка (S31-Night Prowler.ogg)
+- Обновлена версия до 1.3.1
 
 ## [1.3.0] - 2025-11-28
 
-- Fixed code error with multiple main() calls
-- Added sound system with background music, paddle bounce sound, and brick hit sounds using pygame.mixer
+- Исправлена ошибка кода с множественными вызовами main()
+- Добавлена звуковая система с фоновой музыкой, звуком отскока платформы и звуками попадания по кубикам используя pygame.mixer
 
 ## [1.2.0] - 2025-11-28
 
-- Clear ball trail when pausing after losing a life to avoid duplicate ball display
-- Add different beep sounds for brick hits based on row color using winsound
+- Очистка шлейфа мяча при паузе после потери жизни для избежания дублирования отображения мяча
+- Добавлены разные звуковые сигналы для попаданий по кубикам в зависимости от цвета строки используя winsound
 
 ## [1.1.0] - 2025-11-28
 
-- Added restart functionality with R key after game end
-- Pause and show start hint after losing a life
-- Colored paddle sections (red left, white middle, blue right) for bounce direction indication
-- Added fading trail behind the ball
-- Added comprehensive comments throughout the code
+- Добавлена функция перезапуска с клавишей R после окончания игры
+- Пауза и отображение подсказки после потери жизни
+- Цветные секции платформы (красная слева, белая в центре, синяя справа) для индикации направления отскока
+- Добавлен затухающий шлейф за мячом
+- Добавлены подробные комментарии по всему коду
 
 ## [1.0.0] - 2025-11-28
 
-- Initial version with basic Arkanoid gameplay
-- Added start screen with hint to press arrows
-- Game over screen stays open instead of auto-closing
-- Ball starts on paddle and bounces on first movement
+- Первоначальная версия с базовым геймплеем Арканоид
+- Добавлен стартовый экран с подсказкой нажать стрелки
+- Экран окончания игры остается открытым вместо автоматического закрытия
+- Мяч стартует на платформе и отскакивает при первом движении

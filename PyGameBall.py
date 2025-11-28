@@ -1,27 +1,32 @@
-# Arkanoid game
-# Version tracking
-VERSION = "1.3.1"
+# Игра Арканоид
+# Отслеживание версий
+VERSION = "1.4.0"
 
 import random
 import math
+import time
 from dataclasses import dataclass, field
 from typing import List
 
 import pygame
+from highscores import HighScoreManager
 
-# Game tuning constants
-# Screen dimensions
+# Настройки игры
+# Размеры экрана
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS = 60
 
+# Размеры и скорость платформы
 PADDLE_WIDTH = 120
 PADDLE_HEIGHT = 15
 PADDLE_SPEED = 9
 
+# Размеры и скорость мяча
 BALL_SIZE = 16
 BALL_SPEED = 5
 
+# Параметры кубиков
 BRICK_ROWS = 5
 BRICK_COLS = 10
 BRICK_WIDTH = 60
@@ -29,7 +34,134 @@ BRICK_HEIGHT = 20
 BRICK_PADDING = 10
 BRICK_OFFSET_TOP = 60
 
-MAX_LIVES = 3
+MAX_LIVES = 3  # Максимальное количество жизней
+
+
+def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font) -> str:
+    """Возвращает имя игрока, введенное с клавиатуры"""
+    input_text = ""
+    input_active = True
+    
+    while input_active:
+        # Обработка событий
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if input_text.strip():
+                        input_active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                elif len(input_text) < 20:  # Ограничение длины имени
+                    input_text += event.unicode
+        
+        # Отрисовка экрана
+        screen.fill((10, 10, 30))
+        
+        # Заголовок
+        title = big_font.render("Введите ваше имя:", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
+        screen.blit(title, title_rect)
+        
+        # Поле ввода
+        input_surface = font.render(input_text, True, (255, 255, 255))
+        input_rect = input_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+        pygame.draw.rect(screen, (255, 255, 255), input_rect.inflate(20, 10), 2)
+        screen.blit(input_surface, input_rect)
+        
+        # Подсказка
+        hint = font.render("Нажмите Enter для продолжения", True, (200, 200, 200))
+        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        screen.blit(hint, hint_rect)
+        
+        pygame.display.flip()
+    
+    return input_text.strip()
+
+
+def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_manager: HighScoreManager) -> None:
+    """Отображает таблицу рекордов"""
+    # Получаем текст рекордов
+    highscores_text = highscore_manager.display_highscores()
+    
+    # Отображаем экран рекордов
+    screen.fill((10, 10, 30))
+    
+    # Разбиваем текст на строки и отображаем каждую
+    lines = highscores_text.split('\n')
+    y_offset = 50
+    
+    for line in lines:
+        if line.strip():  # Пропускаем пустые строки
+            color = (255, 255, 255) if line.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'ТОП')) else (200, 200, 200)
+            surf = font.render(line, True, color)
+            screen.blit(surf, (50, y_offset))
+            y_offset += 25
+    
+    # Подсказка для возврата
+    hint = font.render("Нажмите ESC для возврата к игре", True, (150, 150, 150))
+    hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
+    screen.blit(hint, hint_rect)
+    
+    pygame.display.flip()
+    
+    # Ждем нажатия ESC
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                waiting = False
+
+
+def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, 
+                     score: int, player_name: str, game_time_seconds: int, highscore_manager: HighScoreManager) -> None:
+    """Отображает экран с результатами игры и таблицей рекордов"""
+    game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
+    
+    # Добавляем результат в рекорды
+    highscore_manager.add_score(player_name, score, game_time_seconds)
+    
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    waiting = False
+                elif event.key == pygame.K_h or event.key == pygame.K_H:
+                    # Показываем таблицу рекордов
+                    show_highscores(screen, font, highscore_manager)
+        
+        # Отрисовка экрана результатов
+        screen.fill((10, 10, 30))
+        
+        # Заголовок
+        if score > 0:
+            title = big_font.render("Игра окончена!", True, (255, 255, 255))
+        else:
+            title = big_font.render("Игра окончена", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        screen.blit(title, title_rect)
+        
+        # Результаты игрока
+        result_text = f"Игрок: {player_name}"
+        score_text = f"Очки: {score}"
+        time_text = f"Время игры: {game_time_formatted}"
+        
+        surf1 = font.render(result_text, True, (255, 255, 255))
+        surf2 = font.render(score_text, True, (255, 255, 255))
+        surf3 = font.render(time_text, True, (255, 255, 255))
+        
+        screen.blit(surf1, (SCREEN_WIDTH // 2 - 100, 200))
+        screen.blit(surf2, (SCREEN_WIDTH // 2 - 100, 250))
+        screen.blit(surf3, (SCREEN_WIDTH // 2 - 100, 300))
+        
+        # Подсказки
+        hint1 = font.render("Нажмите Enter для новой игры", True, (200, 200, 200))
+        hint2 = font.render("Нажмите H для просмотра рекордов", True, (200, 200, 200))
+        
+        screen.blit(hint1, (SCREEN_WIDTH // 2 - 150, 400))
+        screen.blit(hint2, (SCREEN_WIDTH // 2 - 150, 430))
+        
+        pygame.display.flip()
 
 
 @dataclass
@@ -44,7 +176,7 @@ class Paddle:
     )
 
     def move(self, direction: int) -> None:
-        """direction = -1 (left) / 1 (right)."""
+        """direction = -1 (влево) / 1 (вправо)."""
         self.rect.x += direction * PADDLE_SPEED
         self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - self.rect.width))
 
@@ -126,14 +258,17 @@ def draw_start_hint(screen: pygame.Surface, font: pygame.font.Font) -> None:
 
 def main() -> None:
     pygame.init()
-    pygame.mixer.init()  # Initialize audio mixer
+    pygame.mixer.init()  # Инициализация аудио микшера
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Арканоид")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("arial", 20)
     big_font = pygame.font.SysFont("arial", 42, bold=True)
     
-    # Load sound effects
+    # Инициализация менеджера рекордов
+    highscore_manager = HighScoreManager()
+    
+    # Загрузка звуковых эффектов
     try:
         paddle_bounce_sound = pygame.mixer.Sound("sounds/bounce.wav")
         brick_hit_sounds = [
@@ -141,15 +276,15 @@ def main() -> None:
             pygame.mixer.Sound("sounds/Jump2.wav"),
             pygame.mixer.Sound("sounds/Jump3.wav"),
         ]
-        # Try to load background music
+        # Пытаемся загрузить фоновую музыку
         try:
             pygame.mixer.music.load("sounds/S31-Night Prowler.ogg")
             pygame.mixer.music.set_volume(0.3)
-            pygame.mixer.music.play(-1)  # Loop background music
+            pygame.mixer.music.play(-1)  # Цикличное воспроизведение фоновой музыки
         except pygame.error:
-            print("Background music not loaded")
+            print("Фоновая музыка не загружена")
     except pygame.error as e:
-        print(f"Sound effects not loaded: {e}")
+        print(f"Звуковые эффекты не загружены: {e}")
         paddle_bounce_sound = None
         brick_hit_sounds = None
 
@@ -164,13 +299,22 @@ def main() -> None:
     lives_left = MAX_LIVES
     game_over = False
     game_started = False
-    ball_trail = []  # List to store ball positions for trail
+    ball_trail = []  # Список для хранения позиций мяча для шлейфа
     running = True
-
+    
+    # Ввод имени игрока
+    player_name = get_player_name(screen, font, big_font)
+    
+    # Отсчет времени игры
+    game_start_time = time.time()
+    
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                # Показываем таблицу рекордов
+                show_highscores(screen, font, highscore_manager)
 
         keys = pygame.key.get_pressed()
 
@@ -186,7 +330,7 @@ def main() -> None:
                 ball.vel_x = BALL_SPEED
                 ball.vel_y = -BALL_SPEED
 
-        # Handle restart after game over
+        # Обработка перезапуска после окончания игры
         if game_over and keys[pygame.K_r]:
             paddle = Paddle()
             ball = Ball()
@@ -199,6 +343,8 @@ def main() -> None:
             game_over = False
             game_started = False
             ball_trail = []
+            # Сброс времени игры для новой игры
+            game_start_time = time.time()
 
         if not game_over:
             if keys[pygame.K_LEFT]:
@@ -209,7 +355,7 @@ def main() -> None:
             if game_started:
                 ball.update()
                 ball_trail.append(ball.rect.center)
-                if len(ball_trail) > 10:
+                if len(ball_trail) > 20:  # Увеличил длину шлейфа до 20 позиций
                     ball_trail.pop(0)
 
                 if ball.rect.colliderect(paddle.rect) and ball.vel_y > 0:
@@ -234,6 +380,9 @@ def main() -> None:
                     lives_left -= 1
                     if lives_left <= 0:
                         game_over = True
+                        # Рассчитываем время игры и сохраняем результат
+                        game_time_seconds = int(time.time() - game_start_time)
+                        show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
                     else:
                         ball.reset(paddle.rect)
                         ball.vel_y = 0
@@ -241,17 +390,20 @@ def main() -> None:
 
                 if not bricks:
                     game_over = True
+                    # Рассчитываем время игры и сохраняем результат
+                    game_time_seconds = int(time.time() - game_start_time)
+                    show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
 
         screen.fill((10, 10, 30))
         draw_bricks(screen, bricks)
-        # Draw paddle with colored sections for bounce direction hint
+        # Отрисовка платформы с цветными секциями для подсказки направления отскока
         left_rect = pygame.Rect(paddle.rect.x, paddle.rect.y, paddle.rect.width // 3, paddle.rect.height)
-        pygame.draw.rect(screen, (255, 0, 0), left_rect)  # Red for left bounce
+        pygame.draw.rect(screen, (255, 0, 0), left_rect)  # Красный для отскока влево
         mid_rect = pygame.Rect(paddle.rect.x + paddle.rect.width // 3, paddle.rect.y, paddle.rect.width // 3, paddle.rect.height)
-        pygame.draw.rect(screen, (240, 240, 240), mid_rect)  # White for straight
+        pygame.draw.rect(screen, (240, 240, 240), mid_rect)  # Белый для прямого отскока
         right_rect = pygame.Rect(paddle.rect.x + 2 * paddle.rect.width // 3, paddle.rect.y, paddle.rect.width - 2 * paddle.rect.width // 3, paddle.rect.height)
-        pygame.draw.rect(screen, (0, 0, 255), right_rect)  # Blue for right bounce
-        # Draw ball trail only when game is started
+        pygame.draw.rect(screen, (0, 0, 255), right_rect)  # Синий для отскока вправо
+        # Отрисовка шлейфа мяча только когда игра начата
         if game_started:
             for i in range(len(ball_trail) - 1, -1, -1):
                 pos = ball_trail[i]
@@ -266,15 +418,8 @@ def main() -> None:
         if not game_started:
             draw_start_hint(screen, big_font)
 
-        if game_over:
-            message = "Игра окончена" if lives_left <= 0 else "Победа! Все кубики сбиты"
-            show_message(screen, big_font, message)
-            # Draw restart hint
-            restart_text = "Press R to restart"
-            restart_surf = font.render(restart_text, True, (255, 255, 255))
-            restart_rect = restart_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
-            screen.blit(restart_surf, restart_rect)
-
+        # Экран окончания игры теперь обрабатывается в show_game_results()
+        
         pygame.display.flip()
         clock.tick(FPS)
 
