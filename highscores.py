@@ -108,45 +108,52 @@ class HighScoreManager:
         return False
 
     def display_highscores(self) -> str:
-        """Возвращает строку для отображения таблицы рекордов"""
+        """Возвращает строку для отображения таблицы рекордов с заголовком для текстовых файлов"""
         if not self.highscores:
             return "Пока нет рекордов"
 
-        # Создаем таблицу с правильным форматированием
+        # Формируем полную таблицу с заголовком для текстовых файлов
         result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
-        result += "=" * 70 + "\n"
-
-        # Заголовки с четким разделением колонок
+        
+        # Линия разделителя под заголовком (69 знаков равенства)
+        result += "=" * 69 + "\n"
+        
+        # Заголовки колонок
         result += "Место | Игрок                | Очки | Время  \n"
-        result += "-" * 70 + "\n"
-
-        # Данные с точным форматированием
+        
+        # Линия разделителя под заголовками (69 знаков равенства)  
+        result += "=" * 69 + "\n"
+        
+        # Данные с точным форматированием каждой колонки
         for i, score_data in enumerate(self.highscores, 1):
-            player_name = score_data["player_name"]
-
-            # СТРОГОЕ форматирование поля места: для <10: "   1.  |", для >=10: "  11.  |"
+            # Форматирование места: точно как в правильном файле
             if i < 10:
-                place_field = f"   {i}.  |"  # 3 пробела + значение + точка + 2 пробела + разделитель
+                place = f"   {i}.  "  # 3 пробела + число + точка + 2 пробела
             else:
-                place_field = f"  {i}.  |"   # 2 пробела + значение + точка + 2 пробела + разделитель
+                place = f"  {i}.  "   # 2 пробела + число + точка + 2 пробела
             
-            player_field = f"{player_name[:20]:<20}"  # 20 символов для имени игрока
-            score_field = f"{score_data['score']:3d}"  # 3 символа для очков
-            time_field = f"{score_data['time_formatted']:>5}"  # 5 символов для времени
-
-            # Объединяем колонки с разделителями
-            row = f"{place_field} {player_field} | {score_field} | {time_field}"
+            # Форматирование имени игрока: 20 символов, выравнивание слева
+            player_name = score_data["player_name"]
+            player = f"{player_name[:20]:<20}"  # 20 символов, выравнивание слева
+            
+            # Форматирование очков: точно 3 символа, выравнивание справа
+            score = f"{score_data['score']:>3}"  # 3 символа, выравнивание справа
+            
+            # Форматирование времени: 5 символов, выравнивание справа
+            time = f"{score_data['time_formatted']:>5}"  # 5 символов, выравнивание справа
+            
+            # Собираем строку точно как в правильном файле
+            row = f"{place}| {player}| {score}  | {time}"
             result += row + "\n"
 
-        # Создаем текстовый файл с содержимым таблицы для проверки
-        try:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"highscores_display_{timestamp}.txt"
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(result)
-            print(f"[DEBUG] Содержимое таблицы сохранено в файл: {filename}")
-        except Exception as e:
-            print(f"[DEBUG] Ошибка при сохранении файла таблицы: {e}")
+        # Создаем текстовый файл с содержимым таблицы
+        # try:
+        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        #     filename = f"highscores_display_{timestamp}.txt"
+        #     with open(filename, 'w', encoding='utf-8') as f:
+        #         f.write(result)
+        #     print(f"[DEBUG] Содержимое таблицы сохранено в файл: {filename}")
+        # except Exception as e:
+        #     print(f"[DEBUG] Ошибка при сохранении файла таблицы: {e}")
 
         return result

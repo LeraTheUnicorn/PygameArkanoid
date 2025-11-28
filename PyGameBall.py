@@ -141,8 +141,14 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
     Возвращает (состояние_музыки, exit_game).
     Если exit_on_esc=True, то ESC выходит из игры полностью, иначе возвращает False.
     """
-    # Получаем текст рекордов
-    highscores_text = highscore_manager.display_highscores()
+    # Создаем моноширинный шрифт для правильного отображения таблицы
+    try:
+        mono_font = pygame.font.SysFont("consolas", 18)  # Моноширинный шрифт Windows
+    except:
+        try:
+            mono_font = pygame.font.SysFont("courier", 18)  # Альтернативный моноширинный шрифт
+        except:
+            mono_font = font  # Если не получилось, используем обычный шрифт
     
     # Состояние фоновой музыки
     music_enabled = True
@@ -177,15 +183,53 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 30))
         screen.blit(title, title_rect)
         
-        # Разбиваем текст на строки и отображаем каждую
-        lines = highscores_text.split('\n')
-        y_offset = 70
+        # Получаем отформатированные данные для отображения
+        highscores = highscore_manager.get_top_scores()
         
-        for line in lines:
-            if line.strip():  # Пропускаем пустые строки
-                color = (255, 255, 255) if line.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'ТОП')) else (200, 200, 200)
-                surf = font.render(line, True, color)
-                screen.blit(surf, (50, y_offset))
+        if not highscores:
+            no_scores = font.render("Пока нет рекордов", True, (200, 200, 200))
+            no_scores_rect = no_scores.get_rect(center=(SCREEN_WIDTH // 2, 150))
+            screen.blit(no_scores, no_scores_rect)
+        else:
+            # Линии разделителя
+            separator_line = "=" * 69
+            separator_surf = mono_font.render(separator_line, True, (150, 150, 150))
+            separator_rect = separator_surf.get_rect(center=(SCREEN_WIDTH // 2, 70))
+            screen.blit(separator_surf, separator_rect)
+            
+            # Заголовки колонок
+            headers = "   Место | Игрок               | Очки | Время  "
+            headers_surf = mono_font.render(headers, True, (255, 255, 255))
+            headers_rect = headers_surf.get_rect(center=(SCREEN_WIDTH // 2, 95))
+            screen.blit(headers_surf, headers_rect)
+            
+            # Вторая линия разделителя
+            separator_surf2 = mono_font.render(separator_line, True, (150, 150, 150))
+            separator_rect2 = separator_surf2.get_rect(center=(SCREEN_WIDTH // 2, 120))
+            screen.blit(separator_surf2, separator_rect2)
+            
+            # Данные таблицы
+            y_offset = 145
+            for i, score_data in enumerate(highscores, 1):
+                # Форматируем данные точно как в правильном файле
+                if i < 10:
+                    place = f"   {i}.  "
+                else:
+                    place = f"  {i}.  "
+                
+                player_name = score_data["player_name"]
+                player = f"{player_name[:20]:<20}"
+                score = f"{score_data['score']:>3}"
+                time = f"{score_data['time_formatted']:>5}"
+                
+                # Собираем строку
+                row = f"{place}| {player}| {score}  | {time}"
+                
+                # Отображаем строку
+                row_surf = mono_font.render(row, True, (255, 255, 255))
+                row_rect = row_surf.get_rect(center=(SCREEN_WIDTH // 2, y_offset))
+                screen.blit(row_surf, row_rect)
+                
                 y_offset += 25
         
         # Подсказки для возврата и управления музыкой
