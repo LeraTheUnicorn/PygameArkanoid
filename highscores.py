@@ -85,7 +85,7 @@ class HighScoreManager:
         
         for i, score_data in enumerate(self.highscores, 1):
             player_name = score_data["player_name"][:20]  # Ограничиваем до 20 символов
-            # Форматируем строку с правильным выравниванием
-            result += f"{i:<6} {player_name:<20} {score_data['score']:<8} {score_data['time_formatted']:<8}\n"
+            # Используем ljust для выравнивания по левому краю в рамках ширины столбца
+            result += f"{str(i):<6} {player_name:<20} {str(score_data['score']):<8} {score_data['time_formatted']:<8}\n"
         
         return result
