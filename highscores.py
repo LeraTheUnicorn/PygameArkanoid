@@ -5,10 +5,46 @@
 
 import json
 import os
+import sys
 from typing import List, Dict
 from datetime import datetime
 
-HIGHSCORES_FILE = "highscores.json"
+def get_game_directory():
+    """
+    Определяет каталог игры.
+    В приоритете: каталог установки Windows (%LOCALAPPDATA%\Games\Arkanoid)
+    Если каталог установки недоступен, использует текущую директорию
+    """
+    # Пытаемся получить каталог установки из переменных окружения
+    try:
+        # Для Windows - используем LOCALAPPDATA
+        localappdata = os.environ.get('LOCALAPPDATA')
+        if localappdata:
+            game_dir = os.path.join(localappdata, 'Games', 'Arkanoid')
+            return game_dir
+    except:
+        pass
+    
+    # Если не удалось определить каталог установки, используем текущую директорию
+    if getattr(sys, 'frozen', False):
+        # Если приложение запущено как exe (PyInstaller)
+        return os.path.dirname(sys.executable)
+    else:
+        # Если приложение запущено как скрипт Python
+        return os.path.dirname(os.path.abspath(__file__))
+
+def get_highscores_file_path():
+    """Возвращает полный путь к файлу рекордов"""
+    game_dir = get_game_directory()
+    
+    # Создаем каталог, если он не существует
+    if not os.path.exists(game_dir):
+        os.makedirs(game_dir, exist_ok=True)
+    
+    return os.path.join(game_dir, "highscores.json")
+
+# Путь к файлу рекордов (теперь с полным путем)
+HIGHSCORES_FILE = get_highscores_file_path()
 
 
 class HighScoreManager:

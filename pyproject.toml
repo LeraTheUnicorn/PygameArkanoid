@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arkanoid-game"
-version = "1.4.1"
+version = "1.6.1"
 description = "Игра Арканоид"
 authors = ["Developer <dadbarn@gmail.com>"]
 readme = "README.md"
