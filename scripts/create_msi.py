@@ -75,6 +75,7 @@ def create_wix_files():
                          WorkingDirectory="INSTALLFOLDER"
                          Icon="GameIcon.exe" />
              </File>
+             <File Id="HighscoresData" Source="resources/highscores.json" />
            </Component>
 
            <Component Id="CreateHighscoresFile" Guid="22222222-2222-2222-2222-222222222222">
