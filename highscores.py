@@ -20,7 +20,7 @@ class HighScoreManager:
         """Загружает рекорды из файла"""
         try:
             if os.path.exists(HIGHSCORES_FILE):
-                with open(HIGHSCORES_FILE, 'r', encoding='utf-8') as f:
+                with open(HIGHSCORES_FILE, "r", encoding="utf-8") as f:
                     self.highscores = json.load(f)
         except (json.JSONDecodeError, IOError):
             self.highscores = []
@@ -28,7 +28,7 @@ class HighScoreManager:
     def save_highscores(self) -> None:
         """Сохраняет рекорды в файл"""
         try:
-            with open(HIGHSCORES_FILE, 'w', encoding='utf-8') as f:
+            with open(HIGHSCORES_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.highscores, f, ensure_ascii=False, indent=2)
         except IOError:
             print("Ошибка сохранения рекордов")
@@ -40,7 +40,9 @@ class HighScoreManager:
         """
         # СТРОГОЕ ограничение диапазона очков от 0 до 50 баллов
         if not (0 <= score <= 50):
-            raise ValueError(f"Очки должны быть в диапазоне от 0 до 50. Получено: {score}")
+            raise ValueError(
+                f"Очки должны быть в диапазоне от 0 до 50. Получено: {score}"
+            )
 
         # Ограничиваем время до 59:59 (3599 секунд)
         if game_time_seconds > 3599:
@@ -54,7 +56,7 @@ class HighScoreManager:
             "score": score,
             "time_seconds": game_time_seconds,
             "time_formatted": game_time_formatted,
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
 
         # Проверяем, попадет ли результат в топ-10 БЕЗ обрезки до 10
@@ -62,12 +64,17 @@ class HighScoreManager:
         temp_scores.append(new_score)
 
         # Сортируем временный список БЕЗ обрезки
-        temp_scores.sort(key=lambda item: (-item["score"], item["time_seconds"], item["player_name"]))
+        temp_scores.sort(
+            key=lambda item: (-item["score"], item["time_seconds"], item["player_name"])
+        )
 
         # Проверяем позицию нового результата в отсортированном списке
         for i, score_data in enumerate(temp_scores):
-            if score_data["player_name"] == player_name and score_data["score"] == score and score_data[
-                "time_seconds"] == game_time_seconds:
+            if (
+                score_data["player_name"] == player_name
+                and score_data["score"] == score
+                and score_data["time_seconds"] == game_time_seconds
+            ):
                 if i >= 10:  # 11-я позиция или ниже (индексы начинаются с 0)
                     # Результат не попал в топ-10
                     return False
@@ -122,7 +129,7 @@ class HighScoreManager:
         # Заголовки колонок
         result += "Место | Игрок                | Очки | Время  \n"
 
-        # Линия разделителя под заголовками (69 знаков равенства)  
+        # Линия разделителя под заголовками (69 знаков равенства)
         result += "=" * 69 + "\n"
 
         # Данные с точным форматированием каждой колонки
@@ -141,7 +148,9 @@ class HighScoreManager:
             score = f"{score_data['score']:>3}"  # 3 символа, выравнивание справа
 
             # Форматирование времени: 5 символов, выравнивание справа
-            time = f"{score_data['time_formatted']:>5}"  # 5 символов, выравнивание справа
+            time = (
+                f"{score_data['time_formatted']:>5}"  # 5 символов, выравнивание справа
+            )
 
             # Собираем строку точно как в правильном файле
             row = f"{place}| {player}| {score}  | {time}"

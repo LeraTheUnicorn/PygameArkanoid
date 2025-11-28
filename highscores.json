@@ -28,6 +28,13 @@
     "date": "2025-11-28 22:04"
   },
   {
+    "player_name": "hhhhh",
+    "score": 50,
+    "time_seconds": 96,
+    "time_formatted": "1:36",
+    "date": "2025-11-29 00:54"
+  },
+  {
     "player_name": "Алексей",
     "score": 50,
     "time_seconds": 120,
@@ -61,12 +68,5 @@
     "time_seconds": 89,
     "time_formatted": "1:29",
     "date": "2025-11-28 17:00"
-  },
-  {
-    "player_name": "Анна",
-    "score": 40,
-    "time_seconds": 165,
-    "time_formatted": "2:45",
-    "date": "2025-11-28 16:45"
   }
 ]
