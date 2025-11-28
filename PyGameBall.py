@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 
 import random
 import time
@@ -63,22 +63,29 @@ def generate_tone_sound(frequency: float, duration: float, sample_rate: int = 44
     return pygame.sndarray.make_sound(stereo_wave)
 
 
+def is_valid_player_name_char(char: str) -> bool:
+    """Проверяет, является ли символ допустимым для имени игрока (только буквы и цифры)"""
+    return char.isalnum()  # isalnum() возвращает True только для букв и цифр
+
+
 def generate_paddle_sound() -> pygame.mixer.Sound:
     """Генерирует 16-битный звук отскока от платформы (всегда одинаковый)"""
     return generate_tone_sound(330, 0.15, volume=0.4)  # E4 - 330 Гц
 
 
-def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, highscore_manager: HighScoreManager) -> tuple[str, bool]:
-    """Возвращает имя игрока, введенное с клавиатуры и состояние музыки"""
+def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, highscore_manager: HighScoreManager) -> tuple[str, bool, bool]:
+    """Возвращает имя игрока, введенное с клавиатуры, состояние музыки и флаг выхода из игры"""
     input_text = ""
     input_active = True
     music_enabled = True
+    exit_game = False
     
     while input_active:
         # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return "", music_enabled  # Выход из игры по крестику
+                exit_game = True
+                return "", music_enabled, exit_game  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if input_text.strip():
@@ -89,12 +96,12 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
                     # Показываем таблицу рекордов (возврат к вводу имени)
                     music_enabled, exit_game = show_highscores(screen, font, highscore_manager, exit_on_esc=False)
                     if exit_game:
-                        return "", music_enabled  # Выход из игры
-                elif len(input_text) < 20:  # Ограничение длины имени
+                        return "", music_enabled, True  # Выход из игры
+                elif len(input_text) < 20 and is_valid_player_name_char(event.unicode):  # Ограничение длины имени и допустимых символов
                     input_text += event.unicode
                 elif event.key == pygame.K_ESCAPE:
                     # Выход из игры
-                    return "", music_enabled
+                    return "", music_enabled, True
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -115,11 +122,14 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
         # Поле ввода
         input_surface = font.render(input_text, True, (255, 255, 255))
         input_rect = input_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
-        pygame.draw.rect(screen, (255, 255, 255), input_rect.inflate(20, 10), 2)
+        
+        # Проверяем валидность ввода - если есть недопустимые символы, меняем цвет фона на красный
+        input_bg_color = (255, 100, 100) if input_text and not all(is_valid_player_name_char(c) for c in input_text) else (255, 255, 255)
+        pygame.draw.rect(screen, input_bg_color, input_rect.inflate(20, 10), 2)
         screen.blit(input_surface, input_rect)
         
         # Подсказка
-        render_colored_hint(screen, font, "Нажмите Enter для продолжения", 
+        render_colored_hint(screen, font, "После ввода имени нажмите Enter для продолжения", 
                            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 20))
         
         # Подсказка о таблице рекордов
@@ -132,7 +142,7 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
         
         pygame.display.flip()
     
-    return input_text.strip(), music_enabled
+    return input_text.strip(), music_enabled, exit_game
 
 
 def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_manager: HighScoreManager, exit_on_esc: bool = False) -> tuple[bool, bool]:
@@ -232,15 +242,13 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
                 
                 y_offset += 25
         
-        # Подсказки для возврата и управления музыкой
+        # Подсказки для возврата
         if exit_on_esc:
             render_colored_hint(screen, font, "Backspace - возврат, ESC - выход из игры", 
                                (SCREEN_WIDTH // 2 - 180, SCREEN_HEIGHT - 70))
         else:
-            render_colored_hint(screen, font, "Backspace или ESC - возврат", 
+            render_colored_hint(screen, font, "BackSpace - возврат", 
                                (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 70))
-        render_colored_hint(screen, font, "M - переключение звука",
-                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 40))
         
         pygame.display.flip()
     
@@ -248,8 +256,8 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
 
 
 def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, 
-                     score: int, player_name: str, game_time_seconds: int, highscore_manager: HighScoreManager) -> tuple[bool, bool]:
-    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_музыки, перезапуск_игры)."""
+                     score: int, player_name: str, game_time_seconds: int, highscore_manager: HighScoreManager) -> tuple[bool, bool, bool]:
+    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_музыки, перезапуск_игры, выход_из_игры)."""
     game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
     
     # Добавляем результат в рекорды и проверяем, попал ли он в топ-10
@@ -258,15 +266,18 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
     # Состояние фоновой музыки
     music_enabled = True
     restart_game = False
+    exit_game = False
     
     waiting = True
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return music_enabled, False  # Выход из игры по крестику
+                exit_game = True
+                return music_enabled, False, exit_game  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return music_enabled, False  # Выход из игры
+                    exit_game = True
+                    return music_enabled, False, exit_game  # Выход из игры
                 elif event.key == pygame.K_RETURN:
                     waiting = False
                     restart_game = True
@@ -274,7 +285,8 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
                     # Показываем таблицу рекордов (ESC выходит из игры)
                     music_enabled, exit_game = show_highscores(screen, font, highscore_manager, exit_on_esc=True)
                     if exit_game:
-                        return music_enabled, False  # Выход из игры
+                        exit_game = True
+                        return music_enabled, False, exit_game  # Выход из игры
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -320,12 +332,10 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
                            (SCREEN_WIDTH // 2 - 150, 400))
         render_colored_hint(screen, font, "ESC - выход из игры", 
                            (SCREEN_WIDTH // 2 - 150, 430))
-        render_colored_hint(screen, font, "M - переключение звука", 
-                           (SCREEN_WIDTH // 2 - 150, 460))
         
         pygame.display.flip()
     
-    return music_enabled, restart_game
+    return music_enabled, restart_game, exit_game
 
 
 @dataclass
@@ -490,9 +500,13 @@ def main() -> None:
     game_started = False
     ball_trail = []  # Список для хранения позиций мяча для шлейфа
     running = True
+    exit_game = False
     
     # Ввод имени игрока
-    player_name, music_enabled = get_player_name(screen, font, big_font, highscore_manager)
+    player_name, music_enabled, exit_game = get_player_name(screen, font, big_font, highscore_manager)
+    if exit_game:
+        pygame.quit()
+        return
     
     # Запускаем музыку после ввода имени (если она включена)
     if music_enabled:
@@ -585,7 +599,12 @@ def main() -> None:
                         game_over = True
                         # Рассчитываем время игры и сохраняем результат
                         game_time_seconds = int(time.time() - game_start_time)
-                        music_enabled, restart_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                        music_enabled, restart_game, exit_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                        
+                        # Если игрок хочет выйти из игры
+                        if exit_game:
+                            pygame.quit()
+                            return
                         
                         # Если игрок хочет начать новую игру, перезапускаем
                         if restart_game:
@@ -610,7 +629,12 @@ def main() -> None:
                     game_over = True
                     # Рассчитываем время игры и сохраняем результат
                     game_time_seconds = int(time.time() - game_start_time)
-                    music_enabled, restart_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                    music_enabled, restart_game, exit_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                    
+                    # Если игрок хочет выйти из игры
+                    if exit_game:
+                        pygame.quit()
+                        return
                     
                     # Если игрок хочет начать новую игру, перезапускаем
                     if restart_game:
