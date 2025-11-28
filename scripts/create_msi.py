@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Скрипт автоматического создания MSI инсталлятора для игры Арканоид
+Использует WiX Toolset для создания MSI файлов
+"""
+
+import os
+import sys
+import subprocess
+import shutil
+from pathlib import Path
+
+
+def check_wix_installation():
+    """Проверяет наличие WiX Toolset"""
+    try:
+        # Проверяем wix.exe
+        result_wix = subprocess.run(['wix', '--version'], capture_output=True, text=True)
+        return result_wix.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def get_current_version():
+    """Получает текущую версию из PyGameBall.py"""
+    try:
+        with open('PyGameBall.py', 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('VERSION ='):
+                    return line.split('"')[1]
+    except:
+        return "1.6.1"
+    return "1.6.1"
+
+def create_wix_files():
+    """Создает файлы WiX для MSI сборки"""
+
+    # Создаем директории для WiX
+    wix_dir = Path("wix_build")
+    wix_dir.mkdir(exist_ok=True)
+
+    # Получаем текущую версию
+    version = get_current_version()
+
+    # Содержимое Product.wxs
+    product_wxs = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Игра Арканоид"
+           Language="1049"
+           Version="{version}.0"
+           Manufacturer="Разработчик"
+           UpgradeCode="12345678-1234-1234-1234-123456789012"
+           Codepage="65001">
+
+     <MediaTemplate EmbedCab="yes" />
+
+     <Feature Id="ProductFeature"
+              Title="Игра Арканоид"
+              Level="1">
+       <ComponentGroupRef Id="ProductComponents" />
+       <ComponentRef Id="ApplicationShortcut" />
+     </Feature>
+
+     <StandardDirectory Id="LocalAppDataFolder">
+       <Directory Id="GamesFolder" Name="Игры">
+         <Directory Id="INSTALLFOLDER" Name="Арканоид">
+           <Component Id="ProductComponents" Guid="11111111-1111-1111-1111-111111111111">
+             <File Id="GameExecutable" Source="Arkanoid_v{version}.exe" KeyPath="yes">
+               <Shortcut Id="GameStartMenuShortcut"
+                         Directory="ProgramMenuDir"
+                         Name="Арканоид"
+                         Description="Игра Арканоид"
+                         WorkingDirectory="INSTALLFOLDER"
+                         Icon="GameIcon.exe" />
+             </File>
+           </Component>
+
+           <Component Id="CreateHighscoresFile" Guid="22222222-2222-2222-2222-222222222222">
+             <CreateFolder />
+           </Component>
+         </Directory>
+       </Directory>
+     </StandardDirectory>
+
+     <StandardDirectory Id="DesktopFolder">
+       <Component Id="ApplicationShortcut" Guid="33333333-3333-3333-3333-333333333333">
+         <Shortcut Id="DesktopApplicationShortcut"
+                   Directory="DesktopFolder"
+                   Name="Арканоид"
+                   Description="Игра Арканоид"
+                   WorkingDirectory="INSTALLFOLDER"
+                   Target="[#GameExecutable]"
+                   Icon="GameIcon.exe" />
+         <RegistryValue Root="HKCU"
+                        Key="Software\\Arkanoid"
+                        Name="installed"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+       </Component>
+     </StandardDirectory>
+
+     <StandardDirectory Id="ProgramMenuFolder">
+       <Directory Id="ProgramMenuDir" Name="Арканоид" />
+     </StandardDirectory>
+
+     <ComponentGroup Id="ProductComponents">
+       <ComponentRef Id="ProductComponents" />
+       <ComponentRef Id="CreateHighscoresFile" />
+     </ComponentGroup>
+
+     <Property Id="ARPPRODUCTICON" Value="GameIcon.exe" />
+     <Property Id="ARPHELPLINK" Value="https://github.com/developer/arkanoid" />
+     <Property Id="ARPURLINFOABOUT" Value="https://github.com/developer/arkanoid" />
+
+   </Package>
+</Wix>'''
+
+    # Записываем Product.wxs
+    with open(wix_dir / "Product.wxs", "w", encoding="utf-8") as f:
+        f.write(product_wxs)
+
+    # Создаем icon.wxi для иконки
+    icon_wxi = '''<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <Icon Id="GameIcon.exe" SourceFile="resources/icon.ico" />
+  </Fragment>
+</Wix>'''
+
+    with open(wix_dir / "icon.wxi", "w", encoding="utf-8") as f:
+        f.write(icon_wxi)
+
+    return wix_dir
+
+
+def build_msi():
+    """Собирает MSI файл с помощью WiX"""
+    version = get_current_version()
+    print("Создаю WiX файлы...")
+    wix_dir = create_wix_files()
+
+    print("Компилирую WiX исходники...")
+
+    # Собираем MSI с помощью wix.exe
+    msi_name = f"Arkanoid_v{version}_Setup.msi"
+    wix_cmd = ["wix", "build", "-arch", "x64", "-ext", "WixToolset.Util.wixext", "-o", msi_name, str(wix_dir / "Product.wxs"), str(wix_dir / "icon.wxi")]
+    wix_result = subprocess.run(wix_cmd, capture_output=True, text=True)
+
+    if wix_result.returncode != 0:
+        print(f"Ошибка сборки MSI: {wix_result.stderr}")
+        return False
+
+    print(f"MSI успешно создан: {msi_name}")
+    return True
+
+
+def main():
+    print("=== Создание MSI инсталлятора для Arkanoid ===")
+
+    if not check_wix_installation():
+        print("WiX Toolset не найден!")
+        print("Установите WiX v6.0 или новее с https://github.com/wixtoolset/wix/releases/")
+        print("Добавьте WiX в PATH: C:\\Program Files\\WiX Toolset v6.0\\bin")
+        return False
+
+    if build_msi():
+        print("\nMSI инсталлятор готов к распространению!")
+        print(f"Файл: Arkanoid_v{get_current_version()}_Setup.msi")
+        print("\nФункции инсталлятора:")
+        print("- Установка в %LOCALAPPDATA%\\Games\\Arkanoid")
+        print("- Создание ярлыка на рабочем столе")
+        print("- Автоматическое создание папки для рекордов")
+        print("- Правильная деинсталляция")
+        return True
+    else:
+        print("\nОшибка создания MSI инсталлятора")
+        return False
+
+
+if __name__ == "__main__":
+    main()
