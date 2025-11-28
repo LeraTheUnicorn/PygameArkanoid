@@ -195,17 +195,17 @@ def build_msi():
     """Создает MSI инсталлятор с помощью WiX"""
     try:
         print("Создаю MSI инсталлятор...")
-        
+
         # Проверяем наличие WiX
-        result = subprocess.run(['candle', '-?'], capture_output=True, text=True)
+        result = subprocess.run(['wix', '--version'], capture_output=True, text=True)
         if result.returncode != 0:
-            print("WiX Toolset не найден. Установите с https://wixtoolset.org/releases/")
+            print("WiX Toolset не найден. Установите с https://github.com/wixtoolset/wix/releases/")
             return False
-        
+
         # Импортируем и запускаем скрипт создания MSI
         import create_msi
         return create_msi.build_msi()
-        
+
     except Exception as e:
         print(f"Ошибка при создании MSI: {e}")
         return False
@@ -253,6 +253,10 @@ def main():
     # README.md
     if update_readme_version('README.md', new_version):
         files_updated.append('README.md')
+
+    # create_installer.iss
+    if update_version_in_file('create_installer.iss', r'#define MyAppVersion "\d+\.\d+\.\d+"', new_version):
+        files_updated.append('create_installer.iss')
     
     # Создаем changelog запись
     if create_changelog_entry(new_version):
@@ -291,8 +295,8 @@ def main():
         files_created = []
         files_created.append(f"Arkanoid_v{new_version}.exe")
         
-        if installer_choice in ['2', '4'] and os.path.exists("installer/Arkanoid_v1.6.1_Setup.exe"):
-            files_created.append("Arkanoid_v1.6.1_Setup.exe (EXE инсталлятор)")
+        if installer_choice in ['2', '4'] and os.path.exists(f"installer/Arkanoid_v{new_version}_Setup.exe"):
+            files_created.append(f"Arkanoid_v{new_version}_Setup.exe (EXE инсталлятор)")
         
         if installer_choice in ['3', '4'] and os.path.exists(f"Arkanoid_v{new_version}_Setup.msi"):
             files_created.append(f"Arkanoid_v{new_version}_Setup.msi (MSI инсталлятор)")

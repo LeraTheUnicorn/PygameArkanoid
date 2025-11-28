@@ -2,7 +2,7 @@
 ; Для компиляции требуется Inno Setup Compiler
 
 #define MyAppName "Arkanoid"
-#define MyAppVersion "1.6.1"
+"1.6.2"
 #define MyAppPublisher "Developer"
 #define MyAppURL "https://github.com/developer/arkanoid"
 #define MyAppExeName "Arkanoid_v{#MyAppVersion}.exe"

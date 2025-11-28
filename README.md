@@ -3,7 +3,7 @@
 Классическая игра Арканоид, написанная на Python с использованием Pygame. Включает в себя систему рекордов, звуковые
 эффекты и современный интерфейс.
 
-![Версия](https://img.shields.io/badge/version-1.6.1-blue.svg)
+![Версия](https://img.shields.io/badge/version-1.6.4-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Pygame](https://img.shields.io/badge/pygame-2.5+-green.svg)
 
@@ -96,7 +96,7 @@ python PyGameBall.py
 Для создания инсталляторов вам потребуются дополнительные инструменты:
 
 - **Inno Setup** (для EXE инсталляторов): https://jrsoftware.org/isinfo.php
-- **WiX Toolset** (для MSI инсталляторов): https://wixtoolset.org/releases/
+- **WiX Toolset v6.0+** (для MSI инсталляторов): https://github.com/wixtoolset/wix/releases/
 
 **Автоматическое создание:**
 ```bash
@@ -233,7 +233,7 @@ PythonProject
 
 Полную историю изменений смотрите в [changelog.md](changelog.md).
 
-### Текущая версия: 1.6.1
+### Текущая версия: 1.6.4
 
 - Улучшенный пользовательский интерфейс с контекстными подсказками
 - Добавлена возможность просмотра таблицы рекордов

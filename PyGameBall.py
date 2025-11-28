@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.6.1"
+"1.6.4"
 
 import random
 import time

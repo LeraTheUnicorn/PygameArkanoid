@@ -15,13 +15,23 @@ from pathlib import Path
 def check_wix_installation():
     """Проверяет наличие WiX Toolset"""
     try:
-        # Проверяем candle.exe и light.exe
-        result_candle = subprocess.run(['candle', '-?'], capture_output=True, text=True)
-        result_light = subprocess.run(['light', '-?'], capture_output=True, text=True)
-        return result_candle.returncode == 0 and result_light.returncode == 0
+        # Проверяем wix.exe
+        result_wix = subprocess.run(['wix', '--version'], capture_output=True, text=True)
+        return result_wix.returncode == 0
     except FileNotFoundError:
         return False
 
+
+def get_current_version():
+    """Получает текущую версию из PyGameBall.py"""
+    try:
+        with open('PyGameBall.py', 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('VERSION ='):
+                    return line.split('"')[1]
+    except:
+        return "1.6.1"
+    return "1.6.1"
 
 def create_wix_files():
     """Создает файлы WiX для MSI сборки"""
@@ -30,98 +40,82 @@ def create_wix_files():
     wix_dir = Path("wix_build")
     wix_dir.mkdir(exist_ok=True)
 
+    # Получаем текущую версию
+    version = get_current_version()
+
     # Содержимое Product.wxs
-    product_wxs = '''<?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*"
-           Name="Игра Арканоид"
+    product_wxs = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Игра Арканоид"
            Language="1049"
-           Version="1.6.1.0"
+           Version="{version}.0"
            Manufacturer="Разработчик"
-           UpgradeCode="{12345678-1234-1234-1234-123456789012}">
+           UpgradeCode="12345678-1234-1234-1234-123456789012"
+           Codepage="65001">
 
-    <Package InstallerVersion="200"
-             Compressed="yes"
-             InstallScope="perUser"
-             Platform="x64" />
+     <MediaTemplate EmbedCab="yes" />
 
-    <MediaTemplate EmbedCab="yes" />
+     <Feature Id="ProductFeature"
+              Title="Игра Арканоид"
+              Level="1">
+       <ComponentGroupRef Id="ProductComponents" />
+       <ComponentRef Id="ApplicationShortcut" />
+     </Feature>
 
-    <Feature Id="ProductFeature"
-             Title="Игра Арканоид"
-             Level="1">
-      <ComponentGroupRef Id="ProductComponents" />
-      <ComponentRef Id="ApplicationShortcut" />
-    </Feature>
+     <StandardDirectory Id="LocalAppDataFolder">
+       <Directory Id="GamesFolder" Name="Игры">
+         <Directory Id="INSTALLFOLDER" Name="Арканоид">
+           <Component Id="ProductComponents" Guid="11111111-1111-1111-1111-111111111111">
+             <File Id="GameExecutable" Source="Arkanoid_v{version}.exe" KeyPath="yes">
+               <Shortcut Id="GameStartMenuShortcut"
+                         Directory="ProgramMenuDir"
+                         Name="Арканоид"
+                         Description="Игра Арканоид"
+                         WorkingDirectory="INSTALLFOLDER"
+                         Icon="GameIcon.exe" />
+             </File>
+           </Component>
 
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="LocalAppDataFolder">
-        <Directory Id="GamesFolder" Name="Игры">
-          <Directory Id="INSTALLFOLDER" Name="Арканоид" />
-        </Directory>
-      </Directory>
+           <Component Id="CreateHighscoresFile" Guid="22222222-2222-2222-2222-222222222222">
+             <CreateFolder />
+           </Component>
+         </Directory>
+       </Directory>
+     </StandardDirectory>
 
-      <!-- Desktop directory -->
-      <Directory Id="DesktopFolder" />
-    </Directory>
+     <StandardDirectory Id="DesktopFolder">
+       <Component Id="ApplicationShortcut" Guid="33333333-3333-3333-3333-333333333333">
+         <Shortcut Id="DesktopApplicationShortcut"
+                   Directory="DesktopFolder"
+                   Name="Арканоид"
+                   Description="Игра Арканоид"
+                   WorkingDirectory="INSTALLFOLDER"
+                   Target="[#GameExecutable]"
+                   Icon="GameIcon.exe" />
+         <RegistryValue Root="HKCU"
+                        Key="Software\\Arkanoid"
+                        Name="installed"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+       </Component>
+     </StandardDirectory>
 
-    <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="ProductComponents" Guid="*">
-        <File Id="GameExecutable" Source="Arkanoid_v1.6.1.exe" KeyPath="yes">
-          <Shortcut Id="GameStartMenuShortcut"
-                    Directory="ProgramMenuDir"
-                    Name="Арканоид"
-                    Description="Игра Арканоид"
-                    WorkingDirectory="INSTALLFOLDER" />
-        </File>
+     <StandardDirectory Id="ProgramMenuFolder">
+       <Directory Id="ProgramMenuDir" Name="Арканоид" />
+     </StandardDirectory>
 
-        <File Id="SoundsFolder" Source="sounds" />
-        <File Id="ImagesFolder" Source="images" />
-        <File Id="HighscoresModule" Source="highscores.py" />
-        <File Id="ReadmeFile" Source="README.md" />
-      </Component>
-    </DirectoryRef>
+     <ComponentGroup Id="ProductComponents">
+       <ComponentRef Id="ProductComponents" />
+       <ComponentRef Id="CreateHighscoresFile" />
+     </ComponentGroup>
 
-    <DirectoryRef Id="DesktopFolder">
-      <Component Id="ApplicationShortcut" Guid="*">
-        <Shortcut Id="DesktopApplicationShortcut"
-                  Directory="DesktopFolder"
-                  Name="Арканоид"
-                  Description="Игра Арканоид"
-                  WorkingDirectory="INSTALLFOLDER"
-                  Target="[#GameExecutable]" />
-        <RegistryValue Root="HKCU"
-                       Key="Software\\Arkanoid"
-                       Name="installed"
-                       Type="integer"
-                       Value="1"
-                       KeyPath="yes" />
-      </Component>
-    </DirectoryRef>
+     <Property Id="ARPPRODUCTICON" Value="GameIcon.exe" />
+     <Property Id="ARPHELPLINK" Value="https://github.com/developer/arkanoid" />
+     <Property Id="ARPURLINFOABOUT" Value="https://github.com/developer/arkanoid" />
 
-    <DirectoryRef Id="ProgramMenuDir">
-      <Directory Id="ProgramMenuDir" Name="Арканоид" />
-    </DirectoryRef>
-
-    <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="CreateHighscoresFile" Guid="*">
-        <CreateFolder />
-        <util:PermissionEx xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
-                           User="[LogonUser]"
-                           GenericAll="yes" />
-      </Component>
-    </DirectoryRef>
-
-    <ComponentGroup Id="ProductComponents">
-      <ComponentRef Id="ProductComponents" />
-      <ComponentRef Id="CreateHighscoresFile" />
-    </ComponentGroup>
-
-    <Property Id="ARPPRODUCTICON" Value="GameIcon.exe" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/developer/arkanoid" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/developer/arkanoid" />
-
-  </Product>
+   </Package>
 </Wix>'''
 
     # Записываем Product.wxs
@@ -130,9 +124,11 @@ def create_wix_files():
 
     # Создаем icon.wxi для иконки
     icon_wxi = '''<?xml version="1.0" encoding="UTF-8"?>
-<Include>
-  <Icon Id="GameIcon.exe" SourceFile="icon.ico" />
-</Include>'''
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <Icon Id="GameIcon.exe" SourceFile="icon.ico" />
+  </Fragment>
+</Wix>'''
 
     with open(wix_dir / "icon.wxi", "w", encoding="utf-8") as f:
         f.write(icon_wxi)
@@ -142,28 +138,22 @@ def create_wix_files():
 
 def build_msi():
     """Собирает MSI файл с помощью WiX"""
+    version = get_current_version()
     print("Создаю WiX файлы...")
     wix_dir = create_wix_files()
 
     print("Компилирую WiX исходники...")
 
-    # Компилируем .wxs в .wixobj
-    candle_cmd = ["candle", "-arch", "x64", str(wix_dir / "Product.wxs")]
-    candle_result = subprocess.run(candle_cmd, capture_output=True, text=True)
+    # Собираем MSI с помощью wix.exe
+    msi_name = f"Arkanoid_v{version}_Setup.msi"
+    wix_cmd = ["wix", "build", "-arch", "x64", "-ext", "WixToolset.Util.wixext", "-o", msi_name, str(wix_dir / "Product.wxs"), str(wix_dir / "icon.wxi")]
+    wix_result = subprocess.run(wix_cmd, capture_output=True, text=True)
 
-    if candle_result.returncode != 0:
-        print(f"Ошибка компиляции WiX: {candle_result.stderr}")
+    if wix_result.returncode != 0:
+        print(f"Ошибка сборки MSI: {wix_result.stderr}")
         return False
 
-    # Компилируем .wixobj в .msi
-    light_cmd = ["light", str(wix_dir / "Product.wixobj"), "-o", "Arkanoid_v1.6.1_Setup.msi"]
-    light_result = subprocess.run(light_cmd, capture_output=True, text=True)
-
-    if light_result.returncode != 0:
-        print(f"Ошибка линковки MSI: {light_result.stderr}")
-        return False
-
-    print("MSI успешно создан!")
+    print(f"MSI успешно создан: {msi_name}")
     return True
 
 
@@ -172,13 +162,13 @@ def main():
 
     if not check_wix_installation():
         print("WiX Toolset не найден!")
-        print("Установите WiX с https://wixtoolset.org/releases/")
-        print("Добавьте WiX в PATH или используйте абсолютные пути к candle.exe и light.exe")
+        print("Установите WiX v6.0 или новее с https://github.com/wixtoolset/wix/releases/")
+        print("Добавьте WiX в PATH: C:\\Program Files\\WiX Toolset v6.0\\bin")
         return False
 
     if build_msi():
         print("\nMSI инсталлятор готов к распространению!")
-        print("Файл: Arkanoid_v1.6.1_Setup.msi")
+        print(f"Файл: Arkanoid_v{get_current_version()}_Setup.msi")
         print("\nФункции инсталлятора:")
         print("- Установка в %LOCALAPPDATA%\\Games\\Arkanoid")
         print("- Создание ярлыка на рабочем столе")
