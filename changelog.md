@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0] - 2025-11-28
+
+- Fixed code error with multiple main() calls
+- Added sound system with background music, paddle bounce sound, and brick hit sounds using pygame.mixer
+
 ## [1.2.0] - 2025-11-28
 
 - Clear ball trail when pausing after losing a life to avoid duplicate ball display
