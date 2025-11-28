@@ -1,9 +1,8 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.4.4"
+VERSION = "1.5.0"
 
 import random
-import math
 import time
 import numpy as np
 from dataclasses import dataclass, field
@@ -69,7 +68,7 @@ def generate_paddle_sound() -> pygame.mixer.Sound:
     return generate_tone_sound(330, 0.15, volume=0.4)  # E4 - 330 Гц
 
 
-def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font) -> tuple[str, bool]:
+def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, highscore_manager: HighScoreManager) -> tuple[str, bool]:
     """Возвращает имя игрока, введенное с клавиатуры и состояние музыки"""
     input_text = ""
     input_active = True
@@ -78,14 +77,24 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
     while input_active:
         # Обработка событий
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
+            if event.type == pygame.QUIT:
+                return "", music_enabled  # Выход из игры по крестику
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if input_text.strip():
                         input_active = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
+                elif event.key == pygame.K_h:
+                    # Показываем таблицу рекордов (возврат к вводу имени)
+                    music_enabled, exit_game = show_highscores(screen, font, highscore_manager, exit_on_esc=False)
+                    if exit_game:
+                        return "", music_enabled  # Выход из игры
                 elif len(input_text) < 20:  # Ограничение длины имени
                     input_text += event.unicode
+                elif event.key == pygame.K_ESCAPE:
+                    # Выход из игры
+                    return "", music_enabled
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -113,17 +122,25 @@ def get_player_name(screen: pygame.Surface, font: pygame.font.Font, big_font: py
         render_colored_hint(screen, font, "Нажмите Enter для продолжения", 
                            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 20))
         
+        # Подсказка о таблице рекордов
+        render_colored_hint(screen, font, "Таблица рекордов - нажмите H",
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50))
+        
         # Подсказка о музыке
         render_colored_hint(screen, font, "Нажмите M для отключения звука",
-                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50))
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 80))
         
         pygame.display.flip()
     
     return input_text.strip(), music_enabled
 
 
-def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_manager: HighScoreManager) -> bool:
-    """Отображает таблицу рекордов. Возвращает состояние музыки."""
+def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_manager: HighScoreManager, exit_on_esc: bool = False) -> tuple[bool, bool]:
+    """
+    Отображает таблицу рекордов.
+    Возвращает (состояние_музыки, exit_game).
+    Если exit_on_esc=True, то ESC выходит из игры полностью, иначе возвращает False.
+    """
     # Получаем текст рекордов
     highscores_text = highscore_manager.display_highscores()
     
@@ -133,9 +150,16 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
     waiting = True
     while waiting:
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
+            if event.type == pygame.QUIT:
+                return music_enabled, True  # Выход из игры по крестику
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    waiting = False
+                    if exit_on_esc:
+                        return music_enabled, True  # Выход из игры
+                    else:
+                        waiting = False  # Возвращаемся назад
+                elif event.key == pygame.K_BACKSPACE:
+                    waiting = False  # Возвращаемся назад
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -148,9 +172,14 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
         # Отрисовка экрана рекордов
         screen.fill((10, 10, 30))
         
+        # Заголовок
+        title = font.render("ТАБЛИЦА РЕКОРДОВ", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 30))
+        screen.blit(title, title_rect)
+        
         # Разбиваем текст на строки и отображаем каждую
         lines = highscores_text.split('\n')
-        y_offset = 50
+        y_offset = 70
         
         for line in lines:
             if line.strip():  # Пропускаем пустые строки
@@ -160,36 +189,48 @@ def show_highscores(screen: pygame.Surface, font: pygame.font.Font, highscore_ma
                 y_offset += 25
         
         # Подсказки для возврата и управления музыкой
-        render_colored_hint(screen, font, "Нажмите ESC для возврата к игре", 
-                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 70))
-        render_colored_hint(screen, font, "Нажмите M для отключения звука",
-                           (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT - 40))
+        if exit_on_esc:
+            render_colored_hint(screen, font, "Backspace - возврат, ESC - выход из игры", 
+                               (SCREEN_WIDTH // 2 - 180, SCREEN_HEIGHT - 70))
+        else:
+            render_colored_hint(screen, font, "Backspace или ESC - возврат", 
+                               (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 70))
+        render_colored_hint(screen, font, "M - переключение звука",
+                           (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 40))
         
         pygame.display.flip()
     
-    return music_enabled
+    return music_enabled, False  # Возвращаемся, не выходя из игры
 
 
 def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: pygame.font.Font, 
-                     score: int, player_name: str, game_time_seconds: int, highscore_manager: HighScoreManager) -> bool:
-    """Отображает экран с результатами игры и таблицей рекордов. Возвращает состояние музыки."""
+                     score: int, player_name: str, game_time_seconds: int, highscore_manager: HighScoreManager) -> tuple[bool, bool]:
+    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_музыки, перезапуск_игры)."""
     game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
     
-    # Добавляем результат в рекорды
-    highscore_manager.add_score(player_name, score, game_time_seconds)
+    # Добавляем результат в рекорды и проверяем, попал ли он в топ-10
+    score_saved = highscore_manager.add_score(player_name, score, game_time_seconds)
     
     # Состояние фоновой музыки
     music_enabled = True
+    restart_game = False
     
     waiting = True
     while waiting:
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
+            if event.type == pygame.QUIT:
+                return music_enabled, False  # Выход из игры по крестику
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return music_enabled, False  # Выход из игры
+                elif event.key == pygame.K_RETURN:
                     waiting = False
+                    restart_game = True
                 elif event.key == pygame.K_h:
-                    # Показываем таблицу рекордов
-                    music_enabled = show_highscores(screen, font, highscore_manager)
+                    # Показываем таблицу рекордов (ESC выходит из игры)
+                    music_enabled, exit_game = show_highscores(screen, font, highscore_manager, exit_on_esc=True)
+                    if exit_game:
+                        return music_enabled, False  # Выход из игры
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -223,17 +264,24 @@ def show_game_results(screen: pygame.Surface, font: pygame.font.Font, big_font: 
         screen.blit(surf2, (SCREEN_WIDTH // 2 - 100, 250))
         screen.blit(surf3, (SCREEN_WIDTH // 2 - 100, 300))
         
+        # Сообщение о топ-10
+        if not score_saved:
+            warning_text = "Результат не попал в топ-10, таблица рекордов не обновлена"
+            warning_surface = font.render(warning_text, True, (255, 200, 100))
+            warning_rect = warning_surface.get_rect(center=(SCREEN_WIDTH // 2, 360))
+            screen.blit(warning_surface, warning_rect)
+        
         # Подсказки
-        render_colored_hint(screen, font, "Нажмите Enter для новой игры", 
+        render_colored_hint(screen, font, "Enter - новая игра, H - рекорды", 
                            (SCREEN_WIDTH // 2 - 150, 400))
-        render_colored_hint(screen, font, "Нажмите H для просмотра рекордов", 
+        render_colored_hint(screen, font, "ESC - выход из игры", 
                            (SCREEN_WIDTH // 2 - 150, 430))
-        render_colored_hint(screen, font, "Нажмите M для отключения звука", 
-                           (SCREEN_WIDTH // 2 - 130, 460))
+        render_colored_hint(screen, font, "M - переключение звука", 
+                           (SCREEN_WIDTH // 2 - 150, 460))
         
         pygame.display.flip()
     
-    return music_enabled
+    return music_enabled, restart_game
 
 
 @dataclass
@@ -309,8 +357,8 @@ def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
         pygame.draw.rect(screen, (30, 30, 30), brick, 2)
 
 
-def draw_hud(screen: pygame.Surface, score: int, hits: int, lives_left: int, font: pygame.font.Font) -> None:
-    text = f"Очки: {score} | Отбито: {hits} | Жизни: {lives_left}"
+def draw_hud(screen: pygame.Surface, score: int, lives_left: int, font: pygame.font.Font) -> None:
+    text = f"Очки: {score} | Жизни: {lives_left}"
     surf = font.render(text, True, (255, 255, 255))
     screen.blit(surf, (SCREEN_WIDTH - surf.get_width() - 20, 20))
 
@@ -393,7 +441,6 @@ def main() -> None:
     bricks = build_bricks()
 
     score = 0
-    hits = 0
     lives_left = MAX_LIVES
     game_over = False
     game_started = False
@@ -401,7 +448,7 @@ def main() -> None:
     running = True
     
     # Ввод имени игрока
-    player_name, music_enabled = get_player_name(screen, font, big_font)
+    player_name, music_enabled = get_player_name(screen, font, big_font, highscore_manager)
     
     # Запускаем музыку после ввода имени (если она включена)
     if music_enabled:
@@ -419,8 +466,8 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    # Показываем таблицу рекордов
-                    music_enabled = show_highscores(screen, font, highscore_manager)
+                    # Выход из игры
+                    running = False
                 elif event.key == pygame.K_m:
                     # Переключение фоновой музыки
                     if music_enabled:
@@ -452,7 +499,6 @@ def main() -> None:
             ball.vel_y = 0
             bricks = build_bricks()
             score = 0
-            hits = 0
             lives_left = MAX_LIVES
             game_over = False
             game_started = False
@@ -476,7 +522,6 @@ def main() -> None:
                     ball.bounce_vertical()
                     offset = (ball.rect.centerx - paddle.rect.centerx) / (paddle.rect.width / 2)
                     ball.vel_x = int(max(-BALL_SPEED, min(BALL_SPEED, BALL_SPEED * offset)))
-                    hits += 1
                     # Play paddle bounce sound
                     if paddle_bounce_sound:
                         paddle_bounce_sound.play()
@@ -496,7 +541,22 @@ def main() -> None:
                         game_over = True
                         # Рассчитываем время игры и сохраняем результат
                         game_time_seconds = int(time.time() - game_start_time)
-                        music_enabled = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                        music_enabled, restart_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                        
+                        # Если игрок хочет начать новую игру, перезапускаем
+                        if restart_game:
+                            paddle = Paddle()
+                            ball = Ball()
+                            ball.reset(paddle.rect)
+                            ball.vel_y = 0
+                            bricks = build_bricks()
+                            score = 0
+                            lives_left = MAX_LIVES
+                            game_over = False
+                            game_started = False
+                            ball_trail = []
+                            # Сброс времени игры для новой игры
+                            game_start_time = time.time()
                     else:
                         ball.reset(paddle.rect)
                         ball.vel_y = 0
@@ -506,7 +566,22 @@ def main() -> None:
                     game_over = True
                     # Рассчитываем время игры и сохраняем результат
                     game_time_seconds = int(time.time() - game_start_time)
-                    music_enabled = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                    music_enabled, restart_game = show_game_results(screen, font, big_font, score, player_name, game_time_seconds, highscore_manager)
+                    
+                    # Если игрок хочет начать новую игру, перезапускаем
+                    if restart_game:
+                        paddle = Paddle()
+                        ball = Ball()
+                        ball.reset(paddle.rect)
+                        ball.vel_y = 0
+                        bricks = build_bricks()
+                        score = 0
+                        lives_left = MAX_LIVES
+                        game_over = False
+                        game_started = False
+                        ball_trail = []
+                        # Сброс времени игры для новой игры
+                        game_start_time = time.time()
 
         screen.fill((10, 10, 30))
         draw_bricks(screen, bricks)
@@ -527,7 +602,7 @@ def main() -> None:
                     color = (max(0, 230 - fade), max(0, 90 - fade // 2), max(0, 90 - fade // 2))
                     pygame.draw.circle(screen, color, pos, radius)
         pygame.draw.ellipse(screen, (230, 90, 90), ball.rect)
-        draw_hud(screen, score, hits, lives_left, font)
+        draw_hud(screen, score, lives_left, font)
 
         if not game_started:
             draw_start_hint(screen, big_font)
