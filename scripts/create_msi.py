@@ -34,13 +34,13 @@ def get_current_version():
             os.path.join(project_root, "PyGameBall.py"), "r", encoding="utf-8"
         ) as f:
             for line in f:
-                if 'VERSION =' in line:
+                if "VERSION =" in line:
                     # Ищем строку вида VERSION = "1.6.5"
                     parts = line.split('"')
                     if len(parts) >= 2:
                         return parts[1]
                     # Если нет кавычек, пробуем найти после =
-                    version_part = line.split('=')[1].strip()
+                    version_part = line.split("=")[1].strip()
                     if version_part.startswith('"') and version_part.endswith('"'):
                         return version_part.strip('"')
     except Exception as e:
@@ -59,23 +59,29 @@ def create_wix_files():
 
     # Получаем текущую версию
     version = get_current_version()
-    
+
     # Ищем exe файл в разных местах
     exe_path = None
     possible_paths = [
         os.path.join(project_root, f"Arkanoid_v{version}.exe"),  # корень проекта
-        os.path.join(project_root, "FINAL_RELEASE", f"Arkanoid_v{version}.exe"),  # FINAL_RELEASE
-        os.path.join(project_root, "dist", f"Arkanoid_v{version}.exe"),  # dist (PyInstaller)
-        os.path.join(project_root, "build", "dist", f"Arkanoid_v{version}.exe"),  # build/dist (PyInstaller)
+        os.path.join(
+            project_root, "FINAL_RELEASE", f"Arkanoid_v{version}.exe"
+        ),  # FINAL_RELEASE
+        os.path.join(
+            project_root, "dist", f"Arkanoid_v{version}.exe"
+        ),  # dist (PyInstaller)
+        os.path.join(
+            project_root, "build", "dist", f"Arkanoid_v{version}.exe"
+        ),  # build/dist (PyInstaller)
     ]
-    
+
     for path in possible_paths:
         print(f"Проверяю путь: {path}")
         if os.path.exists(path):
             exe_path = path
             print(f"Найден exe файл: {exe_path}")
             break
-    
+
     if not exe_path:
         print(f"Ошибка: exe файл Arkanoid_v{version}.exe не найден!")
         print("Проверенные пути:")
@@ -104,8 +110,8 @@ def create_wix_files():
      </Feature>
 
      <StandardDirectory Id="LocalAppDataFolder">
-       <Directory Id="GamesFolder" Name="Игры">
-         <Directory Id="INSTALLFOLDER" Name="Арканоид">
+       <Directory Id="GamesFolder" Name="Games">
+         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
            <Component Id="ProductComponents" Guid="11111111-1111-1111-1111-111111111111">
              <File Id="GameExecutable" Source="{exe_path.replace(chr(92), chr(92)*2)}" KeyPath="yes">
                <Shortcut Id="GameStartMenuShortcut"
@@ -183,25 +189,33 @@ def build_msi():
     version = get_current_version()
     build_dir = os.path.join(project_root, "build")
     os.makedirs(build_dir, exist_ok=True)
-    
+
     # Проверяем наличие exe файла
     exe_path = os.path.join(project_root, f"Arkanoid_v{version}.exe")
-    final_release_path = os.path.join(project_root, "FINAL_RELEASE", f"Arkanoid_v{version}.exe")
-    
+    final_release_path = os.path.join(
+        project_root, "FINAL_RELEASE", f"Arkanoid_v{version}.exe"
+    )
+
     if not os.path.exists(exe_path) and not os.path.exists(final_release_path):
         print("Exe файл не найден. Создаю exe файл...")
         try:
             # Создаем exe файл напрямую
-            result = subprocess.run([sys.executable, os.path.join(project_root, "scripts", "build_spec.py")], 
-                                  check=True, cwd=project_root)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(project_root, "scripts", "build_spec.py"),
+                ],
+                check=True,
+                cwd=project_root,
+            )
             print("Exe файл создан успешно!")
         except Exception as e:
             print(f"Ошибка создания exe файла: {e}")
             return False
-    
+
     print("Создаю WiX файлы...")
     wix_dir = create_wix_files()
-    
+
     if wix_dir is None:
         print("Ошибка: не удалось создать WiX файлы")
         return False
@@ -229,6 +243,19 @@ def build_msi():
         return False
 
     print(f"MSI успешно создан: {msi_name}")
+
+    # Копируем MSI в FINAL_RELEASE
+    final_release_dir = os.path.join(project_root, "FINAL_RELEASE")
+    os.makedirs(final_release_dir, exist_ok=True)
+    final_msi_path = os.path.join(final_release_dir, f"Arkanoid_v{version}_Setup.msi")
+
+    try:
+        shutil.copy2(msi_name, final_msi_path)
+        print(f"MSI скопирован в FINAL_RELEASE: {final_msi_path}")
+    except Exception as e:
+        print(f"Ошибка копирования MSI в FINAL_RELEASE: {e}")
+        # Не возвращаем False, так как MSI уже создан успешно
+
     return True
 
 
