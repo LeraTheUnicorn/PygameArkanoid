@@ -9,6 +9,7 @@ import sys
 from typing import List, Dict
 from datetime import datetime
 
+
 def get_game_directory():
     """
     Определяет каталог игры.
@@ -18,20 +19,21 @@ def get_game_directory():
     # Пытаемся получить каталог установки из переменных окружения
     try:
         # Для Windows - используем LOCALAPPDATA
-        localappdata = os.environ.get('LOCALAPPDATA')
+        localappdata = os.environ.get("LOCALAPPDATA")
         if localappdata:
-            game_dir = os.path.join(localappdata, 'Games', 'Arkanoid')
+            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
             return game_dir
     except:
         pass
-    
+
     # Если не удалось определить каталог установки, используем текущую директорию
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Если приложение запущено как exe (PyInstaller)
         return os.path.dirname(sys.executable)
     else:
         # Если приложение запущено как скрипт Python
         return os.path.dirname(os.path.abspath(__file__))
+
 
 def get_highscores_file_path():
     """Возвращает полный путь к файлу рекордов"""
@@ -43,6 +45,7 @@ def get_highscores_file_path():
         os.makedirs(resources_dir, exist_ok=True)
 
     return os.path.join(resources_dir, "highscores.json")
+
 
 # Путь к файлу рекордов (теперь с полным путем)
 HIGHSCORES_FILE = get_highscores_file_path()

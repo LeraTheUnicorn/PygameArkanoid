@@ -14,6 +14,7 @@ import pygame
 from highscores import HighScoreManager
 from settings import SettingsManager
 
+
 def resource_path(relative_path):
     """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
     try:
@@ -23,6 +24,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 # Настройки игры
 # Размеры экрана
@@ -361,7 +363,9 @@ def show_game_results(
                 elif event.key == pygame.K_UP:
                     # Открытие окна настроек
                     paused = True
-                    music_enabled = show_settings_window(screen, font, big_font, settings_manager, ball, music_enabled)
+                    music_enabled = show_settings_window(
+                        screen, font, big_font, settings_manager, ball, music_enabled
+                    )
                     paused = False
 
         # Отрисовка экрана результатов
@@ -431,6 +435,7 @@ class Paddle:
 @dataclass
 class Ball:
     """Класс мяча с интегрированным управлением скоростью"""
+
     rect: pygame.Rect = field(
         default_factory=lambda: pygame.Rect(
             (SCREEN_WIDTH - BALL_SIZE) // 2,
@@ -439,7 +444,9 @@ class Ball:
             BALL_SIZE,
         )
     )
-    vel_x: int = field(default_factory=lambda: random.choice([-BALL_SPEED_DEFAULT, BALL_SPEED_DEFAULT]))
+    vel_x: int = field(
+        default_factory=lambda: random.choice([-BALL_SPEED_DEFAULT, BALL_SPEED_DEFAULT])
+    )
     vel_y: int = field(default_factory=lambda: -BALL_SPEED_DEFAULT)
     current_speed: int = field(default_factory=lambda: BALL_SPEED_DEFAULT)
 
@@ -467,9 +474,13 @@ class Ball:
         if 1 <= speed <= 10:
             old_speed = self.current_speed
             self.current_speed = speed
-            self.vel_x = int(self.vel_x * speed / old_speed) if old_speed != 0 else speed
-            self.vel_y = int(self.vel_y * speed / old_speed) if old_speed != 0 else -speed
-            
+            self.vel_x = (
+                int(self.vel_x * speed / old_speed) if old_speed != 0 else speed
+            )
+            self.vel_y = (
+                int(self.vel_y * speed / old_speed) if old_speed != 0 else -speed
+            )
+
             if settings_manager:
                 settings_manager.set_ball_speed(speed)
 
@@ -515,7 +526,11 @@ def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
 
 
 def draw_hud(
-    screen: pygame.Surface, score: int, lives_left: int, font: pygame.font.Font, ball: Ball
+    screen: pygame.Surface,
+    score: int,
+    lives_left: int,
+    font: pygame.font.Font,
+    ball: Ball,
 ) -> None:
     text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑↓ - скорость"
     surf = font.render(text, True, (255, 255, 255))
@@ -608,7 +623,9 @@ def show_settings_window(
                     # Проверить, нажали ли на бегунок
                     knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
                     knob_y = slider_y + slider_height // 2
-                    if (mouse_x - knob_x)**2 + (mouse_y - knob_y)**2 <= knob_radius**2:
+                    if (mouse_x - knob_x) ** 2 + (
+                        mouse_y - knob_y
+                    ) ** 2 <= knob_radius**2:
                         dragging = True
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
@@ -638,13 +655,17 @@ def show_settings_window(
         screen.blit(title, title_rect)
 
         # Текст скорости
-        speed_text = font.render(f"Скорость мяча: {current_speed}", True, (255, 255, 255))
+        speed_text = font.render(
+            f"Скорость мяча: {current_speed}", True, (255, 255, 255)
+        )
         speed_rect = speed_text.get_rect(center=(SCREEN_WIDTH // 2, 180))
         screen.blit(speed_text, speed_rect)
 
         # Слайдер
         # Полоса
-        pygame.draw.rect(screen, (100, 100, 100), (slider_x, slider_y, slider_width, slider_height))
+        pygame.draw.rect(
+            screen, (100, 100, 100), (slider_x, slider_y, slider_width, slider_height)
+        )
         # Бегунок
         knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
         knob_y = slider_y + slider_height // 2
@@ -670,26 +691,44 @@ def show_settings_window(
     return music_enabled
 
 
-def reset_game(paddle: Paddle, ball: Ball, bricks: List[pygame.Rect], 
-               score: int, lives_left: int, game_over: bool, game_started: bool,
-               ball_trail: list, game_start_time: list) -> tuple:
+def reset_game(
+    paddle: Paddle,
+    ball: Ball,
+    bricks: List[pygame.Rect],
+    score: int,
+    lives_left: int,
+    game_over: bool,
+    game_started: bool,
+    ball_trail: list,
+    game_start_time: list,
+) -> tuple:
     """Универсальная функция для сброса игры, устраняющая дублирование кода"""
     # Создаем новые объекты
     new_paddle = Paddle()
     new_ball = Ball()
-    
+
     # Устанавливаем скорость мяча из настроек
     settings_manager = SettingsManager()
     ball_speed = settings_manager.get_ball_speed()
     new_ball.set_speed(ball_speed)
-    
+
     new_ball.reset(new_paddle.rect)
     new_ball.vel_y = 0
-    
+
     new_bricks = build_bricks()
-    
+
     # Возвращаем сброшенные значения
-    return (new_paddle, new_ball, new_bricks, 0, MAX_LIVES, False, False, [], time.time())
+    return (
+        new_paddle,
+        new_ball,
+        new_bricks,
+        0,
+        MAX_LIVES,
+        False,
+        False,
+        [],
+        time.time(),
+    )
 
 
 def main() -> None:
@@ -803,11 +842,27 @@ def main() -> None:
 
         # Обработка перезапуска после окончания игры
         if game_over and keys[pygame.K_r]:
-            (paddle, ball, bricks, score, lives_left, game_over, game_started, 
-             ball_trail, game_start_time) = reset_game(
-                 paddle, ball, bricks, score, lives_left, game_over, game_started,
-                 ball_trail, game_start_time
-             )
+            (
+                paddle,
+                ball,
+                bricks,
+                score,
+                lives_left,
+                game_over,
+                game_started,
+                ball_trail,
+                game_start_time,
+            ) = reset_game(
+                paddle,
+                ball,
+                bricks,
+                score,
+                lives_left,
+                game_over,
+                game_started,
+                ball_trail,
+                game_start_time,
+            )
 
         if not game_over and not paused:
             if keys[pygame.K_LEFT]:
@@ -827,7 +882,10 @@ def main() -> None:
                         paddle.rect.width / 2
                     )
                     ball.vel_x = int(
-                        max(-ball.get_speed(), min(ball.get_speed(), ball.get_speed() * offset))
+                        max(
+                            -ball.get_speed(),
+                            min(ball.get_speed(), ball.get_speed() * offset),
+                        )
                     )
                     # Play paddle bounce sound
                     if paddle_bounce_sound:
@@ -869,11 +927,27 @@ def main() -> None:
 
                         # Если игрок хочет начать новую игру, перезапускаем
                         if restart_game:
-                            (paddle, ball, bricks, score, lives_left, game_over, game_started, 
-                             ball_trail, game_start_time) = reset_game(
-                                 paddle, ball, bricks, score, lives_left, game_over, game_started,
-                                 ball_trail, game_start_time
-                             )
+                            (
+                                paddle,
+                                ball,
+                                bricks,
+                                score,
+                                lives_left,
+                                game_over,
+                                game_started,
+                                ball_trail,
+                                game_start_time,
+                            ) = reset_game(
+                                paddle,
+                                ball,
+                                bricks,
+                                score,
+                                lives_left,
+                                game_over,
+                                game_started,
+                                ball_trail,
+                                game_start_time,
+                            )
                     else:
                         ball.reset(paddle.rect)
                         ball.vel_y = 0
@@ -902,11 +976,27 @@ def main() -> None:
 
                     # Если игрок хочет начать новую игру, перезапускаем
                     if restart_game:
-                        (paddle, ball, bricks, score, lives_left, game_over, game_started, 
-                         ball_trail, game_start_time) = reset_game(
-                             paddle, ball, bricks, score, lives_left, game_over, game_started,
-                             ball_trail, game_start_time
-                         )
+                        (
+                            paddle,
+                            ball,
+                            bricks,
+                            score,
+                            lives_left,
+                            game_over,
+                            game_started,
+                            ball_trail,
+                            game_start_time,
+                        ) = reset_game(
+                            paddle,
+                            ball,
+                            bricks,
+                            score,
+                            lives_left,
+                            game_over,
+                            game_started,
+                            ball_trail,
+                            game_start_time,
+                        )
 
         screen.fill((10, 10, 30))
         draw_bricks(screen, bricks)

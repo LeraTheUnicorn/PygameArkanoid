@@ -20,11 +20,18 @@ def get_current_version():
             os.path.join(project_root, "PyGameBall.py"), "r", encoding="utf-8"
         ) as f:
             for line in f:
-                if line.startswith("VERSION ="):
-                    return line.split('"')[1]
-    except:
-        return "1.6.1"
-    return "1.6.1"
+                if "VERSION =" in line:
+                    # Ищем строку вида VERSION = "1.6.5"
+                    parts = line.split('"')
+                    if len(parts) >= 2:
+                        return parts[1]
+                    # Если нет кавычек, пробуем найти после =
+                    version_part = line.split("=")[1].strip()
+                    if version_part.startswith('"') and version_part.endswith('"'):
+                        return version_part.strip('"')
+    except Exception as e:
+        print(f"Ошибка чтения версии: {e}")
+    return "1.6.5"
 
 
 def build_msi():

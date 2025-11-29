@@ -8,18 +8,20 @@ import os
 import sys
 from typing import Dict
 
+
 def get_game_directory():
     """
     Определяет каталог игры.
     Использует текущую директорию проекта для хранения файлов настроек.
     """
     # Используем директорию, где находится скрипт
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Если приложение запущено как exe (PyInstaller)
         return os.path.dirname(sys.executable)
     else:
         # Если приложение запущено как скрипт Python
         return os.path.dirname(os.path.abspath(__file__))
+
 
 def get_settings_file_path():
     """Возвращает полный путь к файлу настроек"""
@@ -32,14 +34,14 @@ def get_settings_file_path():
 
     return os.path.join(resources_dir, "settings.json")
 
+
 # Путь к файлу настроек
 SETTINGS_FILE = get_settings_file_path()
 
+
 class SettingsManager:
     def __init__(self):
-        self.settings = {
-            "ball_speed": 5  # Скорость мяча по умолчанию
-        }
+        self.settings = {"ball_speed": 5}  # Скорость мяча по умолчанию
         self.load_settings()
         self.save_settings()  # Создать файл, если не существует
 

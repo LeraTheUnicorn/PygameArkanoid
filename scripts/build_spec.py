@@ -17,13 +17,13 @@ def get_version():
         version_file = os.path.join(project_root, "PyGameBall.py")
         with open(version_file, "r", encoding="utf-8") as f:
             for line in f:
-                if 'VERSION =' in line:
+                if "VERSION =" in line:
                     # Ищем строку вида VERSION = "1.6.5"
                     parts = line.split('"')
                     if len(parts) >= 2:
                         return parts[1]
                     # Если нет кавычек, пробуем найти после =
-                    version_part = line.split('=')[1].strip()
+                    version_part = line.split("=")[1].strip()
                     if version_part.startswith('"') and version_part.endswith('"'):
                         return version_part.strip('"')
     except Exception as e:
@@ -51,10 +51,18 @@ os.makedirs(resource_dir, exist_ok=True)
 
 # Копируем ресурсы во временную директорию из корня проекта
 if os.path.exists(os.path.join(project_root, "sounds")):
-    shutil.copytree(os.path.join(project_root, "sounds"), f"{resource_dir}/sounds", dirs_exist_ok=True)
+    shutil.copytree(
+        os.path.join(project_root, "sounds"),
+        f"{resource_dir}/sounds",
+        dirs_exist_ok=True,
+    )
 
 if os.path.exists(os.path.join(project_root, "images")):
-    shutil.copytree(os.path.join(project_root, "images"), f"{resource_dir}/images", dirs_exist_ok=True)
+    shutil.copytree(
+        os.path.join(project_root, "images"),
+        f"{resource_dir}/images",
+        dirs_exist_ok=True,
+    )
 
 # Копируем необходимые файлы из корня проекта
 shutil.copy(os.path.join(project_root, "highscores.py"), resource_dir)
@@ -67,8 +75,8 @@ if os.path.exists(os.path.join(project_root, "resources", "settings.json")):
 cmd_parts = [
     "pyinstaller",
     "--onefile",
-    "--windowed", 
-    f'--name={exe_name}',
+    "--windowed",
+    f"--name={exe_name}",
     f'--workpath={os.path.join(project_root, "build", "work")}',
     f'--distpath={os.path.join(project_root, "build", "dist")}',
     f'--add-data="{os.path.join(project_root, resource_dir, "sounds")};sounds"',
@@ -90,7 +98,7 @@ cmd_parts = [
     "--exclude-module=pytest",
     "--exclude-module=unittest",
     "--clean",
-    f'"{os.path.join(project_root, "PyGameBall.py")}"'
+    f'"{os.path.join(project_root, "PyGameBall.py")}"',
 ]
 
 cmd = " ".join(cmd_parts)
@@ -106,7 +114,9 @@ if os.path.exists(dist_dir):
     if os.path.exists(exe_path):
         shutil.copy2(exe_path, os.path.join(project_root, f"{exe_name}.exe"))
         print(f"Исполняемый файл скопирован в корневую папку: {exe_name}.exe")
-        print("Файлы настроек сохранены в game_resources/ для дальнейшего использования")
+        print(
+            "Файлы настроек сохранены в game_resources/ для дальнейшего использования"
+        )
         print("Сборка завершена успешно!")
     else:
         print(f"Ошибка: файл {exe_path} не найден в dist")
