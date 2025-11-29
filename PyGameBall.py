@@ -12,6 +12,7 @@ from typing import List
 
 import pygame
 from highscores import HighScoreManager
+from settings import SettingsManager
 
 def resource_path(relative_path):
     """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
@@ -36,7 +37,7 @@ PADDLE_SPEED = 9
 
 # Размеры и скорость мяча
 BALL_SIZE = 16
-BALL_SPEED = 5
+BALL_SPEED_DEFAULT = 5  # Значение по умолчанию
 
 # Параметры кубиков
 BRICK_ROWS = 5
@@ -47,6 +48,9 @@ BRICK_PADDING = 10
 BRICK_OFFSET_TOP = 60
 
 MAX_LIVES = 3  # Максимальное количество жизней
+
+# Глобальная переменная для текущей скорости мяча
+current_ball_speed = 5
 
 
 def generate_tone_sound(
@@ -166,6 +170,14 @@ def get_player_name(
             font,
             "Нажмите M для отключения звука",
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50),
+        )
+
+        # Подсказка о настройках
+        render_colored_hint(
+            screen,
+            font,
+            "Нажмите СТРЕЛКУ ВВЕРХ для настройки скорости мяча",
+            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 80),
         )
 
         pygame.display.flip()
@@ -347,6 +359,11 @@ def show_game_results(
                     else:
                         pygame.mixer.music.play(-1)
                         music_enabled = True
+                elif event.key == pygame.K_UP:
+                    # Открытие окна настроек
+                    paused = True
+                    music_enabled = show_settings_window(screen, font, big_font, settings_manager, ball, music_enabled)
+                    paused = False
 
         # Отрисовка экрана результатов
         screen.fill((10, 10, 30))
@@ -422,8 +439,8 @@ class Ball:
             BALL_SIZE,
         )
     )
-    vel_x: int = field(default_factory=lambda: random.choice([-BALL_SPEED, BALL_SPEED]))
-    vel_y: int = -BALL_SPEED
+    vel_x: int = field(default_factory=lambda: random.choice([-BALL_SPEED_DEFAULT, BALL_SPEED_DEFAULT]))
+    vel_y: int = -BALL_SPEED_DEFAULT
 
     def update(self) -> None:
         self.rect.x += self.vel_x
@@ -438,10 +455,11 @@ class Ball:
         self.vel_y *= -1
 
     def reset(self, paddle_rect: pygame.Rect) -> None:
+        global current_ball_speed
         self.rect.center = paddle_rect.midtop
         self.rect.y -= BALL_SIZE
-        self.vel_x = random.choice([-BALL_SPEED, BALL_SPEED])
-        self.vel_y = -BALL_SPEED
+        self.vel_x = random.choice([-current_ball_speed, current_ball_speed])
+        self.vel_y = -current_ball_speed
 
 
 def build_bricks() -> List[pygame.Rect]:
@@ -473,7 +491,7 @@ def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
 def draw_hud(
     screen: pygame.Surface, score: int, lives_left: int, font: pygame.font.Font
 ) -> None:
-    text = f"Очки: {score} | Жизни: {lives_left}"
+    text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {current_ball_speed}"
     surf = font.render(text, True, (255, 255, 255))
     screen.blit(surf, (SCREEN_WIDTH - surf.get_width() - 20, 20))
 
@@ -495,7 +513,7 @@ def render_colored_hint(
     """Отображает подсказку с выделенными ключевыми словами цветом"""
     words = text.split()
     x, y = pos
-    key_words = ["Enter", "H", "M", "ESC"]
+    key_words = ["Enter", "H", "M", "ESC", "СТРЕЛКУ"]
 
     for word in words:
         # Убираем знаки препинания для сравнения
@@ -521,6 +539,128 @@ def draw_start_hint(screen: pygame.Surface, font: pygame.font.Font) -> None:
     screen.blit(surf, rect)
 
 
+def show_settings_window(
+    screen: pygame.Surface,
+    font: pygame.font.Font,
+    big_font: pygame.font.Font,
+    settings_manager: SettingsManager,
+    ball: Ball,
+    music_enabled: bool,
+) -> bool:
+    """Отображает окно настроек с слайдером скорости мяча. Возвращает состояние музыки."""
+    # Параметры слайдера
+    slider_x = 200
+    slider_y = 250
+    slider_width = 400
+    slider_height = 20
+    knob_radius = 15
+
+    # Текущая скорость
+    current_speed = settings_manager.get_ball_speed()
+
+    # Функция для обновления скорости
+    def update_ball_speed(speed: int, ball: Ball) -> None:
+        global current_ball_speed
+        old_speed = current_ball_speed
+        current_ball_speed = speed
+        settings_manager.set_ball_speed(speed)
+        # Масштабировать скорость мяча
+        if old_speed != 0:
+            scale = speed / old_speed
+            ball.vel_x = int(ball.vel_x * scale)
+            ball.vel_y = int(ball.vel_y * scale)
+
+    dragging = False
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    waiting = False  # Закрыть окно
+                elif event.key == pygame.K_m:
+                    # Переключение музыки
+                    if music_enabled:
+                        pygame.mixer.music.stop()
+                        music_enabled = False
+                    else:
+                        pygame.mixer.music.play(-1)
+                        music_enabled = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Левая кнопка мыши
+                    mouse_x, mouse_y = event.pos
+                    # Проверить, нажали ли на бегунок
+                    knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
+                    knob_y = slider_y + slider_height // 2
+                    if (mouse_x - knob_x)**2 + (mouse_y - knob_y)**2 <= knob_radius**2:
+                        dragging = True
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragging = False
+            elif event.type == pygame.MOUSEMOTION:
+                if dragging:
+                    mouse_x, _ = event.pos
+                    # Вычислить новую скорость
+                    relative_x = mouse_x - slider_x
+                    if relative_x < 0:
+                        new_speed = 1
+                    elif relative_x > slider_width:
+                        new_speed = 10
+                    else:
+                        new_speed = int(1 + (relative_x / slider_width) * 9)
+                    if new_speed != current_speed:
+                        current_speed = new_speed
+                        update_ball_speed(current_speed, ball)
+
+        # Отрисовка оверлея
+        # overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        # overlay.set_alpha(200)  # Полупрозрачный
+        # overlay.fill((0, 0, 0))
+        # screen.blit(overlay, (0, 0))
+        # Рисуем рамку вместо оверлея
+        pygame.draw.rect(screen, (100, 100, 100), (150, 100, 500, 400), 5)  # Рамка
+        pygame.draw.rect(screen, (50, 50, 50), (150, 100, 500, 400))  # Фон
+
+        # Заголовок
+        title = big_font.render("Настройки", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        screen.blit(title, title_rect)
+
+        # Текст скорости
+        speed_text = font.render(f"Скорость мяча: {current_speed}", True, (255, 255, 255))
+        speed_rect = speed_text.get_rect(center=(SCREEN_WIDTH // 2, 180))
+        screen.blit(speed_text, speed_rect)
+
+        # Слайдер
+        # Полоса
+        pygame.draw.rect(screen, (100, 100, 100), (slider_x, slider_y, slider_width, slider_height))
+        # Бегунок
+        knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
+        knob_y = slider_y + slider_height // 2
+        pygame.draw.circle(screen, (255, 255, 255), (int(knob_x), knob_y), knob_radius)
+        pygame.draw.circle(screen, (0, 0, 0), (int(knob_x), knob_y), knob_radius, 2)
+
+        # Подсказки
+        render_colored_hint(
+            screen,
+            font,
+            "Перетащите бегунок для изменения скорости",
+            (SCREEN_WIDTH // 2 - 150, 350),
+        )
+        render_colored_hint(
+            screen,
+            font,
+            "ESC - закрыть настройки, M - музыка",
+            (SCREEN_WIDTH // 2 - 150, 380),
+        )
+
+        pygame.display.flip()
+
+    return music_enabled
+
+
 def main() -> None:
     pygame.init()
     pygame.mixer.init()  # Инициализация аудио микшера
@@ -530,8 +670,16 @@ def main() -> None:
     font = pygame.font.SysFont("arial", 20)
     big_font = pygame.font.SysFont("arial", 42, bold=True)
 
-    # Инициализация менеджера рекордов
+    # Инициализация менеджеров
     highscore_manager = HighScoreManager()
+    settings_manager = SettingsManager()
+    current_ball_speed = settings_manager.get_ball_speed()
+
+    paddle = Paddle()
+    ball = Ball()
+    ball.reset(paddle.rect)
+    ball.vel_y = 0
+    bricks = build_bricks()
 
     # Загрузка звуковых эффектов и генерация звуков удара по кубикам
     try:
@@ -556,12 +704,6 @@ def main() -> None:
         paddle_bounce_sound = None
         brick_hit_sounds = None
 
-    paddle = Paddle()
-    ball = Ball()
-    ball.reset(paddle.rect)
-    ball.vel_y = 0
-    bricks = build_bricks()
-
     score = 0
     lives_left = MAX_LIVES
     game_over = False
@@ -569,6 +711,7 @@ def main() -> None:
     ball_trail = []  # Список для хранения позиций мяча для шлейфа
     running = True
     exit_game = False
+    paused = False  # Флаг паузы для окна настроек
 
     # Ввод имени игрока
     player_name, music_enabled, exit_game = get_player_name(
@@ -612,12 +755,12 @@ def main() -> None:
             ball.rect.y -= BALL_SIZE
             if keys[pygame.K_LEFT]:
                 game_started = True
-                ball.vel_x = -BALL_SPEED
-                ball.vel_y = -BALL_SPEED
+                ball.vel_x = -current_ball_speed
+                ball.vel_y = -current_ball_speed
             elif keys[pygame.K_RIGHT]:
                 game_started = True
-                ball.vel_x = BALL_SPEED
-                ball.vel_y = -BALL_SPEED
+                ball.vel_x = current_ball_speed
+                ball.vel_y = -current_ball_speed
 
         # Обработка перезапуска после окончания игры
         if game_over and keys[pygame.K_r]:
@@ -634,7 +777,7 @@ def main() -> None:
             # Сброс времени игры для новой игры
             game_start_time = time.time()
 
-        if not game_over:
+        if not game_over and not paused:
             if keys[pygame.K_LEFT]:
                 paddle.move(-1)
             if keys[pygame.K_RIGHT]:
@@ -652,7 +795,7 @@ def main() -> None:
                         paddle.rect.width / 2
                     )
                     ball.vel_x = int(
-                        max(-BALL_SPEED, min(BALL_SPEED, BALL_SPEED * offset))
+                        max(-current_ball_speed, min(current_ball_speed, current_ball_speed * offset))
                     )
                     # Play paddle bounce sound
                     if paddle_bounce_sound:
@@ -793,3 +936,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
