@@ -66,15 +66,21 @@ def create_wix_files():
         os.path.join(project_root, f"Arkanoid_v{version}.exe"),  # корень проекта
         os.path.join(project_root, "FINAL_RELEASE", f"Arkanoid_v{version}.exe"),  # FINAL_RELEASE
         os.path.join(project_root, "dist", f"Arkanoid_v{version}.exe"),  # dist (PyInstaller)
+        os.path.join(project_root, "build", "dist", f"Arkanoid_v{version}.exe"),  # build/dist (PyInstaller)
     ]
     
     for path in possible_paths:
+        print(f"Проверяю путь: {path}")
         if os.path.exists(path):
             exe_path = path
+            print(f"Найден exe файл: {exe_path}")
             break
     
     if not exe_path:
         print(f"Ошибка: exe файл Arkanoid_v{version}.exe не найден!")
+        print("Проверенные пути:")
+        for path in possible_paths:
+            print(f"  - {path} (существует: {os.path.exists(path)})")
         return None
 
     # Содержимое Product.wxs
@@ -195,6 +201,10 @@ def build_msi():
     
     print("Создаю WiX файлы...")
     wix_dir = create_wix_files()
+    
+    if wix_dir is None:
+        print("Ошибка: не удалось создать WiX файлы")
+        return False
 
     print("Компилирую WiX исходники...")
 

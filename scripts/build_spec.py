@@ -63,30 +63,37 @@ if os.path.exists(os.path.join(project_root, "settings.py")):
 if os.path.exists(os.path.join(project_root, "resources", "settings.json")):
     shutil.copy(os.path.join(project_root, "resources", "settings.json"), resource_dir)
 
-# Команда PyInstaller
-cmd = f'''pyinstaller --onefile --windowed --name="{exe_name}" ^
-    --workpath "{os.path.join(project_root, 'build', 'work')}" ^
-    --distpath "{os.path.join(project_root, 'build', 'dist')}" ^
-    --add-data "{os.path.join(project_root, resource_dir, 'sounds')};sounds" ^
-    --add-data "{os.path.join(project_root, resource_dir, 'images')};images" ^
-    --add-data "{os.path.join(project_root, resource_dir, 'highscores.py')};" ^
-    --add-data "{os.path.join(project_root, resource_dir, 'settings.py')};" ^
-    --add-data "{os.path.join(project_root, resource_dir, 'settings.json')};" ^
-    --hidden-import=pygame ^
-    --hidden-import=numpy ^
-    --hidden-import=pygame.sndarray ^
-    --hidden-import=pygame.mixer ^
-    --exclude-module=tkinter ^
-    --exclude-module=matplotlib ^
-    --exclude-module=scipy ^
-    --exclude-module=PIL ^
-    --exclude-module=IPython ^
-    --exclude-module=jupyter ^
-    --exclude-module=notebook ^
-    --exclude-module=pytest ^
-    --exclude-module=unittest ^
-    --clean ^
-    "{os.path.join(project_root, 'PyGameBall.py')}"'''
+# Команда PyInstaller - без переносов строк для Windows
+cmd_parts = [
+    "pyinstaller",
+    "--onefile",
+    "--windowed", 
+    f'--name={exe_name}',
+    f'--workpath={os.path.join(project_root, "build", "work")}',
+    f'--distpath={os.path.join(project_root, "build", "dist")}',
+    f'--add-data="{os.path.join(project_root, resource_dir, "sounds")};sounds"',
+    f'--add-data="{os.path.join(project_root, resource_dir, "images")};images"',
+    f'--add-data="{os.path.join(project_root, resource_dir, "highscores.py")};."',
+    f'--add-data="{os.path.join(project_root, resource_dir, "settings.py")};."',
+    f'--add-data="{os.path.join(project_root, resource_dir, "settings.json")};."',
+    "--hidden-import=pygame",
+    "--hidden-import=numpy",
+    "--hidden-import=pygame.sndarray",
+    "--hidden-import=pygame.mixer",
+    "--exclude-module=tkinter",
+    "--exclude-module=matplotlib",
+    "--exclude-module=scipy",
+    "--exclude-module=PIL",
+    "--exclude-module=IPython",
+    "--exclude-module=jupyter",
+    "--exclude-module=notebook",
+    "--exclude-module=pytest",
+    "--exclude-module=unittest",
+    "--clean",
+    f'"{os.path.join(project_root, "PyGameBall.py")}"'
+]
+
+cmd = " ".join(cmd_parts)
 
 print("Выполняю команду сборки...")
 print(cmd)
