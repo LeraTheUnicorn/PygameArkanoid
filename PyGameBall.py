@@ -1,15 +1,27 @@
 # Игра Арканоид
 # Отслеживание версий
-"1.6.4"
+VERSION = "1.6.4"
 
 import random
 import time
 import numpy as np
+import sys
+import os
 from dataclasses import dataclass, field
 from typing import List
 
 import pygame
 from highscores import HighScoreManager
+
+def resource_path(relative_path):
+    """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
+    try:
+        # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Настройки игры
 # Размеры экрана
@@ -534,7 +546,7 @@ def main() -> None:
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
         try:
-            pygame.mixer.music.load("sounds/Night_Prowler.ogg")
+            pygame.mixer.music.load(resource_path("sounds/Night_Prowler.ogg"))
             pygame.mixer.music.set_volume(0.3)
             # Музыка будет запущена после ввода имени игрока
         except pygame.error:

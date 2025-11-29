@@ -11,6 +11,9 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# Определяем корень проекта
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def check_wix_installation():
     """Проверяет наличие WiX Toolset"""
@@ -25,7 +28,7 @@ def check_wix_installation():
 def get_current_version():
     """Получает текущую версию из PyGameBall.py"""
     try:
-        with open('PyGameBall.py', 'r', encoding='utf-8') as f:
+        with open(os.path.join(project_root, 'PyGameBall.py'), 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('VERSION ='):
                     return line.split('"')[1]
@@ -37,7 +40,9 @@ def create_wix_files():
     """Создает файлы WiX для MSI сборки"""
 
     # Создаем директории для WiX
-    wix_dir = Path("wix_build")
+    build_dir = os.path.join(project_root, 'build')
+    os.makedirs(build_dir, exist_ok=True)
+    wix_dir = Path(os.path.join(build_dir, "wix"))
     wix_dir.mkdir(exist_ok=True)
 
     # Получаем текущую версию
@@ -67,7 +72,7 @@ def create_wix_files():
        <Directory Id="GamesFolder" Name="Игры">
          <Directory Id="INSTALLFOLDER" Name="Арканоид">
            <Component Id="ProductComponents" Guid="11111111-1111-1111-1111-111111111111">
-             <File Id="GameExecutable" Source="Arkanoid_v{version}.exe" KeyPath="yes">
+             <File Id="GameExecutable" Source="{os.path.join(project_root, 'FINAL_RELEASE', f'Arkanoid_v{version}.exe').replace(chr(92), chr(92)*2)}" KeyPath="yes">
                <Shortcut Id="GameStartMenuShortcut"
                          Directory="ProgramMenuDir"
                          Name="Арканоид"
@@ -75,7 +80,7 @@ def create_wix_files():
                          WorkingDirectory="INSTALLFOLDER"
                          Icon="GameIcon.exe" />
              </File>
-             <File Id="HighscoresData" Source="resources/highscores.json" />
+             <File Id="HighscoresData" Source="{os.path.join(project_root, 'resources', 'highscores.json').replace(chr(92), chr(92)*2)}" />
            </Component>
 
            <Component Id="CreateHighscoresFile" Guid="22222222-2222-2222-2222-222222222222">
@@ -124,10 +129,10 @@ def create_wix_files():
         f.write(product_wxs)
 
     # Создаем icon.wxi для иконки
-    icon_wxi = '''<?xml version="1.0" encoding="UTF-8"?>
+    icon_wxi = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Fragment>
-    <Icon Id="GameIcon.exe" SourceFile="resources/icon.ico" />
+    <Icon Id="GameIcon.exe" SourceFile="{os.path.join(project_root, 'resources', 'icon.ico').replace(chr(92), chr(92)*2)}" />
   </Fragment>
 </Wix>'''
 
@@ -140,13 +145,15 @@ def create_wix_files():
 def build_msi():
     """Собирает MSI файл с помощью WiX"""
     version = get_current_version()
+    build_dir = os.path.join(project_root, 'build')
+    os.makedirs(build_dir, exist_ok=True)
     print("Создаю WiX файлы...")
     wix_dir = create_wix_files()
 
     print("Компилирую WiX исходники...")
 
     # Собираем MSI с помощью wix.exe
-    msi_name = f"Arkanoid_v{version}_Setup.msi"
+    msi_name = os.path.join(build_dir, f"Arkanoid_v{version}_Setup.msi")
     wix_cmd = ["wix", "build", "-arch", "x64", "-ext", "WixToolset.Util.wixext", "-o", msi_name, str(wix_dir / "Product.wxs"), str(wix_dir / "icon.wxi")]
     wix_result = subprocess.run(wix_cmd, capture_output=True, text=True)
 
