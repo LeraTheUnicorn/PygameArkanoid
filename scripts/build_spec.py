@@ -34,6 +34,9 @@ def get_version():
 # Определяем корень проекта (на уровень выше папки scripts)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Переходим в корень проекта для корректной работы
+os.chdir(project_root)
+
 # Создаем команды для PyInstaller
 version = get_version()
 exe_name = f"Arkanoid_v{version}.exe"
@@ -61,14 +64,14 @@ if os.path.exists(os.path.join(project_root, "resources", "settings.json")):
     shutil.copy(os.path.join(project_root, "resources", "settings.json"), resource_dir)
 
 # Команда PyInstaller
-cmd = f'''cd /d "{project_root}" && pyinstaller --onefile --windowed --name="{exe_name}" ^
+cmd = f'''pyinstaller --onefile --windowed --name="{exe_name}" ^
     --workpath "{os.path.join(project_root, 'build', 'work')}" ^
     --distpath "{os.path.join(project_root, 'build', 'dist')}" ^
-    --add-data "{os.path.join(resource_dir, 'sounds')};sounds" ^
-    --add-data "{os.path.join(resource_dir, 'images')};images" ^
-    --add-data "{os.path.join(resource_dir, 'highscores.py')};" ^
-    --add-data "{os.path.join(resource_dir, 'settings.py')};" ^
-    --add-data "{os.path.join(resource_dir, 'settings.json')};" ^
+    --add-data "{os.path.join(project_root, resource_dir, 'sounds')};sounds" ^
+    --add-data "{os.path.join(project_root, resource_dir, 'images')};images" ^
+    --add-data "{os.path.join(project_root, resource_dir, 'highscores.py')};" ^
+    --add-data "{os.path.join(project_root, resource_dir, 'settings.py')};" ^
+    --add-data "{os.path.join(project_root, resource_dir, 'settings.json')};" ^
     --hidden-import=pygame ^
     --hidden-import=numpy ^
     --hidden-import=pygame.sndarray ^
@@ -83,7 +86,7 @@ cmd = f'''cd /d "{project_root}" && pyinstaller --onefile --windowed --name="{ex
     --exclude-module=pytest ^
     --exclude-module=unittest ^
     --clean ^
-    PyGameBall.py'''
+    "{os.path.join(project_root, 'PyGameBall.py')}"'''
 
 print("Выполняю команду сборки...")
 print(cmd)
