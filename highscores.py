@@ -36,12 +36,13 @@ def get_game_directory():
 def get_highscores_file_path():
     """Возвращает полный путь к файлу рекордов"""
     game_dir = get_game_directory()
-    
+    resources_dir = os.path.join(game_dir, "resources")
+
     # Создаем каталог, если он не существует
-    if not os.path.exists(game_dir):
-        os.makedirs(game_dir, exist_ok=True)
-    
-    return os.path.join(game_dir, "highscores.json")
+    if not os.path.exists(resources_dir):
+        os.makedirs(resources_dir, exist_ok=True)
+
+    return os.path.join(resources_dir, "highscores.json")
 
 # Путь к файлу рекордов (теперь с полным путем)
 HIGHSCORES_FILE = get_highscores_file_path()
