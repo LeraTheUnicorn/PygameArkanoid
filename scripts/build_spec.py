@@ -9,17 +9,19 @@ import sys
 import shutil
 from pathlib import Path
 
+
 # Получаем версию из основного файла игры
 def get_version():
     """Извлекает версию из файла PyGameBall.py"""
     try:
-        with open('PyGameBall.py', 'r', encoding='utf-8') as f:
+        with open("PyGameBall.py", "r", encoding="utf-8") as f:
             for line in f:
-                if line.startswith('VERSION ='):
+                if line.startswith("VERSION ="):
                     return line.split('"')[1]
     except:
         return "1.6.1"  # резервная версия
     return "1.6.1"
+
 
 # Создаем команды для PyInstaller
 version = get_version()
@@ -41,12 +43,18 @@ if os.path.exists("images"):
 
 # Копируем необходимые файлы
 shutil.copy("highscores.py", resource_dir)
+if os.path.exists("settings.py"):
+    shutil.copy("settings.py", resource_dir)
+if os.path.exists("resources/settings.json"):
+    shutil.copy("resources/settings.json", resource_dir)
 
 # Команда PyInstaller
-cmd = f'''pyinstaller --onefile --windowed --name="{exe_name}" ^
+cmd = f"""pyinstaller --onefile --windowed --name="{exe_name}" ^
     --add-data "{resource_dir}/sounds;sounds" ^
     --add-data "{resource_dir}/images;images" ^
     --add-data "{resource_dir}/highscores.py;." ^
+    --add-data "{resource_dir}/settings.py;." ^
+    --add-data "{resource_dir}/settings.json;." ^
     --hidden-import=pygame ^
     --hidden-import=numpy ^
     --hidden-import=pygame.sndarray ^
@@ -61,7 +69,7 @@ cmd = f'''pyinstaller --onefile --windowed --name="{exe_name}" ^
     --exclude-module=pytest ^
     --exclude-module=unittest ^
     --clean ^
-    PyGameBall.py'''
+    PyGameBall.py"""
 
 print("Выполняю команду сборки...")
 print(cmd)
@@ -74,11 +82,7 @@ if os.path.exists(dist_dir):
     if os.path.exists(exe_path):
         shutil.copy2(exe_path, f"./{exe_name}.exe")
         print(f"Исполняемый файл скопирован в корневую папку: {exe_name}.exe")
-        
-        # Удаляем временную директорию ресурсов
-        if os.path.exists(resource_dir):
-            shutil.rmtree(resource_dir)
-            
+        print("Файлы настроек сохранены в game_resources/ для дальнейшего использования")
         print("Сборка завершена успешно!")
     else:
         print(f"Ошибка: файл {exe_path} не найден в dist")
