@@ -14,14 +14,25 @@ from pathlib import Path
 def get_version():
     """Извлекает версию из файла PyGameBall.py"""
     try:
-        with open("PyGameBall.py", "r", encoding="utf-8") as f:
+        version_file = os.path.join(project_root, "PyGameBall.py")
+        with open(version_file, "r", encoding="utf-8") as f:
             for line in f:
-                if line.startswith("VERSION ="):
-                    return line.split('"')[1]
-    except:
-        return "1.6.1"  # резервная версия
-    return "1.6.1"
+                if 'VERSION =' in line:
+                    # Ищем строку вида VERSION = "1.6.5"
+                    parts = line.split('"')
+                    if len(parts) >= 2:
+                        return parts[1]
+                    # Если нет кавычек, пробуем найти после =
+                    version_part = line.split('=')[1].strip()
+                    if version_part.startswith('"') and version_part.endswith('"'):
+                        return version_part.strip('"')
+    except Exception as e:
+        print(f"Ошибка чтения версии: {e}")
+    return "1.6.5"
 
+
+# Определяем корень проекта (на уровень выше папки scripts)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Создаем команды для PyInstaller
 version = get_version()
@@ -29,32 +40,35 @@ exe_name = f"Arkanoid_v{version}.exe"
 
 print(f"Создание исполняемого файла: {exe_name}")
 print(f"Версия: {version}")
+print(f"Корень проекта: {project_root}")
 
 # Создаем временную директорию для ресурсов
 resource_dir = "game_resources"
 os.makedirs(resource_dir, exist_ok=True)
 
-# Копируем ресурсы во временную директорию
-if os.path.exists("sounds"):
-    shutil.copytree("sounds", f"{resource_dir}/sounds", dirs_exist_ok=True)
+# Копируем ресурсы во временную директорию из корня проекта
+if os.path.exists(os.path.join(project_root, "sounds")):
+    shutil.copytree(os.path.join(project_root, "sounds"), f"{resource_dir}/sounds", dirs_exist_ok=True)
 
-if os.path.exists("images"):
-    shutil.copytree("images", f"{resource_dir}/images", dirs_exist_ok=True)
+if os.path.exists(os.path.join(project_root, "images")):
+    shutil.copytree(os.path.join(project_root, "images"), f"{resource_dir}/images", dirs_exist_ok=True)
 
-# Копируем необходимые файлы
-shutil.copy("highscores.py", resource_dir)
-if os.path.exists("settings.py"):
-    shutil.copy("settings.py", resource_dir)
-if os.path.exists("resources/settings.json"):
-    shutil.copy("resources/settings.json", resource_dir)
+# Копируем необходимые файлы из корня проекта
+shutil.copy(os.path.join(project_root, "highscores.py"), resource_dir)
+if os.path.exists(os.path.join(project_root, "settings.py")):
+    shutil.copy(os.path.join(project_root, "settings.py"), resource_dir)
+if os.path.exists(os.path.join(project_root, "resources", "settings.json")):
+    shutil.copy(os.path.join(project_root, "resources", "settings.json"), resource_dir)
 
 # Команда PyInstaller
-cmd = f"""pyinstaller --onefile --windowed --name="{exe_name}" ^
-    --add-data "{resource_dir}/sounds;sounds" ^
-    --add-data "{resource_dir}/images;images" ^
-    --add-data "{resource_dir}/highscores.py;." ^
-    --add-data "{resource_dir}/settings.py;." ^
-    --add-data "{resource_dir}/settings.json;." ^
+cmd = f"""cd /d "{project_root}" && pyinstaller --onefile --windowed --name="{exe_name}" ^
+    --workpath "{os.path.join(project_root, 'build', 'work')}" ^
+    --distpath "{os.path.join(project_root, 'build', 'dist')}" ^
+    --add-data "{os.path.join(resource_dir, 'sounds');sounds" ^
+    --add-data "{os.path.join(resource_dir, 'images');images" ^
+    --add-data "{os.path.join(resource_dir, 'highscores.py');." ^
+    --add-data "{os.path.join(resource_dir, 'settings.py');." ^
+    --add-data "{os.path.join(resource_dir, 'settings.json');." ^
     --hidden-import=pygame ^
     --hidden-import=numpy ^
     --hidden-import=pygame.sndarray ^
@@ -76,11 +90,11 @@ print(cmd)
 os.system(cmd)
 
 # Копируем готовый exe в корневую папку
-dist_dir = "dist"
+dist_dir = os.path.join(project_root, "build", "dist")
 if os.path.exists(dist_dir):
     exe_path = os.path.join(dist_dir, f"{exe_name}.exe")
     if os.path.exists(exe_path):
-        shutil.copy2(exe_path, f"./{exe_name}.exe")
+        shutil.copy2(exe_path, os.path.join(project_root, f"{exe_name}.exe"))
         print(f"Исполняемый файл скопирован в корневую папку: {exe_name}.exe")
         print("Файлы настроек сохранены в game_resources/ для дальнейшего использования")
         print("Сборка завершена успешно!")
