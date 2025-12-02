@@ -41,7 +41,7 @@ SETTINGS_FILE = get_settings_file_path()
 
 class SettingsManager:
     def __init__(self):
-        self.settings = {"ball_speed": 5}  # Скорость мяча по умолчанию
+        self.settings = {"ball_speed": 15}  # Скорость мяча по умолчанию (среднее для авторежима 1-30)
         self.load_settings()
         self.save_settings()  # Создать файл, если не существует
 
@@ -68,10 +68,12 @@ class SettingsManager:
         """Возвращает скорость мяча"""
         return self.settings["ball_speed"]
 
-    def set_ball_speed(self, speed: int) -> None:
-        """Устанавливает скорость мяча"""
-        if 1 <= speed <= 10:  # Ограничение скорости от 1 до 10
+    def set_ball_speed(self, speed: int, auto_mode: bool = False) -> None:
+        """Устанавливает скорость мяча с учетом режима игры"""
+        max_speed = 30 if auto_mode else 10
+        if 1 <= speed <= max_speed:
             self.settings["ball_speed"] = speed
             self.save_settings()
         else:
-            raise ValueError("Скорость мяча должна быть в диапазоне от 1 до 10")
+            mode_text = "авторежиме" if auto_mode else "ручном режиме"
+            raise ValueError(f"Скорость мяча должна быть в диапазоне от 1 до {max_speed} в {mode_text}")

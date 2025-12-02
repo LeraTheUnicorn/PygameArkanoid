@@ -38,5 +38,53 @@
     "final_bricks_remaining": 1,
     "game_duration": 108.33420920372009,
     "total_actions": 5858
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 113.911208152771,
+    "total_actions": 3284
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 96.8676609992981,
+    "total_actions": 2953
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 152.39473223686218,
+    "total_actions": 4664
+  },
+  {
+    "type": "game_end",
+    "success": false,
+    "final_score": 25,
+    "final_bricks_remaining": 25,
+    "game_duration": 12.543243885040283,
+    "total_actions": 288
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 43.337801933288574,
+    "total_actions": 1258
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 56.8690128326416,
+    "total_actions": 1732
   }
 ]

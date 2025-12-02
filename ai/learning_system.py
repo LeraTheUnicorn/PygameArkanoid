@@ -303,7 +303,7 @@ class LearningSystem:
             base_weights["precision"] *= 0.9
         
         # Адаптация в зависимости от скорости мяча
-        if ball_speed >= 8:  # Высокая скорость - нужна быстрота
+        if ball_speed >= 80:  # Высокая скорость - нужна быстрота
             base_weights["speed"] *= 1.3
             base_weights["conservative"] *= 0.8
         
@@ -352,7 +352,7 @@ class LearningSystem:
             if factor_data["total_cases"] > 10:
                 # Простая корректировка на основе исторических данных
                 speed = action_plan.get("ball_speed", 5)
-                speed_factor = 1.0 - abs(speed - 5) * 0.1  # Оптимальная скорость около 5
+                speed_factor = 1.0 - abs(speed - 50) * 0.01  # Оптимальная скорость около 50
                 base_probability *= speed_factor
         
         # Корректировка на основе расстояния движения
