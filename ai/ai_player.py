@@ -82,6 +82,17 @@ class AIPlayer:
             "hit_patterns": {},  # Паттерны успешных ударов
         }
         
+        # Система предотвращения зацикливания
+        self.loop_prevention_system = {
+            "movement_history": [],  # История последних движений
+            "position_history": [],  # История позиций платформы
+            "trajectory_history": [],  # История траекторий мяча
+            "loop_detection_threshold": 5,  # Количество повторений для детекции зацикливания
+            "strategy_change_cooldown": 0,  # Кулдаун смены стратегии
+            "alternative_strategies": ["center_focus", "edge_focus", "predictive_targeting"],  # Альтернативные стратегии
+            "current_strategy_index": 0,  # Текущая альтернативная стратегия
+        }
+        
         # Параметры платформы для расчёта угла отскока
         self.paddle_width = 120  # Ширина платформы
 
@@ -197,13 +208,13 @@ class AIPlayer:
             score = 0
             
             # Приоритет нижним кубикам (ближе к платформе = выше оценка)
-            brick_y = brick.get('y', 0)
+            brick_y = getattr(brick, 'y', 0)
             distance_to_paddle = paddle_y - brick_y
             if distance_to_paddle > 0:
                 score += (1.0 / distance_to_paddle) * 1000  # Ближе = лучше
             
             # Приоритет кубикам ближе к траектории мяча
-            brick_x = brick.get('x', 0) + brick.get('width', 60) / 2  # Центр кубика
+            brick_x = getattr(brick, 'x', 0) + getattr(brick, 'width', 60) / 2  # Центр кубика
             horizontal_distance = abs(brick_x - ball_x)
             score -= horizontal_distance * 0.5  # Ближе по горизонтали = лучше
             
@@ -231,8 +242,8 @@ class AIPlayer:
             Смещение от -1 до 1 (где 0 = центр платформы)
         """
         # Центр целевого кубика
-        brick_center_x = target_brick.get('x', 0) + target_brick.get('width', 60) / 2
-        brick_center_y = target_brick.get('y', 0) + target_brick.get('height', 20) / 2
+        brick_center_x = getattr(target_brick, 'x', 0) + getattr(target_brick, 'width', 60) / 2
+        brick_center_y = getattr(target_brick, 'y', 0) + getattr(target_brick, 'height', 20) / 2
         
         # Позиция платформы
         paddle_y = self.current_game_state.paddle_position.y
@@ -274,8 +285,8 @@ class AIPlayer:
         Returns:
             Скорректированное смещение
         """
-        brick_x = target_brick.get('x', 0)
-        brick_y = target_brick.get('y', 0)
+        brick_x = getattr(target_brick, 'x', 0)
+        brick_y = getattr(target_brick, 'y', 0)
         brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
         
         if brick_key in self.targeting_system["hit_patterns"]:
@@ -288,6 +299,169 @@ class AIPlayer:
         
         return offset
     
+    def _detect_loop_pattern(self) -> bool:
+        """
+        Обнаруживает зацикливание в движениях платформы
+        
+        Returns:
+            True если обнаружено зацикливание
+        """
+        history = self.loop_prevention_system["movement_history"]
+        if len(history) < self.loop_prevention_system["loop_detection_threshold"]:
+            return False
+        
+        # Проверяем последние движения на повторяющиеся паттерны
+        recent_movements = history[-self.loop_prevention_system["loop_detection_threshold"]:]
+        
+        # Считаем количество повторяющихся движений
+        movement_counts = {}
+        for movement in recent_movements:
+            movement_counts[movement] = movement_counts.get(movement, 0) + 1
+        
+        # Если какое-то движение повторяется слишком часто - это зацикливание
+        max_count = max(movement_counts.values())
+        threshold = self.loop_prevention_system["loop_detection_threshold"] * 0.6  # 60% повторений
+        
+        if max_count >= threshold:
+            return True
+        
+        return False
+    
+    def _change_strategy_if_looping(self) -> None:
+        """Меняет стратегию при обнаружении зацикливания"""
+        if not self._detect_loop_pattern():
+            return
+        
+        # Уменьшаем кулдаун
+        if self.loop_prevention_system["strategy_change_cooldown"] > 0:
+            self.loop_prevention_system["strategy_change_cooldown"] -= 1
+            return
+        
+        # Сменяем стратегию
+        self.loop_prevention_system["current_strategy_index"] = (
+            self.loop_prevention_system["current_strategy_index"] + 1
+        ) % len(self.loop_prevention_system["alternative_strategies"])
+        
+        new_strategy = self.loop_prevention_system["alternative_strategies"][
+            self.loop_prevention_system["current_strategy_index"]
+        ]
+        
+        # Устанавливаем кулдаум на 10 кадров
+        self.loop_prevention_system["strategy_change_cooldown"] = 10
+        
+        print(f"[AI] Зацикливание обнаружено! Смена стратегии на: {new_strategy}")
+        
+        # Очищаем историю для нового старта
+        self.loop_prevention_system["movement_history"] = []
+        self.loop_prevention_system["position_history"] = []
+        self.loop_prevention_system["trajectory_history"] = []
+    
+    def _apply_alternative_strategy(self, optimal_position: int) -> int:
+        """
+        Применяет альтернативную стратегию для предотвращения зацикливания
+        
+        Args:
+            optimal_position: Базовая оптимальная позиция
+            
+        Returns:
+            Скорректированная позиция
+        """
+        strategy_index = self.loop_prevention_system["current_strategy_index"]
+        strategy = self.loop_prevention_system["alternative_strategies"][strategy_index]
+        
+        screen_center = self.screen_width // 2
+        
+        if strategy == "center_focus":
+            # Фокусируемся на центре экрана
+            return screen_center
+            
+        elif strategy == "edge_focus":
+            # Фокусируемся на краях для смены паттерна
+            current_pos = getattr(self.current_game_state, 'paddle_position', None)
+            if current_pos:
+                # Если мы были слева, идем вправо и наоборот
+                return self.screen_width - 50 if current_pos.x < screen_center else 50
+            else:
+                return 50  # По умолчанию левая сторона
+                
+        elif strategy == "predictive_targeting":
+            # Более агрессивное прицеливание в дальние кубики
+            target_brick = self._find_most_distant_brick()
+            if target_brick:
+                landing_x = self._predict_exact_landing_position()
+                brick_center_x = getattr(target_brick, 'x', 0) + getattr(target_brick, 'width', 60) / 2
+                # Смещаемся в сторону дальнего кубика
+                offset_direction = 1 if brick_center_x > landing_x else -1
+                return int(optimal_position + offset_direction * 30)
+        
+        return optimal_position
+    
+    def _find_most_distant_brick(self) -> Optional[Dict]:
+        """Находит самый дальний кубик от платформы для смены паттерна"""
+        if not self.current_game_state or not self.current_game_state.remaining_bricks:
+            return None
+        
+        bricks = self.current_game_state.remaining_bricks
+        paddle_y = self.current_game_state.paddle_position.y
+        
+        most_distant_brick = None
+        max_distance = -1
+        
+        for brick in bricks:
+            brick_y = getattr(brick, 'y', 0)
+            distance = abs(paddle_y - brick_y)
+            if distance > max_distance:
+                max_distance = distance
+                most_distant_brick = brick
+        
+        return most_distant_brick
+    
+    def _update_loop_tracking(self, movement: int, current_x: int, optimal_x: int) -> None:
+        """Обновляет данные отслеживания зацикливания"""
+        # Добавляем движение в историю
+        self.loop_prevention_system["movement_history"].append(movement)
+        if len(self.loop_prevention_system["movement_history"]) > 10:
+            self.loop_prevention_system["movement_history"] = [-1]
+        
+        # Добавляем позицию в историю
+        self.loop_prevention_system["position_history"].append(current_x)
+        if len(self.loop_prevention_system["position_history"]) > 20:
+            self.loop_prevention_system["position_history"] = self.loop_prevention_system["position_history"][-10:]
+        
+        # Добавляем информацию о траектории
+        if self.current_game_state:
+            trajectory_info = {
+                "ball_x": self.current_game_state.ball_position.x,
+                "ball_y": self.current_game_state.ball_position.y,
+                "optimal_x": optimal_x,
+                "timestamp": time.time()
+            }
+            self.loop_prevention_system["trajectory_history"].append(trajectory_info)
+            if len(self.loop_prevention_system["trajectory_history"]) > 10:
+                self.loop_prevention_system["trajectory_history"] = self.loop_prevention_system["trajectory_history"][-5:]
+    
+    def _reevaluate_after_bounce(self) -> None:
+        """Переоценивает ситуацию после отбития мяча"""
+        if not self.current_game_state:
+            return
+        
+        # Анализируем текущую ситуацию для поиска новых возможностей
+        target_brick = self._find_best_target_brick()
+        if target_brick:
+            # Обновляем цель прицеливания
+            self.targeting_system["target_brick"] = target_brick
+            
+            # Рассчитываем новые параметры отскока
+            landing_x = self._predict_exact_landing_position()
+            new_offset = self._calculate_optimal_offset(landing_x, target_brick)
+            self.targeting_system["optimal_offset"] = new_offset
+            
+            print(f"[AI] Переоценка после отбития: новая цель и смещение {new_offset:.2f}")
+        
+        # Очищаем историю зацикливания для нового цикла
+        self.loop_prevention_system["movement_history"] = []
+        self.loop_prevention_system["position_history"] = []
+    
     def record_hit_result(self, brick_hit: Dict, paddle_offset: float, success: bool) -> None:
         """
         Записывает результат удара для обучения
@@ -297,8 +471,8 @@ class AIPlayer:
             paddle_offset: Смещение на платформе при ударе
             success: Был ли удар успешным
         """
-        brick_x = brick_hit.get('x', 0)
-        brick_y = brick_hit.get('y', 0)
+        brick_x = getattr(brick_hit, 'x', 0)
+        brick_y = getattr(brick_hit, 'y', 0)
         brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
         
         if brick_key not in self.targeting_system["hit_patterns"]:
@@ -383,7 +557,7 @@ class AIPlayer:
 
     def move_paddle_towards(self, current_x: int, paddle_speed: int) -> int:
         """
-        Двигает платформу к оптимальной позиции
+        Двигает платформу к оптимальной позиции с предотвращением зацикливания
 
         Args:
             current_x: Текущая X-координата платформы
@@ -398,15 +572,31 @@ class AIPlayer:
 
         try:
             optimal_x = self.get_optimal_paddle_position()
+            
+            # Проверяем зацикливание и применяем альтернативную стратегию если нужно
+            self._change_strategy_if_looping()
+            if self.loop_prevention_system["strategy_change_cooldown"] == 0:
+                optimal_x = self._apply_alternative_strategy(optimal_x)
 
-            # Рассчитываем движение
-            movement = self.position_optimizer.calculate_paddle_movement(
-                current_x, optimal_x, paddle_speed
-            )
+            # Улучшенная точность позиционирования
+            precision_tolerance = 2  # Уменьшаем допуск для более точного позиционирования
+            distance_to_optimal = abs(optimal_x - current_x)
+            
+            if distance_to_optimal <= precision_tolerance:
+                # Мы достаточно близко к оптимальной позиции
+                movement = 0
+            else:
+                # Рассчитываем движение
+                movement = self.position_optimizer.calculate_paddle_movement(
+                    current_x, optimal_x, paddle_speed
+                )
+                
+                # Если нет движения, но AI активен, попробуем резервное движение
+                if movement == 0 and optimal_x != current_x:
+                    movement = self._fallback_movement(current_x)
 
-            # Если нет движения, но AI активен, попробуем резервное движение
-            if movement == 0 and optimal_x != current_x:
-                movement = self._fallback_movement(current_x)
+            # Обновляем отслеживание зацикливания
+            self._update_loop_tracking(movement, current_x, optimal_x)
 
             # Логируем движение платформы
             if movement != 0:
@@ -611,6 +801,9 @@ class AIPlayer:
                     "optimal_offset": self.targeting_system["optimal_offset"],
                     "actual_offset": paddle_offset,
                 }
+                
+                # Переоцениваем ситуацию после отбития
+                self._reevaluate_after_bounce()
 
         # Обновляем систему обучения
         self.learning_system.update_strategy(enhanced_result)
@@ -702,6 +895,13 @@ class AIPlayer:
             "optimal_moves": 0,
             "total_moves": 0,
         }
+        
+        # Сбрасываем систему предотвращения зацикливания
+        self.loop_prevention_system["movement_history"] = []
+        self.loop_prevention_system["position_history"] = []
+        self.loop_prevention_system["trajectory_history"] = []
+        self.loop_prevention_system["strategy_change_cooldown"] = 0
+        self.loop_prevention_system["current_strategy_index"] = 0
 
     def activate(self) -> None:
         """Активирует AI систему"""
@@ -757,6 +957,19 @@ class AIPlayer:
             info_text = f"AI: {len(self.current_game_state.remaining_bricks)} кубиков"
             text_surface = font.render(info_text, True, (255, 255, 0))
             screen.blit(text_surface, (10, 10))
+            
+            # Показываем статус системы предотвращения зацикливания
+            loop_status = f"Loop: {len(self.loop_prevention_system['movement_history'])}/5"
+            status_surface = font.render(loop_status, True, (255, 100, 100))
+            screen.blit(status_surface, (10, 30))
+            
+            # Показываем текущую стратегию
+            strategy = self.loop_prevention_system["alternative_strategies"][
+                self.loop_prevention_system["current_strategy_index"]
+            ]
+            strategy_text = f"Strat: {strategy}"
+            strategy_surface = font.render(strategy_text, True, (100, 255, 100))
+            screen.blit(strategy_surface, (10, 50))
 
         except Exception as e:
             print(f"Ошибка при визуализации: {e}")
@@ -778,4 +991,19 @@ class AIPlayer:
             "total_score": 0,
             "average_accuracy": 0.0,
             "learning_progress": 0.0,
+        }
+        
+        # Сбрасываем систему предотвращения зацикливания
+        self.loop_prevention_system["movement_history"] = []
+        self.loop_prevention_system["position_history"] = []
+        self.loop_prevention_system["trajectory_history"] = []
+        self.loop_prevention_system["strategy_change_cooldown"] = 0
+        self.loop_prevention_system["current_strategy_index"] = 0
+        
+        # Сбрасываем систему прицеливания
+        self.targeting_system = {
+            "target_brick": None,
+            "optimal_offset": 0.0,
+            "successful_hits": [],
+            "hit_patterns": {},
         }

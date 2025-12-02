@@ -5,9 +5,27 @@
 import json
 import time
 import os
+import pygame
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from .game_state import GameState
+from .game_state import GameState, Point
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """Кастомный JSON encoder для сериализации Point и других объектов"""
+    def default(self, obj):
+        if isinstance(obj, Point):
+            return {"x": obj.x, "y": obj.y}
+        elif isinstance(obj, pygame.Rect):
+            return {
+                "x": obj.x,
+                "y": obj.y, 
+                "width": obj.width,
+                "height": obj.height,
+                "centerx": obj.centerx,
+                "centery": obj.centery
+            }
+        return super().default(obj)
 
 
 class PerformanceLogger:
@@ -168,10 +186,10 @@ class PerformanceLogger:
             return 0.0
 
         actual_brick_positions = set(
-            (brick.get("x"), brick.get("y")) for brick in actual_bricks
+            (getattr(brick, "x", 0), getattr(brick, "y", 0)) for brick in actual_bricks
         )
         predicted_brick_positions = set(
-            (brick.get("x"), brick.get("y")) for brick in predicted_bricks
+            (getattr(brick, "x", 0), getattr(brick, "y", 0)) for brick in predicted_bricks
         )
 
         if not actual_brick_positions:
@@ -194,7 +212,7 @@ class PerformanceLogger:
 
         try:
             with open(self.session_log_file, "w", encoding="utf-8") as f:
-                json.dump(session_data, f, ensure_ascii=False, indent=2)
+                json.dump(session_data, f, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Ошибка при сохранении лога сессии: {e}")
 
@@ -216,7 +234,7 @@ class PerformanceLogger:
 
         try:
             with open(results_file, "w", encoding="utf-8") as f:
-                json.dump(existing_results, f, ensure_ascii=False, indent=2)
+                json.dump(existing_results, f, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Ошибка при сохранении результата игры: {e}")
 
@@ -326,3 +344,34 @@ class PerformanceLogger:
         """Деструктор для автосохранения"""
         if hasattr(self, "actions_log") and self.actions_log:
             self.save_session_log()
+
+    def test_json_serialization(self):
+        """Тестирует JSON сериализацию различных объектов"""
+        from .game_state import Point
+        
+        # Создаем тестовые данные
+        test_point = Point(100, 200)
+        test_rect = pygame.Rect(50, 50, 100, 30)
+        test_data = {
+            "point": test_point,
+            "rect": test_rect,
+            "string": "test string",
+            "number": 42,
+            "list": [1, 2, 3],
+        }
+        
+        try:
+            # Тестируем сериализацию
+            json_str = json.dumps(test_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
+            print("JSON Serialization Test:")
+            print(json_str)
+            
+            # Тестируем десериализацию
+            parsed_data = json.loads(json_str)
+            print("\nDeserialized data:")
+            print(parsed_data)
+            
+            return True
+        except Exception as e:
+            print(f"Error in JSON serialization test: {e}")
+            return False
