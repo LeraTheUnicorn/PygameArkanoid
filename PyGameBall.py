@@ -108,7 +108,7 @@ def get_player_name(
     input_active = True
     music_enabled = True
     exit_game = False
-    auto_mode = False
+    auto_mode = False  # Всегда начинаем с сброса флага авторежима
 
     while input_active:
         # Обработка событий
@@ -118,8 +118,10 @@ def get_player_name(
                 return "", music_enabled, exit_game, False  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    if input_text.strip():
-                        input_active = False
+                    # Всегда запускаем игру, даже если имя не введено
+                    if not input_text.strip():
+                        input_text = "player"  # Стандартное имя
+                    input_active = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
                 elif (
@@ -144,6 +146,7 @@ def get_player_name(
                     input_text = "robot"
                     auto_mode = True
                     input_active = False
+                    print(f"Авторежим активирован через клавишу 0")  # Отладочная информация
 
         # Отрисовка экрана
         screen.fill((10, 10, 30))
@@ -185,7 +188,7 @@ def get_player_name(
         render_colored_hint(
             screen,
             font,
-            "Для управления скоростью мяча нажимайте ↑↓",
+            "Для управления скоростью мяча нажимайте ↑ ↓",
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 80),
         )
 
@@ -337,6 +340,7 @@ def show_game_results(
     highscore_manager: HighScoreManager,
     settings_manager: SettingsManager,
     ball: "Ball",
+    auto_mode: bool = False,
 ) -> tuple[bool, bool, bool]:
     """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_музыки, перезапуск_игры, выход_из_игры)."""
     game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
@@ -357,8 +361,14 @@ def show_game_results(
                 return music_enabled, False, exit_game  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    exit_game = True
-                    return music_enabled, False, exit_game  # Выход из игры
+                    if auto_mode:
+                        # В авторежиме ESC возвращает к экрану ввода имени
+                        restart_game = True
+                        waiting = False
+                    else:
+                        # В ручном режиме ESC выходит из игры
+                        exit_game = True
+                        return music_enabled, False, exit_game
                 elif event.key == pygame.K_RETURN:
                     waiting = False
                     restart_game = True
@@ -382,7 +392,7 @@ def show_game_results(
                     # Открытие окна настроек
                     paused = True
                     music_enabled = show_settings_window(
-                        screen, font, big_font, settings_manager, ball, music_enabled
+                        screen, font, big_font, settings_manager, ball, music_enabled, auto_mode
                     )
                     paused = False
 
@@ -487,9 +497,10 @@ class Ball:
         self.vel_x = random.choice([-self.current_speed, self.current_speed])
         self.vel_y = -self.current_speed
 
-    def set_speed(self, speed: int, settings_manager: SettingsManager = None) -> None:
+    def set_speed(self, speed: int, settings_manager: SettingsManager = None, auto_mode: bool = False) -> None:
         """Устанавливает скорость мяча и обновляет настройки"""
-        if 1 <= speed <= 10:
+        max_speed = 30 if auto_mode else 10
+        if 1 <= speed <= max_speed:
             old_speed = self.current_speed
             self.current_speed = speed
             self.vel_x = (
@@ -500,14 +511,15 @@ class Ball:
             )
 
             if settings_manager:
-                settings_manager.set_ball_speed(speed)
+                settings_manager.set_ball_speed(speed, auto_mode)
 
-    def increase_speed(self, settings_manager: SettingsManager = None) -> None:
-        """Увеличивает скорость на 1 (максимум 10)"""
-        if self.current_speed < 10:
+    def increase_speed(self, settings_manager: SettingsManager = None, auto_mode: bool = False) -> None:
+        """Увеличивает скорость на 1 (максимум зависит от режима)"""
+        max_speed = 30 if auto_mode else 10
+        if self.current_speed < max_speed:
             self.set_speed(self.current_speed + 1, settings_manager)
 
-    def decrease_speed(self, settings_manager: SettingsManager = None) -> None:
+    def decrease_speed(self, settings_manager: SettingsManager = None, auto_mode: bool = False) -> None:
         """Уменьшает скорость на 1 (минимум 1)"""
         if self.current_speed > 1:
             self.set_speed(self.current_speed - 1, settings_manager)
@@ -555,7 +567,7 @@ def draw_hud(
     if auto_mode:
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | АВТОРЕЖИМ"
     else:
-        text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑↓ - скорость"
+        text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑ ↓ - скорость"
     
     surf = font.render(text, True, (255, 255, 255) if not auto_mode else (255, 255, 0))
     screen.blit(surf, (SCREEN_WIDTH - surf.get_width() - 20, 20))
@@ -572,7 +584,7 @@ def render_colored_hint(
     """Отображает подсказку с выделенными ключевыми словами цветом"""
     words = text.split()
     x, y = pos
-    key_words = ["Enter", "H", "M", "ESC"]
+    key_words = ["Enter", "H", "M", "ESC", "↑", "↓", "0"]
 
     for word in words:
         # Убираем знаки препинания для сравнения
@@ -605,6 +617,7 @@ def show_settings_window(
     settings_manager: SettingsManager,
     ball: Ball,
     music_enabled: bool,
+    auto_mode: bool = False,
 ) -> bool:
     """Отображает окно настроек с слайдером скорости мяча. Возвращает состояние музыки."""
     # Параметры слайдера
@@ -614,8 +627,16 @@ def show_settings_window(
     slider_height = 20
     knob_radius = 15
 
+    # Максимальная скорость в зависимости от режима
+    max_speed = 30 if auto_mode else 10
+
     # Текущая скорость
     current_speed = ball.get_speed()
+    
+    # Ограничиваем текущую скорость максимально допустимой
+    if current_speed > max_speed:
+        current_speed = max_speed
+        ball.set_speed(current_speed, settings_manager, auto_mode)
 
     dragging = False
     waiting = True
@@ -639,7 +660,7 @@ def show_settings_window(
                 if event.button == 1:  # Левая кнопка мыши
                     mouse_x, mouse_y = event.pos
                     # Проверить, нажали ли на бегунок
-                    knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
+                    knob_x = slider_x + (current_speed - 1) * (slider_width / (max_speed - 1))
                     knob_y = slider_y + slider_height // 2
                     if (mouse_x - knob_x) ** 2 + (
                         mouse_y - knob_y
@@ -656,12 +677,12 @@ def show_settings_window(
                     if relative_x < 0:
                         new_speed = 1
                     elif relative_x > slider_width:
-                        new_speed = 10
+                        new_speed = max_speed
                     else:
-                        new_speed = int(1 + (relative_x / slider_width) * 9)
+                        new_speed = int(1 + (relative_x / slider_width) * (max_speed - 1))
                     if new_speed != current_speed:
                         current_speed = new_speed
-                        ball.set_speed(current_speed, settings_manager)
+                        ball.set_speed(current_speed, settings_manager, auto_mode)
 
         # Отрисовка оверлея
         pygame.draw.rect(screen, (100, 100, 100), (150, 100, 500, 400), 5)  # Рамка
@@ -685,7 +706,7 @@ def show_settings_window(
             screen, (100, 100, 100), (slider_x, slider_y, slider_width, slider_height)
         )
         # Бегунок
-        knob_x = slider_x + (current_speed - 1) * (slider_width / 9)
+        knob_x = slider_x + (current_speed - 1) * (slider_width / (max_speed - 1))
         knob_y = slider_y + slider_height // 2
         pygame.draw.circle(screen, (255, 255, 255), (int(knob_x), knob_y), knob_radius)
         pygame.draw.circle(screen, (0, 0, 0), (int(knob_x), knob_y), knob_radius, 2)
@@ -721,19 +742,8 @@ def main() -> None:
     # Инициализация менеджеров
     highscore_manager = HighScoreManager()
     settings_manager = SettingsManager()
-
-    paddle = Paddle()
-    ball = Ball()
-    # Устанавливаем скорость из настроек
-    ball_speed = settings_manager.get_ball_speed()
-    ball.set_speed(ball_speed)
-    ball.reset(paddle.rect)
-    ball.vel_y = 0
-    bricks = build_bricks()
     
-    # Инициализируем AI систему
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
-    ai_player.activate()
+    # AI система будет создана в основном цикле для каждого нового запуска
 
     # Загрузка звуковых эффектов и генерация звуков удара по кубикам
     try:
@@ -758,6 +768,7 @@ def main() -> None:
         paddle_bounce_sound = None
         brick_hit_sounds = None
 
+    # Инициализация переменных
     score = 0
     lives_left = MAX_LIVES
     game_over = False
@@ -765,13 +776,33 @@ def main() -> None:
     running = True
     music_enabled = True
     auto_mode = False
-    auto_mode_complete = False
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
+        # Сбрасываем флаг завершения авторежима для каждого нового запуска
+        auto_mode_complete = False
+        running = True  # Всегда начинаем с флага running=True
+        
+        # ПОЛНЫЙ СБРОС СОСТОЯНИЯ ИГРЫ ПРИ КАЖДОМ НОВОМ ЗАПУСКЕ
+        paddle = Paddle()
+        ball = Ball()
+        ball_speed = settings_manager.get_ball_speed()
+        ball.set_speed(ball_speed)
+        ball.reset(paddle.rect)
+        ball.vel_y = 0
+        bricks = build_bricks()
+        score = 0
+        lives_left = MAX_LIVES
+        game_over = False
+        game_started = False
+        
+        # Пересоздаем AI-систему при каждом новом запуске (для корректной работы авторежима)
+        ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
+        
         # Ввод имени игрока
         player_name, music_enabled, exit_game, auto_mode = get_player_name(
             screen, font, big_font, highscore_manager
         )
+        print(f"Возврат к вводу имени. Авторежим: {auto_mode}, Выход: {exit_game}, Имя: {player_name}")  # Отладочная информация
         if exit_game:
             pygame.quit()
             return
@@ -785,7 +816,7 @@ def main() -> None:
 
         # В авторежиме сразу устанавливаем нужную скорость и запускаем игру
         if auto_mode:
-            ball.set_speed(5)  # Стандартная скорость для авторежима
+            ball.set_speed(15, settings_manager, auto_mode=True)  # Стартовая скорость 15 для авторежима
             game_started = True  # Игра начинается сразу
             ball.vel_x = ball.get_speed()  # Направление вправо
             ball.vel_y = -ball.get_speed()
@@ -799,12 +830,9 @@ def main() -> None:
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    # В авторежиме принудительно закрываем приложение
-                    if auto_mode:
-                        pygame.quit()
-                        return
-                    else:
-                        running = False
+                    # В ручном режиме QUIT немедленно закрывает приложение
+                    pygame.quit()
+                    return
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         # Выход из игры
@@ -813,8 +841,9 @@ def main() -> None:
                             pygame.quit()
                             return
                         else:
-                            # В ручном режиме ESC просто выходит из игрового цикла
-                            running = False
+                            # В ручном режиме ESC полностью закрывает приложение
+                            pygame.quit()
+                            return
                     elif event.key == pygame.K_m:
                         # Переключение фоновой музыки
                         if music_enabled:
@@ -825,10 +854,10 @@ def main() -> None:
                             music_enabled = True
                     elif event.key == pygame.K_UP:
                         # Увеличение скорости мяча
-                        ball.increase_speed(settings_manager)
+                        ball.increase_speed(settings_manager, auto_mode)
                     elif event.key == pygame.K_DOWN:
                         # Уменьшение скорости мяча
-                        ball.decrease_speed(settings_manager)
+                        ball.decrease_speed(settings_manager, auto_mode)
 
             keys = pygame.key.get_pressed()
 
@@ -851,7 +880,7 @@ def main() -> None:
             # Обработка перезапуска после окончания игры (только для ручного режима)
             if game_over and keys[pygame.K_r]:
                 # В ручном режиме R перезапускает игру
-                # Сброс игры
+                # Сброс состояния игры
                 paddle = Paddle()
                 ball = Ball()
                 ball_speed = settings_manager.get_ball_speed()
@@ -983,6 +1012,7 @@ def main() -> None:
                                 highscore_manager,
                                 settings_manager,
                                 ball,
+                                auto_mode,
                             )
 
                             # Если игрок хочет выйти из игры
@@ -998,22 +1028,11 @@ def main() -> None:
                                 if auto_mode:
                                     # В авторежиме возвращаемся к вводу имени
                                     auto_mode_complete = True
+                                    running = False  # Останавливаем текущую игру
                                     break  # Выход из игрового цикла
                                 else:
                                     # В ручном режиме перезапускаем игру
-                                    # Сброс игры
-                                    paddle = Paddle()
-                                    ball = Ball()
-                                    ball_speed = settings_manager.get_ball_speed()
-                                    ball.set_speed(ball_speed)
-                                    ball.reset(paddle.rect)
-                                    ball.vel_y = 0
-                                    bricks = build_bricks()
-                                    score = 0
-                                    lives_left = MAX_LIVES
-                                    game_over = False
-                                    game_started = False
-                                    # Пересоздаем AI для новой игры
+                                    # Состояние уже сброшено в начале цикла, только пересоздаем AI
                                     ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
                                     ai_player.activate()
                         else:
@@ -1055,6 +1074,7 @@ def main() -> None:
                             highscore_manager,
                             settings_manager,
                             ball,
+                            auto_mode,
                         )
 
                         # Если игрок хочет выйти из игры
@@ -1070,22 +1090,11 @@ def main() -> None:
                             if auto_mode:
                                 # В авторежиме возвращаемся к вводу имени
                                 auto_mode_complete = True
+                                running = False  # Останавливаем текущую игру
                                 break  # Выход из игрового цикла
                             else:
                                 # В ручном режиме перезапускаем игру
-                                # Сброс игры
-                                paddle = Paddle()
-                                ball = Ball()
-                                ball_speed = settings_manager.get_ball_speed()
-                                ball.set_speed(ball_speed)
-                                ball.reset(paddle.rect)
-                                ball.vel_y = 0
-                                bricks = build_bricks()
-                                score = 0
-                                lives_left = MAX_LIVES
-                                game_over = False
-                                game_started = False
-                                # Пересоздаем AI для новой игры
+                                # Состояние уже сброшено в начале цикла, только пересоздаем AI
                                 ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
                                 ai_player.activate()
 
@@ -1130,11 +1139,20 @@ def main() -> None:
             pygame.display.flip()
             clock.tick(FPS)
 
-            if not running:
-                break  # Выход из внешнего цикла
+            # Выход из игрового цикла при необходимости (только для ручного режима)
+            if not running and not auto_mode:
+                break
             
             # Проверяем завершение авторежима
             if auto_mode_complete:
+                break  # Выход для возврата к вводу имени
+            
+            # Проверяем, нужно ли остановить игру в ручном режиме
+            if not running:
+                # В ручном режиме при остановке игры полностью закрываем приложение
+                if not auto_mode:
+                    pygame.quit()
+                    return
                 break  # Выход для возврата к вводу имени
 
     # Сохраняем данные обучения AI при выходе из игры
@@ -1146,3 +1164,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
