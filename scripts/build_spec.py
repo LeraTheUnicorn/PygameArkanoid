@@ -39,9 +39,9 @@ os.chdir(project_root)
 
 # Создаем команды для PyInstaller
 version = get_version()
-exe_name = f"Arkanoid_v{version}.exe"
+exe_name = f"Arkanoid_v{version}"  # Без .exe - PyInstaller добавит сам
 
-print(f"Создание исполняемого файла: {exe_name}")
+print(f"Создание исполняемого файла: {exe_name}.exe")
 print(f"Версия: {version}")
 print(f"Корень проекта: {project_root}")
 print("Используются ресурсы из папки resources/")

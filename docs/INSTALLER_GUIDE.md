@@ -203,7 +203,6 @@ PIL (Pillow) не установлен
 
 Для вопросов по созданию инсталляторов:
 - **Email:** dadbarn@gmail.com
-- **GitHub:** https://github.com/developer/arkanoid
 
 ---
 
