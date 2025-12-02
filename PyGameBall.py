@@ -545,9 +545,15 @@ def draw_hud(
     lives_left: int,
     font: pygame.font.Font,
     ball: Ball,
+    auto_mode: bool = False,
 ) -> None:
-    text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑↓ - скорость"
-    surf = font.render(text, True, (255, 255, 255))
+    # Добавляем индикатор авторежима
+    if auto_mode:
+        text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | АВТОРЕЖИМ"
+    else:
+        text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑↓ - скорость"
+    
+    surf = font.render(text, True, (255, 255, 255) if not auto_mode else (255, 255, 0))
     screen.blit(surf, (SCREEN_WIDTH - surf.get_width() - 20, 20))
 
 
@@ -803,7 +809,7 @@ def main() -> None:
 
             keys = pygame.key.get_pressed()
 
-            if not game_started:
+            if not game_started and not auto_mode:
                 ball.rect.center = paddle.rect.midtop
                 ball.rect.y -= BALL_SIZE
                 if keys[pygame.K_LEFT]:
@@ -814,6 +820,10 @@ def main() -> None:
                     game_started = True
                     ball.vel_x = ball.get_speed()
                     ball.vel_y = -ball.get_speed()
+            elif not game_started and auto_mode:
+                # В авторежиме мяч всегда на платформе
+                ball.rect.center = paddle.rect.midtop
+                ball.rect.y -= BALL_SIZE
 
             # Обработка перезапуска после окончания игры
             if game_over and keys[pygame.K_r]:
@@ -829,10 +839,24 @@ def main() -> None:
                 lives_left = MAX_LIVES
                 game_over = False
                 game_started = False
+                # В авторежиме снова устанавливаем игру на автозапуск
+                if auto_mode:
+                    ball.set_speed(5)  # Стандартная скорость для авторежима
+                    game_started = True  # Игра начинается сразу
+                    ball.vel_x = ball.get_speed()  # Направление вправо
+                    ball.vel_y = -ball.get_speed()
 
             if not game_over:
-                # Движение платформы (только в ручном режиме)
-                if not auto_mode:
+                # Движение платформы
+                if auto_mode:
+                    # Автоматическое управление платформой в авторежиме
+                    # Платформа следует за мячом для удержания его
+                    if ball.rect.centerx < paddle.rect.centerx - 20:
+                        paddle.move(-1)  # Двигаемся влево
+                    elif ball.rect.centerx > paddle.rect.centerx + 20:
+                        paddle.move(1)   # Двигаемся вправо
+                else:
+                    # Ручное управление платформой
                     if keys[pygame.K_LEFT]:
                         paddle.move(-1)
                     if keys[pygame.K_RIGHT]:
@@ -914,6 +938,12 @@ def main() -> None:
                                 lives_left = MAX_LIVES
                                 game_over = False
                                 game_started = False
+                                # В авторежиме снова устанавливаем игру на автозапуск
+                                if auto_mode:
+                                    ball.set_speed(5)  # Стандартная скорость для авторежима
+                                    game_started = True  # Игра начинается сразу
+                                    ball.vel_x = ball.get_speed()  # Направление вправо
+                                    ball.vel_y = -ball.get_speed()
                         else:
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
@@ -954,6 +984,12 @@ def main() -> None:
                             lives_left = MAX_LIVES
                             game_over = False
                             game_started = False
+                            # В авторежиме снова устанавливаем игру на автозапуск
+                            if auto_mode:
+                                ball.set_speed(5)  # Стандартная скорость для авторежима
+                                game_started = True  # Игра начинается сразу
+                                ball.vel_x = ball.get_speed()  # Направление вправо
+                                ball.vel_y = -ball.get_speed()
 
             screen.fill((10, 10, 30))
             draw_bricks(screen, bricks)
@@ -977,10 +1013,16 @@ def main() -> None:
             )
             pygame.draw.rect(screen, (0, 0, 255), right_rect)  # Синий для отскока вправо
             pygame.draw.ellipse(screen, (230, 90, 90), ball.rect)
-            draw_hud(screen, score, lives_left, font, ball)
+            draw_hud(screen, score, lives_left, font, ball, auto_mode)
 
             if not game_started:
-                draw_start_hint(screen, big_font)
+                if auto_mode:
+                    # В авторежиме показываем другую подсказку
+                    auto_hint = big_font.render("АВТОРЕЖИМ АКТИВЕН", True, (255, 255, 0))
+                    auto_rect = auto_hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+                    screen.blit(auto_hint, auto_rect)
+                else:
+                    draw_start_hint(screen, big_font)
 
             pygame.display.flip()
             clock.tick(FPS)
