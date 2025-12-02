@@ -17,9 +17,9 @@ __author__ = "AI System Developer"
 
 __all__ = [
     "AIPlayer",
-    "TrajectoryPredictor", 
+    "TrajectoryPredictor",
     "PositionOptimizer",
     "LearningSystem",
     "PerformanceLogger",
-    "GameState"
+    "GameState",
 ]
