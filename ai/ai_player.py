@@ -4,6 +4,7 @@
 
 import pygame
 import time
+import math
 from typing import List, Tuple, Optional, Dict, Any
 from .game_state import GameState, Point
 from .trajectory_predictor import TrajectoryPredictor
@@ -72,6 +73,17 @@ class AIPlayer:
 
         # Флаг активности
         self.is_active = False
+        
+        # Система прицельного отбивания
+        self.targeting_system = {
+            "target_brick": None,  # Целевой кубик
+            "optimal_offset": 0.0,  # Оптимальное смещение на платформе (-1 до 1)
+            "successful_hits": [],  # История удачных ударов
+            "hit_patterns": {},  # Паттерны успешных ударов
+        }
+        
+        # Параметры платформы для расчёта угла отскока
+        self.paddle_width = 120  # Ширина платформы
 
     def update_game_state(
         self, ball, paddle, bricks, score: int, start_time: int
@@ -113,8 +125,8 @@ class AIPlayer:
 
     def get_optimal_paddle_position(self) -> int:
         """
-        Получает оптимальную позицию для платформы (упрощенная и надежная версия)
-
+        Получает оптимальную позицию для платформы с прицельным отбиванием в кубики
+        
         Returns:
             X-координата центра платформы
         """
@@ -122,20 +134,207 @@ class AIPlayer:
             return self.screen_width // 2  # Резервная позиция
 
         try:
-            # Используем упрощенную логику для надежности
+            # Если мяч падает - рассчитываем прицельную позицию
             if self.is_ball_moving_towards_paddle():
-                # Для падающего мяча используем прямое предсказание
-                optimal_position = self._predict_exact_landing_position()
+                # Получаем точку приземления мяча
+                landing_x = self._predict_exact_landing_position()
+                
+                # Находим лучший кубик для прицеливания
+                target_brick = self._find_best_target_brick()
+                
+                if target_brick:
+                    # Рассчитываем оптимальное смещение для попадания в кубик
+                    optimal_offset = self._calculate_optimal_offset(landing_x, target_brick)
+                    
+                    # Сохраняем информацию о прицеливании
+                    self.targeting_system["target_brick"] = target_brick
+                    self.targeting_system["optimal_offset"] = optimal_offset
+                    
+                    # Рассчитываем позицию платформы с учётом смещения
+                    # offset от -1 до 1, где 0 = центр платформы
+                    paddle_half_width = self.paddle_width / 2
+                    optimal_position = landing_x - (optimal_offset * paddle_half_width)
+                    
+                    # Ограничиваем позицию границами экрана
+                    optimal_position = max(paddle_half_width, min(self.screen_width - paddle_half_width, optimal_position))
+                    
+                    return int(optimal_position)
+                else:
+                    # Нет кубиков - просто ловим мяч
+                    return int(landing_x)
             else:
-                # Для мяча, движущегося вверх, следим за ним
-                optimal_position = self._track_ball_position()
-
-            return int(optimal_position)
+                # Мяч движется вверх - следим за ним
+                return int(self._track_ball_position())
 
         except Exception as e:
             print(f"Ошибка при расчете оптимальной позиции: {e}")
-            # Резервная логика - простое следование за мячом
             return int(self.current_game_state.ball_position.x)
+    
+    def _find_best_target_brick(self) -> Optional[Dict]:
+        """
+        Находит лучший кубик для прицеливания
+        
+        Приоритеты:
+        1. Кубики в нижних рядах (ближе к платформе)
+        2. Кубики ближе к текущей траектории мяча
+        3. Кубики с успешной историей попаданий
+        
+        Returns:
+            Словарь с информацией о кубике или None
+        """
+        if not self.current_game_state or not self.current_game_state.remaining_bricks:
+            return None
+        
+        bricks = self.current_game_state.remaining_bricks
+        ball_x = self.current_game_state.ball_position.x
+        paddle_y = self.current_game_state.paddle_position.y
+        
+        best_brick = None
+        best_score = -float('inf')
+        
+        for brick in bricks:
+            # Оценка кубика
+            score = 0
+            
+            # Приоритет нижним кубикам (ближе к платформе = выше оценка)
+            brick_y = brick.get('y', 0)
+            distance_to_paddle = paddle_y - brick_y
+            if distance_to_paddle > 0:
+                score += (1.0 / distance_to_paddle) * 1000  # Ближе = лучше
+            
+            # Приоритет кубикам ближе к траектории мяча
+            brick_x = brick.get('x', 0) + brick.get('width', 60) / 2  # Центр кубика
+            horizontal_distance = abs(brick_x - ball_x)
+            score -= horizontal_distance * 0.5  # Ближе по горизонтали = лучше
+            
+            # Бонус за успешные попадания в этот кубик (из истории)
+            brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
+            if brick_key in self.targeting_system["hit_patterns"]:
+                pattern = self.targeting_system["hit_patterns"][brick_key]
+                score += pattern.get("success_rate", 0) * 100
+            
+            if score > best_score:
+                best_score = score
+                best_brick = brick
+        
+        return best_brick
+    
+    def _calculate_optimal_offset(self, landing_x: float, target_brick: Dict) -> float:
+        """
+        Рассчитывает оптимальное смещение на платформе для попадания в кубик
+        
+        Args:
+            landing_x: X-координата приземления мяча
+            target_brick: Целевой кубик
+            
+        Returns:
+            Смещение от -1 до 1 (где 0 = центр платформы)
+        """
+        # Центр целевого кубика
+        brick_center_x = target_brick.get('x', 0) + target_brick.get('width', 60) / 2
+        brick_center_y = target_brick.get('y', 0) + target_brick.get('height', 20) / 2
+        
+        # Позиция платформы
+        paddle_y = self.current_game_state.paddle_position.y
+        
+        # Рассчитываем нужный угол отскока
+        # Угол = arctan((brick_x - landing_x) / (paddle_y - brick_y))
+        delta_x = brick_center_x - landing_x
+        delta_y = paddle_y - brick_center_y
+        
+        if delta_y <= 0:
+            return 0.0  # Кубик ниже платформы - невозможно
+        
+        # Нужный угол отскока (в радианах)
+        target_angle = math.atan2(delta_x, delta_y)
+        
+        # Преобразуем угол в смещение на платформе
+        # Угол отскока пропорционален смещению от центра
+        # Максимальный угол ~45 градусов при смещении 1.0
+        max_angle = math.pi / 4  # 45 градусов
+        
+        offset = target_angle / max_angle
+        
+        # Ограничиваем смещение
+        offset = max(-1.0, min(1.0, offset))
+        
+        # Проверяем историю успешных ударов для корректировки
+        offset = self._adjust_offset_from_history(offset, target_brick)
+        
+        return offset
+    
+    def _adjust_offset_from_history(self, offset: float, target_brick: Dict) -> float:
+        """
+        Корректирует смещение на основе истории успешных ударов
+        
+        Args:
+            offset: Рассчитанное смещение
+            target_brick: Целевой кубик
+            
+        Returns:
+            Скорректированное смещение
+        """
+        brick_x = target_brick.get('x', 0)
+        brick_y = target_brick.get('y', 0)
+        brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
+        
+        if brick_key in self.targeting_system["hit_patterns"]:
+            pattern = self.targeting_system["hit_patterns"][brick_key]
+            if pattern.get("successful_offsets"):
+                # Усредняем с успешными смещениями
+                avg_successful_offset = sum(pattern["successful_offsets"]) / len(pattern["successful_offsets"])
+                # Смешиваем расчётное и историческое смещение
+                offset = offset * 0.7 + avg_successful_offset * 0.3
+        
+        return offset
+    
+    def record_hit_result(self, brick_hit: Dict, paddle_offset: float, success: bool) -> None:
+        """
+        Записывает результат удара для обучения
+        
+        Args:
+            brick_hit: Информация о сбитом кубике
+            paddle_offset: Смещение на платформе при ударе
+            success: Был ли удар успешным
+        """
+        brick_x = brick_hit.get('x', 0)
+        brick_y = brick_hit.get('y', 0)
+        brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
+        
+        if brick_key not in self.targeting_system["hit_patterns"]:
+            self.targeting_system["hit_patterns"][brick_key] = {
+                "total_attempts": 0,
+                "successful_hits": 0,
+                "success_rate": 0.0,
+                "successful_offsets": [],
+            }
+        
+        pattern = self.targeting_system["hit_patterns"][brick_key]
+        pattern["total_attempts"] += 1
+        
+        if success:
+            pattern["successful_hits"] += 1
+            pattern["successful_offsets"].append(paddle_offset)
+            
+            # Ограничиваем размер списка
+            if len(pattern["successful_offsets"]) > 20:
+                pattern["successful_offsets"] = pattern["successful_offsets"][-10:]
+        
+        # Обновляем success_rate
+        pattern["success_rate"] = pattern["successful_hits"] / pattern["total_attempts"]
+        
+        # Сохраняем в историю успешных ударов
+        if success:
+            self.targeting_system["successful_hits"].append({
+                "brick_key": brick_key,
+                "offset": paddle_offset,
+                "ball_speed": self.current_game_state.ball_speed if self.current_game_state else 5,
+                "timestamp": time.time(),
+            })
+            
+            # Ограничиваем размер истории
+            if len(self.targeting_system["successful_hits"]) > 100:
+                self.targeting_system["successful_hits"] = self.targeting_system["successful_hits"][-50:]
 
     def _predict_exact_landing_position(self) -> float:
         """Точное предсказание позиции приземления мяча на платформу"""
@@ -357,7 +556,7 @@ class AIPlayer:
     def learn_from_result(self, action_result: Dict[str, Any]) -> None:
         """
         Обучает AI систему на основе результата действия
-
+        
         Args:
             action_result: Результат последнего действия
         """
@@ -383,6 +582,35 @@ class AIPlayer:
                 "trajectory_prediction": self._get_current_trajectory_prediction(),
             }
         )
+        
+        # Записываем результат удара для системы прицеливания
+        action_type = action_result.get("action_type", "")
+        if action_type == "brick_hit":
+            bricks_destroyed = action_result.get("bricks_destroyed", [])
+            for brick in bricks_destroyed:
+                # Рассчитываем смещение на платформе при ударе
+                paddle_x = self.current_game_state.paddle_position.x
+                ball_x = self.current_game_state.ball_position.x
+                paddle_offset = (ball_x - paddle_x) / (self.paddle_width / 2)
+                paddle_offset = max(-1.0, min(1.0, paddle_offset))
+                
+                # Записываем успешный удар
+                self.record_hit_result(brick, paddle_offset, success=True)
+        
+        elif action_type == "paddle_bounce":
+            # Записываем информацию об отскоке для анализа
+            if self.targeting_system["target_brick"]:
+                paddle_x = self.current_game_state.paddle_position.x
+                ball_x = self.current_game_state.ball_position.x
+                paddle_offset = (ball_x - paddle_x) / (self.paddle_width / 2)
+                paddle_offset = max(-1.0, min(1.0, paddle_offset))
+                
+                # Сохраняем информацию о прицеливании для последующего анализа
+                enhanced_result["targeting_info"] = {
+                    "target_brick": self.targeting_system["target_brick"],
+                    "optimal_offset": self.targeting_system["optimal_offset"],
+                    "actual_offset": paddle_offset,
+                }
 
         # Обновляем систему обучения
         self.learning_system.update_strategy(enhanced_result)
