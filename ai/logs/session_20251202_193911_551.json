@@ -1,0 +1,29 @@
+{
+  "session_id": "20251202_193911_551",
+  "session_start": 1764693551.1233304,
+  "session_end": 1764693551.1606495,
+  "total_duration": 0.037319183349609375,
+  "total_actions": 2,
+  "actions": [
+    {
+      "timestamp": 1764693551.1233304,
+      "session_time": 0.0,
+      "type": "ai_activated"
+    },
+    {
+      "timestamp": 1764693551.1233304,
+      "session_time": 0.0,
+      "type": "game_start",
+      "initial_bricks_count": 0,
+      "initial_ball_position": {
+        "x": 50,
+        "y": 100
+      },
+      "initial_ball_velocity": {
+        "x": 5,
+        "y": 3
+      }
+    }
+  ],
+  "game_results": []
+}

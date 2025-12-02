@@ -1,6 +1,9 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "1.7.0"
+VERSION = "1.8.0"
+
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'  # Скрыть сообщение поддержки pygame
 
 import random
 import time
@@ -13,6 +16,7 @@ from typing import List
 import pygame
 from highscores import HighScoreManager
 from settings import SettingsManager
+from ai.ai_player import AIPlayer
 
 
 def resource_path(relative_path):
@@ -726,6 +730,10 @@ def main() -> None:
     ball.reset(paddle.rect)
     ball.vel_y = 0
     bricks = build_bricks()
+    
+    # Инициализируем AI систему
+    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
+    ai_player.activate()
 
     # Загрузка звуковых эффектов и генерация звуков удара по кубикам
     try:
@@ -757,6 +765,7 @@ def main() -> None:
     running = True
     music_enabled = True
     auto_mode = False
+    auto_mode_complete = False
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
         # Ввод имени игрока
@@ -780,6 +789,9 @@ def main() -> None:
             game_started = True  # Игра начинается сразу
             ball.vel_x = ball.get_speed()  # Направление вправо
             ball.vel_y = -ball.get_speed()
+            print(f"Авторежим: Игра запущена автоматически. AI активен: {ai_player.is_active}")
+        else:
+            ai_player.deactivate()  # Деактивируем в ручном режиме
 
         # Отсчет времени игры
         game_start_time = time.time()
@@ -787,11 +799,22 @@ def main() -> None:
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    # В авторежиме принудительно закрываем приложение
+                    if auto_mode:
+                        pygame.quit()
+                        return
+                    else:
+                        running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         # Выход из игры
-                        running = False
+                        if auto_mode:
+                            # В авторежиме ESC полностью закрывает приложение
+                            pygame.quit()
+                            return
+                        else:
+                            # В ручном режиме ESC просто выходит из игрового цикла
+                            running = False
                     elif event.key == pygame.K_m:
                         # Переключение фоновой музыки
                         if music_enabled:
@@ -825,8 +848,9 @@ def main() -> None:
                 ball.rect.center = paddle.rect.midtop
                 ball.rect.y -= BALL_SIZE
 
-            # Обработка перезапуска после окончания игры
+            # Обработка перезапуска после окончания игры (только для ручного режима)
             if game_over and keys[pygame.K_r]:
+                # В ручном режиме R перезапускает игру
                 # Сброс игры
                 paddle = Paddle()
                 ball = Ball()
@@ -839,22 +863,25 @@ def main() -> None:
                 lives_left = MAX_LIVES
                 game_over = False
                 game_started = False
-                # В авторежиме снова устанавливаем игру на автозапуск
-                if auto_mode:
-                    ball.set_speed(5)  # Стандартная скорость для авторежима
-                    game_started = True  # Игра начинается сразу
-                    ball.vel_x = ball.get_speed()  # Направление вправо
-                    ball.vel_y = -ball.get_speed()
+                # Пересоздаем AI для новой игры
+                ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+                ai_player.activate()
 
             if not game_over:
+                # Обновляем состояние игры для AI системы
+                if auto_mode:
+                    ai_player.update_game_state(ball, paddle, bricks, score, int(game_start_time))
+                
                 # Движение платформы
                 if auto_mode:
-                    # Автоматическое управление платформой в авторежиме
-                    # Платформа следует за мячом для удержания его
-                    if ball.rect.centerx < paddle.rect.centerx - 20:
-                        paddle.move(-1)  # Двигаемся влево
-                    elif ball.rect.centerx > paddle.rect.centerx + 20:
-                        paddle.move(1)   # Двигаемся вправо
+                    # Используем AI систему для автоматического управления
+                    movement = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
+                    paddle.move(movement)
+                    
+                    # Отладочная информация (выводим периодически)
+                    if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
+                        optimal_x = ai_player.get_optimal_paddle_position()
+                        print(f"AI Debug: Платформа X={paddle.rect.centerx}, Оптимальная X={optimal_x}, Движение={movement}, AI активен={ai_player.is_active}")
                 else:
                     # Ручное управление платформой
                     if keys[pygame.K_LEFT]:
@@ -889,12 +916,37 @@ def main() -> None:
                         # Play paddle bounce sound
                         if paddle_bounce_sound:
                             paddle_bounce_sound.play()
+                        
+                        # Обучаем AI на результате отскока
+                        if auto_mode:
+                            ai_result = {
+                                "action_type": "paddle_bounce",
+                                "success": True,  # Отскок от платформы всегда успешен
+                                "confidence": 0.8,
+                                "movement_distance": abs(offset * paddle.rect.width),
+                                "ball_speed": ball.get_speed(),
+                                "remaining_bricks": len(bricks)
+                            }
+                            ai_player.learn_from_result(ai_result)
 
                     hit_index = ball.rect.collidelist(bricks)
                     if hit_index != -1:
                         ball.bounce_vertical()
-                        bricks.pop(hit_index)
+                        destroyed_brick = bricks.pop(hit_index)
                         score += 1
+                        
+                        # Обучаем AI на результате попадания в кубик
+                        if auto_mode:
+                            ai_result = {
+                                "action_type": "brick_hit",
+                                "success": True,
+                                "confidence": 1.0,
+                                "bricks_destroyed": [{"x": destroyed_brick.x, "y": destroyed_brick.y}],
+                                "remaining_bricks": len(bricks),
+                                "ball_speed": ball.get_speed()
+                            }
+                            ai_player.learn_from_result(ai_result)
+                        
                         # Play random brick hit sound
                         if brick_hit_sounds:
                             brick_hit_sounds[
@@ -907,6 +959,20 @@ def main() -> None:
                             game_over = True
                             # Рассчитываем время игры и сохраняем результат
                             game_time_seconds = int(time.time() - game_start_time)
+                            
+                            # Обучаем AI на результате игры (проигрыш)
+                            if auto_mode:
+                                ai_result = {
+                                    "action_type": "game_end",
+                                    "success": False,  # Игра проиграна
+                                    "final_score": score,
+                                    "game_duration": game_time_seconds,
+                                    "bricks_remaining": len(bricks)
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player.on_game_end(False, score)
+                            
+                            # В любом режиме показываем экран результатов
                             music_enabled, restart_game, exit_game = show_game_results(
                                 screen,
                                 font,
@@ -921,38 +987,64 @@ def main() -> None:
 
                             # Если игрок хочет выйти из игры
                             if exit_game:
+                                # Сохраняем данные обучения перед выходом
+                                if auto_mode:
+                                    ai_player.save_learning_data()
                                 pygame.quit()
                                 return
 
-                            # Если игрок хочет начать новую игру, перезапускаем
+                            # Обработка перезапуска в зависимости от режима
                             if restart_game:
-                                # Сброс игры
-                                paddle = Paddle()
-                                ball = Ball()
-                                ball_speed = settings_manager.get_ball_speed()
-                                ball.set_speed(ball_speed)
-                                ball.reset(paddle.rect)
-                                ball.vel_y = 0
-                                bricks = build_bricks()
-                                score = 0
-                                lives_left = MAX_LIVES
-                                game_over = False
-                                game_started = False
-                                # В авторежиме снова устанавливаем игру на автозапуск
                                 if auto_mode:
-                                    ball.set_speed(5)  # Стандартная скорость для авторежима
-                                    game_started = True  # Игра начинается сразу
-                                    ball.vel_x = ball.get_speed()  # Направление вправо
-                                    ball.vel_y = -ball.get_speed()
+                                    # В авторежиме возвращаемся к вводу имени
+                                    auto_mode_complete = True
+                                    break  # Выход из игрового цикла
+                                else:
+                                    # В ручном режиме перезапускаем игру
+                                    # Сброс игры
+                                    paddle = Paddle()
+                                    ball = Ball()
+                                    ball_speed = settings_manager.get_ball_speed()
+                                    ball.set_speed(ball_speed)
+                                    ball.reset(paddle.rect)
+                                    ball.vel_y = 0
+                                    bricks = build_bricks()
+                                    score = 0
+                                    lives_left = MAX_LIVES
+                                    game_over = False
+                                    game_started = False
+                                    # Пересоздаем AI для новой игры
+                                    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+                                    ai_player.activate()
                         else:
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
                             game_started = False
+                            
+                            # В авторежиме автоматически запускаем игру заново
+                            if auto_mode:
+                                game_started = True
+                                ball.vel_x = ball.get_speed()
+                                ball.vel_y = -ball.get_speed()
 
                     if not bricks:
                         game_over = True
                         # Рассчитываем время игры и сохраняем результат
                         game_time_seconds = int(time.time() - game_start_time)
+                        
+                        # Обучаем AI на результате игры (победа)
+                        if auto_mode:
+                            ai_result = {
+                                "action_type": "game_end",
+                                "success": True,  # Игра выиграна
+                                "final_score": score,
+                                "game_duration": game_time_seconds,
+                                "bricks_remaining": 0
+                            }
+                            ai_player.learn_from_result(ai_result)
+                            ai_player.on_game_end(True, score)
+                        
+                        # В любом режиме показываем экран результатов
                         music_enabled, restart_game, exit_game = show_game_results(
                             screen,
                             font,
@@ -967,29 +1059,35 @@ def main() -> None:
 
                         # Если игрок хочет выйти из игры
                         if exit_game:
+                            # Сохраняем данные обучения перед выходом
+                            if auto_mode:
+                                ai_player.save_learning_data()
                             pygame.quit()
                             return
 
-                        # Если игрок хочет начать новую игру, перезапускаем
+                        # Обработка перезапуска в зависимости от режима
                         if restart_game:
-                            # Сброс игры
-                            paddle = Paddle()
-                            ball = Ball()
-                            ball_speed = settings_manager.get_ball_speed()
-                            ball.set_speed(ball_speed)
-                            ball.reset(paddle.rect)
-                            ball.vel_y = 0
-                            bricks = build_bricks()
-                            score = 0
-                            lives_left = MAX_LIVES
-                            game_over = False
-                            game_started = False
-                            # В авторежиме снова устанавливаем игру на автозапуск
                             if auto_mode:
-                                ball.set_speed(5)  # Стандартная скорость для авторежима
-                                game_started = True  # Игра начинается сразу
-                                ball.vel_x = ball.get_speed()  # Направление вправо
-                                ball.vel_y = -ball.get_speed()
+                                # В авторежиме возвращаемся к вводу имени
+                                auto_mode_complete = True
+                                break  # Выход из игрового цикла
+                            else:
+                                # В ручном режиме перезапускаем игру
+                                # Сброс игры
+                                paddle = Paddle()
+                                ball = Ball()
+                                ball_speed = settings_manager.get_ball_speed()
+                                ball.set_speed(ball_speed)
+                                ball.reset(paddle.rect)
+                                ball.vel_y = 0
+                                bricks = build_bricks()
+                                score = 0
+                                lives_left = MAX_LIVES
+                                game_over = False
+                                game_started = False
+                                # Пересоздаем AI для новой игры
+                                ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+                                ai_player.activate()
 
             screen.fill((10, 10, 30))
             draw_bricks(screen, bricks)
@@ -1013,6 +1111,11 @@ def main() -> None:
             )
             pygame.draw.rect(screen, (0, 0, 255), right_rect)  # Синий для отскока вправо
             pygame.draw.ellipse(screen, (230, 90, 90), ball.rect)
+            
+            # Визуализация отладочной информации AI системы
+            if auto_mode:
+                ai_player.visualize_debug_info(screen)
+            
             draw_hud(screen, score, lives_left, font, ball, auto_mode)
 
             if not game_started:
@@ -1029,6 +1132,14 @@ def main() -> None:
 
             if not running:
                 break  # Выход из внешнего цикла
+            
+            # Проверяем завершение авторежима
+            if auto_mode_complete:
+                break  # Выход для возврата к вводу имени
+
+    # Сохраняем данные обучения AI при выходе из игры
+    if auto_mode:
+        ai_player.save_learning_data()
 
     pygame.quit()
 

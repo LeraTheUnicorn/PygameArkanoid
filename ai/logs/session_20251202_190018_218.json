@@ -1,0 +1,1531 @@
+{
+  "session_id": "20251202_190018_218",
+  "session_start": 1764691218.8747468,
+  "session_end": 1764691229.211942,
+  "total_duration": 10.33719515800476,
+  "total_actions": 101,
+  "actions": [
+    {
+      "timestamp": 1764691218.8747468,
+      "session_time": 0.0,
+      "type": "ai_activated"
+    },
+    {
+      "timestamp": 1764691228.1106973,
+      "session_time": 9.235950469970703,
+      "type": "game_start",
+      "initial_bricks_count": 50,
+      "initial_ball_position": {
+        "x": 400,
+        "y": 524
+      },
+      "initial_ball_velocity": {
+        "x": 5,
+        "y": -5
+      }
+    },
+    {
+      "timestamp": 1764691228.1106973,
+      "session_time": 9.235950469970703,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 400,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1122057,
+      "session_time": 9.237458944320679,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 405,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1122057,
+      "session_time": 9.237458944320679,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 409,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1307383,
+      "session_time": 9.255991458892822,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 410,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1480074,
+      "session_time": 9.273260593414307,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 415,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1480074,
+      "session_time": 9.273260593414307,
+      "type": "paddle_movement",
+      "from_position": 409,
+      "to_position": 418,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.165243,
+      "session_time": 9.290496110916138,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 420,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.182183,
+      "session_time": 9.307436227798462,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 425,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.182183,
+      "session_time": 9.307436227798462,
+      "type": "paddle_movement",
+      "from_position": 418,
+      "to_position": 427,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.1980817,
+      "session_time": 9.32333493232727,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 430,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.2143416,
+      "session_time": 9.339594841003418,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 435,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.2143416,
+      "session_time": 9.339594841003418,
+      "type": "paddle_movement",
+      "from_position": 427,
+      "to_position": 436,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.2308962,
+      "session_time": 9.356149435043335,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 440,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.246936,
+      "session_time": 9.372189283370972,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 445,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.246936,
+      "session_time": 9.372189283370972,
+      "type": "paddle_movement",
+      "from_position": 436,
+      "to_position": 445,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.2641296,
+      "session_time": 9.38938283920288,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 450,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.2641296,
+      "session_time": 9.38938283920288,
+      "type": "paddle_movement",
+      "from_position": 445,
+      "to_position": 454,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.280145,
+      "session_time": 9.40539813041687,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 455,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.297165,
+      "session_time": 9.422418117523193,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 460,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.297165,
+      "session_time": 9.422418117523193,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 463,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3138897,
+      "session_time": 9.439142942428589,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 465,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.330848,
+      "session_time": 9.456101179122925,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 470,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.330848,
+      "session_time": 9.456101179122925,
+      "type": "paddle_movement",
+      "from_position": 463,
+      "to_position": 472,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3469517,
+      "session_time": 9.47220492362976,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 475,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3636243,
+      "session_time": 9.488877534866333,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 480,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3636243,
+      "session_time": 9.488877534866333,
+      "type": "paddle_movement",
+      "from_position": 472,
+      "to_position": 481,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3810427,
+      "session_time": 9.506295919418335,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 485,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3983293,
+      "session_time": 9.523582458496094,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 490,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.3983293,
+      "session_time": 9.523582458496094,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 490,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.4145718,
+      "session_time": 9.539824962615967,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 495,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.4145718,
+      "session_time": 9.539824962615967,
+      "type": "paddle_movement",
+      "from_position": 490,
+      "to_position": 499,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.4308834,
+      "session_time": 9.55613660812378,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 500,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.447017,
+      "session_time": 9.572270154953003,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 505,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.447017,
+      "session_time": 9.572270154953003,
+      "type": "paddle_movement",
+      "from_position": 499,
+      "to_position": 508,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.464271,
+      "session_time": 9.589524269104004,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 510,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.481049,
+      "session_time": 9.606302261352539,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 515,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.481049,
+      "session_time": 9.606302261352539,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 517,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.4980693,
+      "session_time": 9.623322486877441,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 520,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5144284,
+      "session_time": 9.639681577682495,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 525,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5144284,
+      "session_time": 9.639681577682495,
+      "type": "paddle_movement",
+      "from_position": 517,
+      "to_position": 526,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.531226,
+      "session_time": 9.656479120254517,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 530,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5475037,
+      "session_time": 9.672756910324097,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 535,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5475037,
+      "session_time": 9.672756910324097,
+      "type": "paddle_movement",
+      "from_position": 526,
+      "to_position": 535,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5644062,
+      "session_time": 9.689659357070923,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 540,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5644062,
+      "session_time": 9.689659357070923,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 544,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5809326,
+      "session_time": 9.706185817718506,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 545,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5979595,
+      "session_time": 9.723212718963623,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 550,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.5979595,
+      "session_time": 9.723212718963623,
+      "type": "paddle_movement",
+      "from_position": 544,
+      "to_position": 553,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6139276,
+      "session_time": 9.73918080329895,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 555,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6310089,
+      "session_time": 9.756262063980103,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 560,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6310089,
+      "session_time": 9.756262063980103,
+      "type": "paddle_movement",
+      "from_position": 553,
+      "to_position": 562,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6477897,
+      "session_time": 9.773042917251587,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 565,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6648357,
+      "session_time": 9.790088891983032,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 570,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6648357,
+      "session_time": 9.790088891983032,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 571,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6819284,
+      "session_time": 9.807181596755981,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 575,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6984355,
+      "session_time": 9.823688745498657,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 580,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.6984355,
+      "session_time": 9.823688745498657,
+      "type": "paddle_movement",
+      "from_position": 571,
+      "to_position": 580,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.71447,
+      "session_time": 9.839723110198975,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 585,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.71447,
+      "session_time": 9.839723110198975,
+      "type": "paddle_movement",
+      "from_position": 580,
+      "to_position": 589,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.7309146,
+      "session_time": 9.856167793273926,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 590,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.7476337,
+      "session_time": 9.872886896133423,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 595,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.7476337,
+      "session_time": 9.872886896133423,
+      "type": "paddle_movement",
+      "from_position": 589,
+      "to_position": 598,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.7651646,
+      "session_time": 9.89041781425476,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 600,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.781355,
+      "session_time": 9.90660810470581,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 605,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.781355,
+      "session_time": 9.90660810470581,
+      "type": "paddle_movement",
+      "from_position": 598,
+      "to_position": 607,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.7968347,
+      "session_time": 9.922087907791138,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 610,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.813063,
+      "session_time": 9.938316106796265,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 615,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.813063,
+      "session_time": 9.938316106796265,
+      "type": "paddle_movement",
+      "from_position": 607,
+      "to_position": 616,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.831028,
+      "session_time": 9.956281185150146,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 620,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8482957,
+      "session_time": 9.973548889160156,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 625,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8482957,
+      "session_time": 9.973548889160156,
+      "type": "paddle_movement",
+      "from_position": 616,
+      "to_position": 625,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8640642,
+      "session_time": 9.989317417144775,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 630,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8640642,
+      "session_time": 9.989317417144775,
+      "type": "paddle_movement",
+      "from_position": 625,
+      "to_position": 634,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8810868,
+      "session_time": 10.006340026855469,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 635,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8969936,
+      "session_time": 10.022246837615967,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 640,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.8969936,
+      "session_time": 10.022246837615967,
+      "type": "paddle_movement",
+      "from_position": 634,
+      "to_position": 643,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9129038,
+      "session_time": 10.038156986236572,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 645,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9300299,
+      "session_time": 10.055283069610596,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 650,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9300299,
+      "session_time": 10.055283069610596,
+      "type": "paddle_movement",
+      "from_position": 643,
+      "to_position": 652,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9458096,
+      "session_time": 10.071062803268433,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 655,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9631376,
+      "session_time": 10.088390827178955,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 660,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9631376,
+      "session_time": 10.088390827178955,
+      "type": "paddle_movement",
+      "from_position": 652,
+      "to_position": 661,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.9786358,
+      "session_time": 10.103888988494873,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 665,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.995655,
+      "session_time": 10.120908260345459,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 670,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691228.995655,
+      "session_time": 10.120908260345459,
+      "type": "paddle_movement",
+      "from_position": 661,
+      "to_position": 670,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.012279,
+      "session_time": 10.137532234191895,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 675,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.012279,
+      "session_time": 10.137532234191895,
+      "type": "paddle_movement",
+      "from_position": 670,
+      "to_position": 679,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.028712,
+      "session_time": 10.15396523475647,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 680,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.0453176,
+      "session_time": 10.170570850372314,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 685,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.0453176,
+      "session_time": 10.170570850372314,
+      "type": "paddle_movement",
+      "from_position": 679,
+      "to_position": 688,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.0609083,
+      "session_time": 10.186161518096924,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 690,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.0774384,
+      "session_time": 10.202691555023193,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 695,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.0774384,
+      "session_time": 10.202691555023193,
+      "type": "paddle_movement",
+      "from_position": 688,
+      "to_position": 697,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.09396,
+      "session_time": 10.219213247299194,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 700,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.1109834,
+      "session_time": 10.236236572265625,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 705,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.1109834,
+      "session_time": 10.236236572265625,
+      "type": "paddle_movement",
+      "from_position": 697,
+      "to_position": 706,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.1280005,
+      "session_time": 10.253253698348999,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 710,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.145217,
+      "session_time": 10.270470142364502,
+      "type": "decision_making",
+      "decision_reason": "Оптимизация позиции платформы",
+      "considered_options_count": 0,
+      "chosen_option": {
+        "type": "ball_tracking",
+        "position": 715,
+        "strategy_weights": {
+          "aggressive": 0.29268292682926833,
+          "conservative": 0.24390243902439027,
+          "precision": 0.21951219512195125,
+          "speed": 0.24390243902439027
+        }
+      },
+      "decision_confidence": 0.6
+    },
+    {
+      "timestamp": 1764691229.1462169,
+      "session_time": 10.271470069885254,
+      "type": "paddle_movement",
+      "from_position": 706,
+      "to_position": 715,
+      "movement_distance": 9,
+      "reason": "ball_tracking",
+      "confidence": 0.6
+    }
+  ],
+  "game_results": []
+}
