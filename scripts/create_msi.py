@@ -121,8 +121,8 @@ def create_wix_files():
                          WorkingDirectory="INSTALLFOLDER"
                          Icon="GameIcon.exe" />
              </File>
-             <File Id="HighscoresData" Source="{os.path.join(project_root, 'resources', 'highscores.json').replace(chr(92), chr(92)*2)}" />
-             <File Id="SettingsData" Source="{os.path.join(project_root, 'resources', 'settings.json').replace(chr(92), chr(92)*2)}" />
+             <File Id="HighscoresData" Source="{os.path.join(project_root, 'resources', 'data', 'highscores.json').replace(chr(92), chr(92)*2)}" />
+             <File Id="SettingsData" Source="{os.path.join(project_root, 'resources', 'data', 'settings.json').replace(chr(92), chr(92)*2)}" />
            </Component>
 
            <Component Id="CreateHighscoresFile" Guid="22222222-2222-2222-2222-222222222222">
