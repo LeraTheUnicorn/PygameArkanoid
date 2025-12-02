@@ -44,7 +44,7 @@ def get_highscores_file_path():
     if not os.path.exists(resources_dir):
         os.makedirs(resources_dir, exist_ok=True)
 
-    return os.path.join(resources_dir, "highscores.json")
+    return os.path.join(resources_dir, "data", "highscores.json")
 
 
 # Путь к файлу рекордов (теперь с полным путем)

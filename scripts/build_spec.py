@@ -44,32 +44,9 @@ exe_name = f"Arkanoid_v{version}.exe"
 print(f"Создание исполняемого файла: {exe_name}")
 print(f"Версия: {version}")
 print(f"Корень проекта: {project_root}")
+print("Используются ресурсы из папки resources/")
 
-# Создаем временную директорию для ресурсов
-resource_dir = "game_resources"
-os.makedirs(resource_dir, exist_ok=True)
-
-# Копируем ресурсы во временную директорию из корня проекта
-if os.path.exists(os.path.join(project_root, "sounds")):
-    shutil.copytree(
-        os.path.join(project_root, "sounds"),
-        f"{resource_dir}/sounds",
-        dirs_exist_ok=True,
-    )
-
-if os.path.exists(os.path.join(project_root, "images")):
-    shutil.copytree(
-        os.path.join(project_root, "images"),
-        f"{resource_dir}/images",
-        dirs_exist_ok=True,
-    )
-
-# Копируем необходимые файлы из корня проекта
-shutil.copy(os.path.join(project_root, "highscores.py"), resource_dir)
-if os.path.exists(os.path.join(project_root, "settings.py")):
-    shutil.copy(os.path.join(project_root, "settings.py"), resource_dir)
-if os.path.exists(os.path.join(project_root, "resources", "settings.json")):
-    shutil.copy(os.path.join(project_root, "resources", "settings.json"), resource_dir)
+# Ресурсы находятся в папке resources/
 
 # Команда PyInstaller - без переносов строк для Windows
 cmd_parts = [
@@ -79,11 +56,11 @@ cmd_parts = [
     f"--name={exe_name}",
     f'--workpath={os.path.join(project_root, "build", "work")}',
     f'--distpath={os.path.join(project_root, "build", "dist")}',
-    f'--add-data="{os.path.join(project_root, resource_dir, "sounds")};sounds"',
-    f'--add-data="{os.path.join(project_root, resource_dir, "images")};images"',
-    f'--add-data="{os.path.join(project_root, resource_dir, "highscores.py")};."',
-    f'--add-data="{os.path.join(project_root, resource_dir, "settings.py")};."',
-    f'--add-data="{os.path.join(project_root, resource_dir, "settings.json")};."',
+    f'--add-data="{os.path.join(project_root, "resources", "audio")};resources/audio"',
+    f'--add-data="{os.path.join(project_root, "resources", "images")};resources/images"',
+    f'--add-data="{os.path.join(project_root, "resources", "data")};resources/data"',
+    f'--add-data="{os.path.join(project_root, "highscores.py")};."',
+    f'--add-data="{os.path.join(project_root, "settings.py")};."',
     "--hidden-import=pygame",
     "--hidden-import=numpy",
     "--hidden-import=pygame.sndarray",
@@ -114,9 +91,7 @@ if os.path.exists(dist_dir):
     if os.path.exists(exe_path):
         shutil.copy2(exe_path, os.path.join(project_root, f"{exe_name}.exe"))
         print(f"Исполняемый файл скопирован в корневую папку: {exe_name}.exe")
-        print(
-            "Файлы настроек сохранены в game_resources/ для дальнейшего использования"
-        )
+        print("Исполняемый файл успешно создан с использованием папки resources/")
         print("Сборка завершена успешно!")
     else:
         print(f"Ошибка: файл {exe_path} не найден в dist")

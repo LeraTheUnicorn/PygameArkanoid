@@ -32,7 +32,7 @@ def get_settings_file_path():
     if not os.path.exists(resources_dir):
         os.makedirs(resources_dir, exist_ok=True)
 
-    return os.path.join(resources_dir, "settings.json")
+    return os.path.join(resources_dir, "data", "settings.json")
 
 
 # Путь к файлу настроек

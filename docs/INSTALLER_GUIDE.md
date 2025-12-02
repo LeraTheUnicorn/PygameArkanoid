@@ -3,9 +3,10 @@
 ## 📦 Готовые инсталляторы
 
 ### Текущий статус:
-- ✅ **Arkanoid_v1.6.1.exe** - готовый исполняемый файл (30 МБ)
-- 🔧 **EXE инсталлятор** - требует Inno Setup
-- 🔧 **MSI инсталлятор** - требует WiX Toolset
+- ✅ **Arkanoid_v2.0.0.exe** - готовый исполняемый файл (30 МБ)
+- ✅ **Arkanoid_v2.0.0_Setup.exe** - EXE инсталлятор (требует Inno Setup)
+- ✅ **Arkanoid_v2.0.0_Setup.msi** - MSI инсталлятор (требует WiX Toolset)
+- 🆕 **AI-система** - революционная система авторежима в v2.0+
 
 ## 🛠️ Необходимые инструменты
 
@@ -46,41 +47,72 @@
 
 ### Способ 1: Автоматический (рекомендуется)
 ```bash
-python release.py
+# Сборка исполняемого файла
+python scripts/build_exe.py
+
+# Сборка MSI инсталлятора
+python scripts/build_msi.py
 ```
-Выберите опцию создания инсталлятора и следуйте инструкциям.
 
 ### Способ 2: Ручной - EXE инсталлятор
 ```bash
-# 1. Создайте иконку (если нужно)
-python create_icon.py
+# 1. Соберите исполняемый файл
+python scripts/build_exe.py
 
 # 2. Скомпилируйте инсталлятор
-compile_installer.bat
+scripts/compile_installer.bat
 ```
 
 ### Способ 3: Ручной - MSI инсталлятор
 ```bash
 # Убедитесь, что WiX установлен и добавлен в PATH
-python create_msi.py
+python scripts/create_msi.py
+```
+
+### Способ 4: Альтернативная сборка
+```bash
+# Использование спецификации PyInstaller
+python scripts/build_spec.py
 ```
 
 ## 📁 Структура проекта для инсталлятора
 
 ```
 PythonProject2/
-├── Arkanoid_v1.6.1.exe          # Основной исполняемый файл
-├── sounds/                      # Звуковые файлы
-│   └── Night_Prowler.ogg
-├── images/                      # Изображения
-│   └── img.png
-├── highscores.py                # Модуль рекордов
-├── create_installer.iss         # Скрипт Inno Setup
-├── create_msi.py                # Скрипт WiX
-├── compile_installer.bat        # Быстрая компиляция
+├── FINAL_RELEASE/               # 🎯 Готовые релизы
+│   ├── Arkanoid_v2.0.0.exe     # ✅ Основной исполняемый файл
+│   ├── Arkanoid_v2.0.0_Setup.exe  # EXE инсталлятор
+│   └── Arkanoid_v2.0.0_Setup.msi  # MSI инсталлятор
+├── game_resources/              # 🆕 ЕДИНСТВЕННАЯ папка ресурсов
+│   ├── sounds/                  # Звуковые файлы
+│   │   └── Night_Prowler.ogg
+│   ├── images/                  # Изображения
+│   │   └── new_image.png
+│   ├── highscores.py            # Система рекордов
+│   ├── settings.py              # Настройки игры
+│   └── settings.json            # Конфигурация
+├── scripts/                     # Скрипты сборки (обновлены)
+│   ├── build_exe.py             # ✅ Основной скрипт сборки
+│   ├── build_spec.py            # ✅ Альтернативная сборка
+│   ├── build_msi.py             # ✅ MSI инсталлятор
+│   ├── create_installer.iss     # Inno Setup скрипт
+│   ├── compile_installer.bat    # Быстрая компиляция
+│   └── create_msi.py            # WiX скрипт
+├── ai/                          # 🤖 AI-система (v2.0+)
+│   ├── ai_player.py             # Основной AI координатор
+│   ├── game_state.py            # Состояние игры
+│   ├── trajectory_predictor.py  # Предсказание траектории
+│   ├── position_optimizer.py    # Оптимизация позиций
+│   ├── learning_system.py       # Машинное обучение
+│   └── performance_logger.py    # Логирование
+├── resources/                   # Системные ресурсы
+│   ├── icon.ico                 # Иконка приложения
+│   └── highscores.json          # Начальный файл рекордов
 ├── LICENSE.txt                  # Лицензия
 ├── README_RELEASE.txt           # Информация для инсталлятора
-└── icon.ico                     # Иконка приложения
+└── docs/                        # Документация
+    ├── README_RELEASE.md        # Руководство по релизу
+    └── INSTALLER_GUIDE.md       # Это руководство
 ```
 
 ## 🔧 Настройка инсталляторов

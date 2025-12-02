@@ -104,10 +104,10 @@ def get_player_name(
     big_font: pygame.font.Font,
     highscore_manager: HighScoreManager,
 ) -> tuple[str, bool, bool, bool]:
-    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры и флаг авторежима"""
+    """Возвращает имя игрока, введенное с клавиатуры, состояние музыки, флаг выхода из игры и флаг авторежима"""
     input_text = ""
     input_active = True
-    sound_enabled = True
+    music_enabled = True
     exit_game = False
     auto_mode = False  # Всегда начинаем с сброса флага авторежима
 
@@ -116,7 +116,7 @@ def get_player_name(
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return "", sound_enabled, exit_game, False  # Выход из игры по крестику
+                return "", music_enabled, exit_game, False  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # Всегда запускаем игру, даже если имя не введено
@@ -133,15 +133,15 @@ def get_player_name(
                     input_text += event.unicode
                 elif event.key == pygame.K_ESCAPE:
                     # Выход из игры
-                    return "", sound_enabled, True, False
+                    return "", music_enabled, True, False
                 elif event.key == pygame.K_m:
-                    # Переключение всех звуков (музыки и эффектов)
-                    if sound_enabled:
+                    # Переключение фоновой музыки
+                    if music_enabled:
                         pygame.mixer.music.stop()
-                        sound_enabled = False
+                        music_enabled = False
                     else:
                         pygame.mixer.music.play(-1)
-                        sound_enabled = True
+                        music_enabled = True
                 elif event.key == 48:
                     # Авторежим - запуск игры сразу после нажатия 0
                     input_text = "robot"
@@ -179,11 +179,11 @@ def get_player_name(
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 20),
         )
 
-        # Подсказка о звуке
+        # Подсказка о музыке
         render_colored_hint(
             screen,
             font,
-            "Нажмите M для отключения всех звуков",
+            "Нажмите M для отключения звука",
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50),
         )
 
@@ -205,7 +205,7 @@ def get_player_name(
 
         pygame.display.flip()
 
-    return input_text.strip(), sound_enabled, exit_game, auto_mode
+    return input_text.strip(), music_enabled, exit_game, auto_mode
 
 
 def show_highscores(
@@ -216,7 +216,7 @@ def show_highscores(
 ) -> tuple[bool, bool]:
     """
     Отображает таблицу рекордов.
-    Возвращает (состояние_звука, exit_game).
+    Возвращает (состояние_музыки, exit_game).
     Если exit_on_esc=True, то ESC выходит из игры полностью, иначе возвращает False.
     """
     # Создаем моноширинный шрифт для правильного отображения таблицы
@@ -230,30 +230,30 @@ def show_highscores(
         except:
             mono_font = font  # Если не получилось, используем обычный шрифт
 
-    # Состояние звука
-    sound_enabled = True
+    # Состояние фоновой музыки
+    music_enabled = True
 
     waiting = True
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return sound_enabled, True  # Выход из игры по крестику
+                return music_enabled, True  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if exit_on_esc:
-                        return sound_enabled, True  # Выход из игры
+                        return music_enabled, True  # Выход из игры
                     else:
                         waiting = False  # Возвращаемся назад
                 elif event.key == pygame.K_BACKSPACE:
                     waiting = False  # Возвращаемся назад
                 elif event.key == pygame.K_m:
-                    # Переключение всех звуков
-                    if sound_enabled:
+                    # Переключение фоновой музыки
+                    if music_enabled:
                         pygame.mixer.music.stop()
-                        sound_enabled = False
+                        music_enabled = False
                     else:
                         pygame.mixer.music.play(-1)
-                        sound_enabled = True
+                        music_enabled = True
 
         # Отрисовка экрана рекордов
         screen.fill((10, 10, 30))
@@ -330,7 +330,7 @@ def show_highscores(
 
         pygame.display.flip()
 
-    return sound_enabled, False  # Возвращаемся, не выходя из игры
+    return music_enabled, False  # Возвращаемся, не выходя из игры
 
 
 def show_game_results(
@@ -345,14 +345,14 @@ def show_game_results(
     ball: "Ball",
     auto_mode: bool = False,
 ) -> tuple[bool, bool, bool]:
-    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_звука, перезапуск_игры, выход_из_игры)."""
+    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_музыки, перезапуск_игры, выход_из_игры)."""
     game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
 
     # Добавляем результат в рекорды и проверяем, попал ли он в топ-10
     score_saved = highscore_manager.add_score(player_name, score, game_time_seconds)
 
-    # Состояние звука
-    sound_enabled = True
+    # Состояние фоновой музыки
+    music_enabled = True
     restart_game = False
     exit_game = False
 
@@ -361,7 +361,7 @@ def show_game_results(
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return sound_enabled, False, exit_game  # Выход из игры по крестику
+                return music_enabled, False, exit_game  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if auto_mode:
@@ -371,36 +371,36 @@ def show_game_results(
                     else:
                         # В ручном режиме ESC выходит из игры
                         exit_game = True
-                        return sound_enabled, False, exit_game
+                        return music_enabled, False, exit_game
                 elif event.key == pygame.K_RETURN:
                     waiting = False
                     restart_game = True
                 elif event.key == pygame.K_h:
                     # Показываем таблицу рекордов (ESC выходит из игры)
-                    sound_enabled, exit_game = show_highscores(
+                    music_enabled, exit_game = show_highscores(
                         screen, font, highscore_manager, exit_on_esc=True
                     )
                     if exit_game:
                         exit_game = True
-                        return sound_enabled, False, exit_game  # Выход из игры
+                        return music_enabled, False, exit_game  # Выход из игры
                 elif event.key == pygame.K_m:
-                    # Переключение всех звуков
-                    if sound_enabled:
+                    # Переключение фоновой музыки
+                    if music_enabled:
                         pygame.mixer.music.stop()
-                        sound_enabled = False
+                        music_enabled = False
                     else:
                         pygame.mixer.music.play(-1)
-                        sound_enabled = True
+                        music_enabled = True
                 elif event.key == pygame.K_UP:
                     # Открытие окна настроек
                     paused = True
-                    sound_enabled = show_settings_window(
+                    music_enabled = show_settings_window(
                         screen,
                         font,
                         big_font,
                         settings_manager,
                         ball,
-                        sound_enabled,
+                        music_enabled,
                         auto_mode,
                     )
                     paused = False
@@ -449,7 +449,7 @@ def show_game_results(
 
         pygame.display.flip()
 
-    return sound_enabled, restart_game, exit_game
+    return music_enabled, restart_game, exit_game
 
 
 @dataclass
@@ -634,10 +634,10 @@ def show_settings_window(
     big_font: pygame.font.Font,
     settings_manager: SettingsManager,
     ball: Ball,
-    sound_enabled: bool,
+    music_enabled: bool,
     auto_mode: bool = False,
 ) -> bool:
-    """Отображает окно настроек с слайдером скорости мяча. Возвращает состояние звука."""
+    """Отображает окно настроек с слайдером скорости мяча. Возвращает состояние музыки."""
     # Параметры слайдера
     slider_x = 200
     slider_y = 250
@@ -667,13 +667,13 @@ def show_settings_window(
                 if event.key == pygame.K_ESCAPE:
                     waiting = False  # Закрыть окно
                 elif event.key == pygame.K_m:
-                    # Переключение всех звуков
-                    if sound_enabled:
+                    # Переключение музыки
+                    if music_enabled:
                         pygame.mixer.music.stop()
-                        sound_enabled = False
+                        music_enabled = False
                     else:
                         pygame.mixer.music.play(-1)
-                        sound_enabled = True
+                        music_enabled = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Левая кнопка мыши
                     mouse_x, mouse_y = event.pos
@@ -743,13 +743,13 @@ def show_settings_window(
         render_colored_hint(
             screen,
             font,
-            "ESC - закрыть настройки, M - все звуки",
+            "ESC - закрыть настройки, M - музыка",
             (SCREEN_WIDTH // 2 - 150, 380),
         )
 
         pygame.display.flip()
 
-    return sound_enabled
+    return music_enabled
 
 
 def main() -> None:
@@ -780,7 +780,7 @@ def main() -> None:
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
         try:
-            pygame.mixer.music.load(resource_path("resources/audio/Night_Prowler.ogg"))
+            pygame.mixer.music.load(resource_path("sounds/Night_Prowler.ogg"))
             pygame.mixer.music.set_volume(0.3)
             # Музыка будет запущена после ввода имени игрока
         except pygame.error:
@@ -796,7 +796,7 @@ def main() -> None:
     game_over = False
     game_started = False
     running = True
-    sound_enabled = True
+    music_enabled = True
     auto_mode = False
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
@@ -821,7 +821,7 @@ def main() -> None:
         ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
 
         # Ввод имени игрока
-        player_name, sound_enabled, exit_game, auto_mode = get_player_name(
+        player_name, music_enabled, exit_game, auto_mode = get_player_name(
             screen, font, big_font, highscore_manager
         )
         print(
@@ -831,8 +831,8 @@ def main() -> None:
             pygame.quit()
             return
 
-        # Запускаем музыку после ввода имени (если звук включен)
-        if sound_enabled:
+        # Запускаем музыку после ввода имени (если она включена)
+        if music_enabled:
             try:
                 pygame.mixer.music.play(-1)  # Цикличное воспроизведение фоновой музыки
             except pygame.error:
@@ -874,13 +874,13 @@ def main() -> None:
                             pygame.quit()
                             return
                     elif event.key == pygame.K_m:
-                        # Переключение всех звуков
-                        if sound_enabled:
+                        # Переключение фоновой музыки
+                        if music_enabled:
                             pygame.mixer.music.stop()
-                            sound_enabled = False
+                            music_enabled = False
                         else:
                             pygame.mixer.music.play(-1)
-                            sound_enabled = True
+                            music_enabled = True
                     elif event.key == pygame.K_UP:
                         # Увеличение скорости мяча
                         ball.increase_speed(settings_manager, auto_mode)
@@ -986,8 +986,8 @@ def main() -> None:
                             -max_horizontal, min(max_horizontal, ball.vel_x)
                         )
 
-                        # Play paddle bounce sound if sound is enabled
-                        if sound_enabled and paddle_bounce_sound:
+                        # Play paddle bounce sound
+                        if paddle_bounce_sound:
                             paddle_bounce_sound.play()
 
                         # Обучаем AI на результате отскока
@@ -1022,8 +1022,8 @@ def main() -> None:
                             }
                             ai_player.learn_from_result(ai_result)
 
-                        # Play random brick hit sound if sound is enabled
-                        if sound_enabled and brick_hit_sounds:
+                        # Play random brick hit sound
+                        if brick_hit_sounds:
                             brick_hit_sounds[
                                 random.randint(0, len(brick_hit_sounds) - 1)
                             ].play()
@@ -1048,7 +1048,7 @@ def main() -> None:
                                 ai_player.on_game_end(False, score)
 
                             # В любом режиме показываем экран результатов
-                            sound_enabled, restart_game, exit_game = show_game_results(
+                            music_enabled, restart_game, exit_game = show_game_results(
                                 screen,
                                 font,
                                 big_font,
@@ -1112,7 +1112,7 @@ def main() -> None:
                             ai_player.on_game_end(True, score)
 
                         # В любом режиме показываем экран результатов
-                        sound_enabled, restart_game, exit_game = show_game_results(
+                        music_enabled, restart_game, exit_game = show_game_results(
                             screen,
                             font,
                             big_font,

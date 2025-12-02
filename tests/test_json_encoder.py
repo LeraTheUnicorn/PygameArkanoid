@@ -14,18 +14,21 @@ from ai.game_state import Point
 import pygame
 import json
 
+
 def test_point_serialization():
     """Тестирует сериализацию Point объектов"""
     print("Testing Point serialization...")
-    
+
     point = Point(100, 150)
     point_data = {"position": point, "type": "test_point"}
-    
+
     try:
-        json_str = json.dumps(point_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
+        json_str = json.dumps(
+            point_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
+        )
         print("[OK] Point serialization successful:")
         print(json_str)
-        
+
         # Проверяем десериализацию
         parsed = json.loads(json_str)
         print("[OK] Point deserialization successful:")
@@ -35,18 +38,21 @@ def test_point_serialization():
         print(f"[FAIL] Point serialization failed: {e}")
         return False
 
+
 def test_rect_serialization():
     """Тестирует сериализацию pygame.Rect объектов"""
     print("\nTesting pygame.Rect serialization...")
-    
+
     rect = pygame.Rect(50, 75, 120, 25)
     rect_data = {"brick": rect, "type": "test_rect"}
-    
+
     try:
-        json_str = json.dumps(rect_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
+        json_str = json.dumps(
+            rect_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
+        )
         print("[OK] Rect serialization successful:")
         print(json_str)
-        
+
         # Проверяем десериализацию
         parsed = json.loads(json_str)
         print("[OK] Rect deserialization successful:")
@@ -56,13 +62,14 @@ def test_rect_serialization():
         print(f"[FAIL] Rect serialization failed: {e}")
         return False
 
+
 def test_mixed_data():
     """Тестирует сериализацию смешанных данных"""
     print("\nTesting mixed data serialization...")
-    
+
     point = Point(200, 300)
     rect = pygame.Rect(10, 20, 80, 15)
-    
+
     mixed_data = {
         "ball_position": point,
         "brick": rect,
@@ -70,15 +77,17 @@ def test_mixed_data():
         "moves": ["left", "right", "hit"],
         "metadata": {
             "timestamp": "2025-12-02T19:23:28",
-            "session_id": "test_session_123"
-        }
+            "session_id": "test_session_123",
+        },
     }
-    
+
     try:
-        json_str = json.dumps(mixed_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2)
+        json_str = json.dumps(
+            mixed_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
+        )
         print("[OK] Mixed data serialization successful:")
         print(json_str)
-        
+
         # Проверяем десериализацию
         parsed = json.loads(json_str)
         print("[OK] Mixed data deserialization successful:")
@@ -88,34 +97,36 @@ def test_mixed_data():
         print(f"[FAIL] Mixed data serialization failed: {e}")
         return False
 
+
 def main():
     """Основная функция тестирования"""
     print("=== JSON Encoder Test Suite ===\n")
-    
+
     pygame.init()
-    
+
     tests = [
         test_point_serialization,
         test_rect_serialization,
         test_mixed_data,
     ]
-    
+
     results = []
     for test in tests:
         results.append(test())
-    
+
     print("\n=== Test Results ===")
     passed = sum(results)
     total = len(results)
     print(f"Passed: {passed}/{total}")
-    
+
     if passed == total:
         print("[SUCCESS] All tests passed! JSON encoder is working correctly.")
     else:
         print("[ERROR] Some tests failed. Please check the implementation.")
-    
+
     pygame.quit()
     return passed == total
+
 
 if __name__ == "__main__":
     main()
