@@ -273,12 +273,13 @@ class TrajectoryPredictor:
         if len(trajectory) < 2:
             return
 
+        # Линии траектории отключены по запросу пользователя
         # Рисуем линии между точками траектории
-        for i in range(len(trajectory) - 1):
-            start_point = (int(trajectory[i].x), int(trajectory[i].y))
-            end_point = (int(trajectory[i + 1].x), int(trajectory[i + 1].y))
-            pygame.draw.line(screen, color, start_point, end_point, 2)
+        # for i in range(len(trajectory) - 1):
+        #     start_point = (int(trajectory[i].x), int(trajectory[i].y))
+        #     end_point = (int(trajectory[i + 1].x), int(trajectory[i + 1].y))
+        #     pygame.draw.line(screen, color, start_point, end_point, 2)
 
         # Рисуем точки траектории
-        for point in trajectory[::5]:  # Рисуем каждую 5-ю точку
-            pygame.draw.circle(screen, color, (int(point.x), int(point.y)), 3)
+        # for point in trajectory[::5]:  # Рисуем каждую 5-ю точку
+        #     pygame.draw.circle(screen, color, (int(point.x), int(point.y)), 3)

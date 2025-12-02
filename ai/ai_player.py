@@ -991,10 +991,10 @@ class AIPlayer:
                 )
 
             # Отображаем оптимальную позицию
-            optimal_x = self.get_optimal_paddle_position()
-            pygame.draw.line(
-                screen, (0, 255, 0), (optimal_x, 0), (optimal_x, self.screen_height), 2
-            )
+            # optimal_x = self.get_optimal_paddle_position()
+            # pygame.draw.line(
+            #     screen, (0, 255, 0), (optimal_x, 0), (optimal_x, self.screen_height), 2
+            # )
 
             # Показываем информацию об AI
             font = pygame.font.SysFont("arial", 16)
