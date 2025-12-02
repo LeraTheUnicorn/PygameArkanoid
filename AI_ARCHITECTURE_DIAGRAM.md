@@ -8,10 +8,15 @@ classDiagram
         -learning_system: LearningSystem
         -performance_logger: PerformanceLogger
         -game_state: GameState
+        -targeting_system: dict
+        -loop_prevention_system: dict
         +update_game_state(ball, paddle, bricks)
         +get_optimal_position(): int
         +learn_from_action(success: bool)
         +log_performance()
+        +_find_best_target_brick(): Dict
+        +_detect_loop_pattern(): bool
+        +_change_strategy_if_looping()
     }
 
     class TrajectoryPredictor {
@@ -44,6 +49,29 @@ classDiagram
         +log_result(result: dict)
         +analyze_performance()
         +generate_report()
+        +test_json_serialization()
+    }
+
+    class TargetingSystem {
+        -target_brick: Dict
+        -optimal_offset: float
+        -successful_hits: List[Dict]
+        -hit_patterns: Dict
+        +_find_best_target_brick(): Dict
+        +_calculate_optimal_offset(): float
+        +_adjust_offset_from_history(): float
+        +record_hit_result()
+    }
+
+    class LoopPreventionSystem {
+        -movement_history: List[int]
+        -position_history: List[int]
+        -trajectory_history: List[Dict]
+        -alternative_strategies: List[str]
+        +_detect_loop_pattern(): bool
+        +_change_strategy_if_looping()
+        +_apply_alternative_strategy(): int
+        +_reevaluate_after_bounce()
     }
 
     class GameState {
@@ -60,8 +88,11 @@ classDiagram
     AIPlayer --> LearningSystem
     AIPlayer --> PerformanceLogger
     AIPlayer --> GameState
+    AIPlayer --> TargetingSystem
+    AIPlayer --> LoopPreventionSystem
     PositionOptimizer --> GameState
     TrajectoryPredictor --> GameState
+    TargetingSystem --> GameState
 ```
 
 ## Поток данных в системе
@@ -80,20 +111,28 @@ flowchart TD
     H --> I[Расчет оптимального угла]
     I --> J[Выбор лучшей позиции]
     
-    G --> K[Получение команды движения]
-    J --> K
-    K --> L[Движение платформы]
+    J --> K[Проверка зацикливания]
+    K --> L{Зацикливание?}
+    L -->|Да| M[Смена стратегии]
+    L -->|Нет| N[Применение текущей стратегии]
+    M --> O[Применение альтернативной стратегии]
+    N --> O
+    O --> P[Получение команды движения]
     
-    L --> M[Выполнение действия]
-    M --> N[Оценка результата]
-    N --> O[LearningSystem.update_strategy]
-    O --> P[PerformanceLogger.log_action]
+    G --> P
+    P --> Q[Движение платформы]
     
-    P --> Q[Проверка условий игры]
-    Q --> R{Игра завершена?}
-    R -->|Нет| A
-    R -->|Да| S[Сохранение итогов]
-    S --> T[Генерация отчета]
+    Q --> R[Выполнение действия]
+    R --> S[Оценка результата]
+    S --> T[Переоценка после отбития]
+    T --> U[LearningSystem.update_strategy]
+    U --> V[PerformanceLogger.log_action]
+    
+    V --> W[Проверка условий игры]
+    W --> X{Игра завершена?}
+    X -->|Нет| A
+    X -->|Да| Y[Сохранение итогов]
+    Y --> Z[Генерация отчета]
 ```
 
 ## Алгоритм принятия решений
@@ -123,7 +162,7 @@ flowchart TD
     P --> Q[Следующий ход]
 ```
 
-## Физическая модель траектории
+## Физическая модель траектории и система предотвращения зацикливания
 
 ```mermaid
 graph TB
@@ -139,10 +178,23 @@ graph TB
         F --> G[Поиск целевых кубиков]
     end
     
+    subgraph "Прицеливание"
+        G --> H[Анализ целевых кубиков]
+        H --> I[Расчет оптимального смещения]
+        I --> J[Проверка зацикливания]
+    end
+    
+    subgraph "Предотвращение зацикливания"
+        J --> K{Обнаружено зацикливание?}
+        K -->|Да| L[Смена стратегии]
+        K -->|Нет| M[Применение текущей стратегии]
+        L --> N[Переоценка после отбития]
+        M --> N
+    end
+    
     subgraph "Оптимизация"
-        G --> H[Оценка вероятности попадания]
-        H --> I[Выбор оптимальной позиции]
-        I --> J[Корректировка стратегии]
+        N --> O[Выбор оптимальной позиции]
+        O --> P[Корректировка стратегии]
     end
 ```
 
