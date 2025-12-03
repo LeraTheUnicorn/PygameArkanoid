@@ -99,6 +99,15 @@ class LearningSystem:
         confidence = action_result.get("confidence", 0.5)
         penalty_factor = 0.05 * confidence  # Штраф пропорционально уверенности
 
+        # Усиливаем штраф за вертикальные удары (паттерн зацикливания)
+        trajectory_data = action_result.get("trajectory_prediction")
+        if trajectory_data and trajectory_data.get("intersection_point"):
+            intersection = trajectory_data["intersection_point"]
+            ball_pos = action_result.get("game_state_before", {}).get("ball_position", {})
+            if ball_pos and abs(intersection.get("x", 0) - ball_pos.get("x", 0)) < 10:
+                # Вертикальный удар - усиливаем штраф
+                penalty_factor *= 2.0
+
         strategy_type = self._determine_strategy_type(action_result)
 
         if strategy_type in self.learning_data["strategy_weights"]:

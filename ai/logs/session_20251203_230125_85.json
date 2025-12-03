@@ -1,0 +1,15 @@
+{
+  "session_id": "20251203_230125_85",
+  "session_start": 1764792085.7576659,
+  "session_end": 1764792095.2800157,
+  "total_duration": 9.522350311279297,
+  "total_actions": 1,
+  "actions": [
+    {
+      "timestamp": 1764792085.7583795,
+      "session_time": 0.0007152557373046875,
+      "type": "ai_activated"
+    }
+  ],
+  "game_results": []
+}

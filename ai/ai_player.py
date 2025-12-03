@@ -5,6 +5,7 @@
 import pygame
 import time
 import math
+import random
 from typing import List, Tuple, Optional, Dict, Any
 from .game_state import GameState, Point
 from .trajectory_predictor import TrajectoryPredictor
@@ -284,6 +285,10 @@ class AIPlayer:
         # Ограничиваем смещение
         offset = max(-1.0, min(1.0, offset))
 
+        # Предотвращаем вертикальные удары - если delta_x слишком мал, добавляем случайное смещение
+        if abs(delta_x) < 10:
+            offset = random.choice([-0.3, 0.3])
+
         # Проверяем историю успешных ударов для корректировки
         offset = self._adjust_offset_from_history(offset, target_brick)
 
@@ -324,6 +329,8 @@ class AIPlayer:
             True если обнаружено зацикливание
         """
         history = self.loop_prevention_system["movement_history"]
+        trajectory_history = self.loop_prevention_system["trajectory_history"]
+
         if len(history) < self.loop_prevention_system["loop_detection_threshold"]:
             return False
 
@@ -345,6 +352,22 @@ class AIPlayer:
 
         if max_count >= threshold:
             return True
+
+        # Дополнительная проверка на вертикальные траектории
+        if len(trajectory_history) >= 3:
+            recent_trajectories = trajectory_history[-3:]
+            vertical_count = 0
+            for traj in recent_trajectories:
+                if self.current_game_state and traj.get("ball_x") is not None:
+                    # Проверяем вертикальность по разнице позиций
+                    current_ball_x = self.current_game_state.ball_position.x
+                    prev_ball_x = traj.get("ball_x", current_ball_x)
+                    if abs(current_ball_x - prev_ball_x) < 5:  # Почти вертикально
+                        vertical_count += 1
+
+            # Если 2 из 3 последних траекторий вертикальные - зацикливание
+            if vertical_count >= 2:
+                return True
 
         return False
 
