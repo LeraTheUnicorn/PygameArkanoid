@@ -12,7 +12,7 @@ import sys
 
 def test_ai_fix():
     """Тестирует исправления AI системы"""
-    print("🚀 Запуск тестирования AI исправлений...")
+    print("Запуск тестирования AI исправлений...")
 
     # Команда для запуска игры в venv
     cmd = [".venv\\Scripts\\python.exe", "PyGameBall.py"]
@@ -28,7 +28,7 @@ def test_ai_fix():
             cwd=os.getcwd()
         )
 
-        print("⏳ Игра запущена, ждем инициализации...")
+        print("Игра запущена, ждем инициализации...")
 
         # Ждем 2 секунды для загрузки
         time.sleep(2)
@@ -46,12 +46,12 @@ def test_ai_fix():
             process.stdin.write("0\n")
             process.stdin.flush()
 
-            print("🎮 Авторежим активирован, ждем 10 секунд игры...")
+            print("Авторежим активирован, ждем 10 секунд игры...")
 
             # Ждем 10 секунд игры
             time.sleep(10)
 
-            print("⏹️ Завершаем тест...")
+            print("Завершаем тест...")
 
             # Завершаем процесс
             if process.poll() is None:
@@ -62,43 +62,43 @@ def test_ai_fix():
                     process.kill()
 
         except Exception as e:
-            print(f"❌ Ошибка ввода: {e}")
+            print(f"Ошибка ввода: {e}")
             process.kill()
 
         # Получаем вывод
         stdout, stderr = process.communicate()
 
-        print("📄 Вывод игры:")
+        print("Вывод игры:")
         print(stdout)
         if stderr:
-            print("⚠️ Ошибки:")
+            print("Ошибки:")
             print(stderr)
 
         # Проверяем логи
         check_logs()
 
     except Exception as e:
-        print(f"❌ Ошибка запуска: {e}")
+        print(f"Ошибка запуска: {e}")
 
 def check_logs():
     """Проверяет последние логи на наличие вертикальных паттернов"""
-    print("\n📊 Проверка логов...")
+    print("\nПроверка логов...")
 
     logs_dir = "ai/logs"
     if not os.path.exists(logs_dir):
-        print("❌ Директория логов не найдена")
+        print("Директория логов не найдена")
         return
 
     # Находим последний лог
     log_files = [f for f in os.listdir(logs_dir) if f.startswith("session_") and f.endswith(".json")]
     if not log_files:
-        print("❌ Логи не найдены")
+        print("Логи не найдены")
         return
 
     latest_log = max(log_files)
     log_path = os.path.join(logs_dir, latest_log)
 
-    print(f"📁 Анализ лога: {latest_log}")
+    print(f"Анализ лога: {latest_log}")
 
     try:
         import json
@@ -107,7 +107,7 @@ def check_logs():
 
         # Проверяем на ai_deactivated (означает завершение сессии)
         if "ai_deactivated" in log_data:
-            print("ℹ️ Сессия была завершена без AI активности")
+            print("Сессия была завершена без AI активности")
             return
 
         # Анализируем действия
@@ -134,22 +134,22 @@ def check_logs():
                 left_positions += 1
             total_positions += 1
 
-        print("📈 Результаты анализа:")
+        print("Результаты анализа:")
         print(f"   Вертикальные удары: {vertical_hits}/{total_hits}")
         print(f"   Позиции слева: {left_positions}/{total_positions}")
 
         if vertical_hits > 0:
-            print("⚠️ Обнаружены вертикальные удары - проблема не решена")
+            print("Обнаружены вертикальные удары - проблема не решена")
         else:
-            print("✅ Вертикальных ударов не обнаружено")
+            print("Вертикальных ударов не обнаружено")
 
         if left_positions > total_positions * 0.7:
-            print("⚠️ Платформа часто фиксируется слева")
+            print("Платформа часто фиксируется слева")
         else:
-            print("✅ Платформа распределяется нормально")
+            print("Платформа распределяется нормально")
 
     except Exception as e:
-        print(f"❌ Ошибка анализа лога: {e}")
+        print(f"Ошибка анализа лога: {e}")
 
 if __name__ == "__main__":
     test_ai_fix()
