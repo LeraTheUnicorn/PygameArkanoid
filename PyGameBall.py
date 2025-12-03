@@ -119,9 +119,13 @@ def get_player_name(
                 return "", sound_enabled, exit_game, False  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    # Всегда запускаем игру, даже если имя не введено
-                    if not input_text.strip():
-                        input_text = "player"  # Стандартное имя
+                    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Имя обязательно для ввода!
+                    cleaned_name = input_text.strip()
+                    if not cleaned_name:
+                        # Имя пустое - не запускаем игру, показываем предупреждение
+                        # Игрок должен либо ввести имя, либо нажать 0 для robot
+                        input_text = ""  # Очищаем поле для повторного ввода
+                        continue  # Продолжаем ввод
                     input_active = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
@@ -148,7 +152,7 @@ def get_player_name(
                     auto_mode = True
                     input_active = False
                     print(
-                        f"Авторежим активирован через клавишу 0"
+                        f"Авторежим активирован через клавишу 0, имя: {input_text}"
                     )  # Отладочная информация
 
         # Отрисовка экрана
@@ -167,15 +171,18 @@ def get_player_name(
             center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
         )
 
-        # Рамка поля ввода
-        pygame.draw.rect(screen, (255, 255, 255), input_rect.inflate(20, 10), 2)
+        # Рамка поля ввода (красная для пустого поля)
+        if not input_text.strip():
+            pygame.draw.rect(screen, (255, 100, 100), input_rect.inflate(20, 10), 2)  # Красная рамка для пустого поля
+        else:
+            pygame.draw.rect(screen, (255, 255, 255), input_rect.inflate(20, 10), 2)  # Белая рамка для заполненного
         screen.blit(input_surface, input_rect)
 
         # Подсказка
         render_colored_hint(
             screen,
             font,
-            "После ввода имени нажмите Enter для продолжения",
+            "Введите имя игрока и нажмите Enter",
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 20),
         )
 
@@ -203,9 +210,16 @@ def get_player_name(
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 110),
         )
 
+
+
         pygame.display.flip()
 
-    return input_text.strip(), sound_enabled, exit_game, auto_mode
+    # ФИНАЛЬНАЯ ВАЛИДАЦИЯ: убеждаемся, что имя корректно
+    final_name = input_text.strip()
+    if not final_name:
+        final_name = "robot"  # Крайний случай для авторежима
+    
+    return final_name, sound_enabled, exit_game, auto_mode
 
 
 def show_highscores(
@@ -493,8 +507,23 @@ class Ball:
 
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
             self.vel_x *= -1
+            # Дополнительная защита от зацикливания у стен
+            # Если мяч слишком долго отскакивает от стен, добавляем случайность
+            if hasattr(self, '_wall_bounce_count'):
+                self._wall_bounce_count += 1
+            else:
+                self._wall_bounce_count = 1
+                
+            if self._wall_bounce_count > 10:  # Если много раз отскочил от стен подряд
+                # Добавляем небольшое случайное изменение вертикальной скорости
+                self.vel_y += random.choice([-1, 0, 1])
+                self._wall_bounce_count = 0  # Сбрасываем счетчик
+                
         if self.rect.top <= 0:
             self.vel_y *= -1
+            # Сбрасываем счетчик отскоков от стен при отскоке от верхней стенки
+            if hasattr(self, '_wall_bounce_count'):
+                self._wall_bounce_count = 0
 
     def bounce_vertical(self) -> None:
         self.vel_y *= -1
@@ -817,8 +846,14 @@ def main() -> None:
         game_over = False
         game_started = False
 
-        # Пересоздаем AI-систему при каждом новом запуске (для корректной работы авторежима)
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Пересоздаем AI-систему НО сначала сохраняем предыдущие данные обучения
+        if 'ai_player' in locals() and ai_player is not None:
+            # Сохраняем данные обучения от предыдущего экземпляра
+            ai_player.save_learning_data()
+        
+        # Создаем новый AI-систему, которая загрузит обновленные данные
         ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
+        print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
 
         # Ввод имени игрока
         player_name, sound_enabled, exit_game, auto_mode = get_player_name(
@@ -976,12 +1011,31 @@ def main() -> None:
                         ball.bounce_vertical()
                         ball.vel_x = int(offset * ball.get_speed())
 
-                        # Если offset слишком мал, добавляем случайность для избежания вертикального движения
-                        if abs(offset) < 0.2:
-                            ball.vel_x += random.choice([-1, 1]) * random.randint(1, 2)
+                        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Предотвращение зацикливания
+                        # Если offset слишком мал, принудительно устанавливаем значительное горизонтальное движение
+                        min_horizontal_speed = max(2, ball.get_speed() // 2)  # Минимум 2 пикселя или половина скорости
+                        if abs(ball.vel_x) < min_horizontal_speed:
+                            # Принудительно устанавливаем направление в сторону от текущего положения
+                            if ball.rect.centerx < SCREEN_WIDTH // 2:
+                                ball.vel_x = min_horizontal_speed  # Двигаемся вправо
+                            else:
+                                ball.vel_x = -min_horizontal_speed  # Двигаемся влево
+                            
+                            # Добавляем небольшую случайность для разнообразия
+                            ball.vel_x += random.choice([-1, 0, 1])
+                        
+                        # Дополнительная защита от зацикливания - проверяем, не была ли предыдущая скорость слишком малой
+                        if hasattr(ball, '_last_vel_x'):
+                            # Если предыдущая горизонтальная скорость была очень малой, а новая тоже
+                            if abs(ball._last_vel_x) <= 1 and abs(ball.vel_x) <= 1:
+                                # Принудительно меняем направление
+                                ball.vel_x = random.choice([-min_horizontal_speed, min_horizontal_speed])
+                        
+                        # Сохраняем текущую скорость для следующей проверки
+                        ball._last_vel_x = ball.vel_x
 
-                        # Ограничиваем горизонтальную скорость
-                        max_horizontal = ball.get_speed() - 1
+                        # Ограничиваем горизонтальную скорость (но оставляем место для мин. скорости)
+                        max_horizontal = ball.get_speed()
                         ball.vel_x = max(
                             -max_horizontal, min(max_horizontal, ball.vel_x)
                         )
@@ -1077,12 +1131,25 @@ def main() -> None:
                                     running = False  # Останавливаем текущую игру
                                     break  # Выход из игрового цикла
                                 else:
-                                    # В ручном режиме перезапускаем игру
-                                    # Состояние уже сброшено в начале цикла, только пересоздаем AI
+                                    # В ручном режиме перезапускаем игру - ПОЛНЫЙ СБРОС СОСТОЯНИЯ
+                                    paddle = Paddle()
+                                    ball = Ball()
+                                    ball_speed = settings_manager.get_ball_speed()
+                                    ball.set_speed(ball_speed)
+                                    ball.reset(paddle.rect)
+                                    ball.vel_y = 0
+                                    bricks = build_bricks()
+                                    score = 0
+                                    lives_left = MAX_LIVES
+                                    game_over = False
+                                    game_started = False
+                                    # Пересоздаем AI для новой игры
                                     ai_player = AIPlayer(
                                         SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
                                     )
                                     ai_player.activate()
+                                    # Перезапускаем отсчет времени игры
+                                    game_start_time = time.time()
                         else:
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
@@ -1141,12 +1208,25 @@ def main() -> None:
                                 running = False  # Останавливаем текущую игру
                                 break  # Выход из игрового цикла
                             else:
-                                # В ручном режиме перезапускаем игру
-                                # Состояние уже сброшено в начале цикла, только пересоздаем AI
+                                # В ручном режиме перезапускаем игру - ПОЛНЫЙ СБРОС СОСТОЯНИЯ
+                                paddle = Paddle()
+                                ball = Ball()
+                                ball_speed = settings_manager.get_ball_speed()
+                                ball.set_speed(ball_speed)
+                                ball.reset(paddle.rect)
+                                ball.vel_y = 0
+                                bricks = build_bricks()
+                                score = 0
+                                lives_left = MAX_LIVES
+                                game_over = False
+                                game_started = False
+                                # Пересоздаем AI для новой игры
                                 ai_player = AIPlayer(
                                     SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
                                 )
                                 ai_player.activate()
+                                # Перезапускаем отсчет времени игры
+                                game_start_time = time.time()
 
             screen.fill((10, 10, 30))
             draw_bricks(screen, bricks)

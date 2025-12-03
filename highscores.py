@@ -13,26 +13,26 @@ from datetime import datetime
 def get_game_directory():
     """
     Определяет каталог игры.
-    В приоритете: каталог установки Windows (%LOCALAPPDATA%\\Games\\Arkanoid)
-    Если каталог установки недоступен, использует текущую директорию
+    Для разработки: local_game_files в корне проекта
+    Для exe: каталог установки Windows или директория exe файла
     """
-    # Пытаемся получить каталог установки из переменных окружения
+    # Для разработки (запуск из IDE) всегда используем local_game_files
+    if not getattr(sys, "frozen", False):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        local_game_dir = os.path.join(current_dir, "local_game_files")
+        return local_game_dir
+    
+    # Для exe файлов пытаемся использовать LOCALAPPDATA
     try:
-        # Для Windows - используем LOCALAPPDATA
         localappdata = os.environ.get("LOCALAPPDATA")
         if localappdata:
             game_dir = os.path.join(localappdata, "Games", "Arkanoid")
             return game_dir
     except:
         pass
-
-    # Если не удалось определить каталог установки, используем текущую директорию
-    if getattr(sys, "frozen", False):
-        # Если приложение запущено как exe (PyInstaller)
-        return os.path.dirname(sys.executable)
-    else:
-        # Если приложение запущено как скрипт Python
-        return os.path.dirname(os.path.abspath(__file__))
+    
+    # Fallback для exe: директория exe файла
+    return os.path.dirname(sys.executable)
 
 
 def get_highscores_file_path():
@@ -85,7 +85,8 @@ class HighScoreManager:
             print(f"Попытка сохранить в: {HIGHSCORES_FILE}")
             # Пытаемся сохранить в текущую директорию как fallback
             try:
-                fallback_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "highscores_backup.json")
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                fallback_path = os.path.join(current_dir, "local_game_files", "highscores_backup.json")
                 with open(fallback_path, "w", encoding="utf-8") as f:
                     json.dump(self.highscores, f, ensure_ascii=False, indent=2)
                 print(f"Рекорды сохранены в fallback файл: {fallback_path}")
