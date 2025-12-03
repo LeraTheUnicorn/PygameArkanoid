@@ -1,4 +1,5 @@
 {
+  "ball_speed": 27,
   "game_settings": {
     "screen_width": 800,
     "screen_height": 600,
@@ -46,12 +47,30 @@
     "left_offset": 15
   },
   "controls": {
-    "move_left": ["LEFT", "a", "A"],
-    "move_right": ["RIGHT", "d", "D"],
-    "pause": ["SPACE"],
-    "quit": ["ESCAPE"],
-    "ai_toggle": ["h", "H"],
-    "new_game": ["n", "N"]
+    "move_left": [
+      "LEFT",
+      "a",
+      "A"
+    ],
+    "move_right": [
+      "RIGHT",
+      "d",
+      "D"
+    ],
+    "pause": [
+      "SPACE"
+    ],
+    "quit": [
+      "ESCAPE"
+    ],
+    "ai_toggle": [
+      "h",
+      "H"
+    ],
+    "new_game": [
+      "n",
+      "N"
+    ]
   },
   "scoring": {
     "base_points": 10,
@@ -64,7 +83,11 @@
     "show_trajectory": false,
     "show_ai_prediction": false,
     "show_fps": false,
-    "trajectory_color": [255, 255, 0],
+    "trajectory_color": [
+      255,
+      255,
+      0
+    ],
     "trajectory_alpha": 128,
     "highlight_best_move": true
   }
