@@ -7,13 +7,18 @@ readme = "README.md"
 packages = [{include = "*.py"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
-pygame = "^2.5.0"
-numpy = "^1.24.0"
+python = "^3.11"
+pygame = "^2.5.2"
+numpy = "^2.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = [
+    "poetry-core",
+    "setuptools>=45",
+    "wheel",
+    "setuptools-scm[toml]>=6.2"
+]
 build-backend = "poetry.core.masonry.api"
