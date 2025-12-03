@@ -3,7 +3,7 @@
 Классическая игра Арканоид, написанная на Python с использованием Pygame. Включает в себя систему рекордов, звуковые
 эффекты и современный интерфейс.
 
-![Версия](https://img.shields.io/badge/version-2.1.0-blue.svg)
+![Версия](https://img.shields.io/badge/version-2.1.5-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Pygame](https://img.shields.io/badge/pygame-2.5+-green.svg)
 

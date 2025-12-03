@@ -2,6 +2,13 @@
   {
     "player_name": "robot",
     "score": 50,
+    "time_seconds": 17,
+    "time_formatted": "0:17",
+    "date": "2025-12-04 02:30"
+  },
+  {
+    "player_name": "robot",
+    "score": 50,
     "time_seconds": 18,
     "time_formatted": "0:18",
     "date": "2025-12-04 00:05"
@@ -58,15 +65,8 @@
   {
     "player_name": "robot",
     "score": 49,
-    "time_seconds": 21,
-    "time_formatted": "0:21",
-    "date": "2025-12-04 01:28"
-  },
-  {
-    "player_name": "robot",
-    "score": 49,
-    "time_seconds": 28,
-    "time_formatted": "0:28",
-    "date": "2025-12-04 01:07"
+    "time_seconds": 19,
+    "time_formatted": "0:19",
+    "date": "2025-12-04 02:30"
   }
 ]
