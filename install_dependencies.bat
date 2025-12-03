@@ -1,93 +1,72 @@
 @echo off
 chcp 65001 >nul
+
 echo ========================================
 echo ДИАГНОСТИКА И УСТАНОВКА ЗАВИСИМОСТЕЙ
 echo ========================================
 echo.
 
-echo [ШАГ 1] Поиск виртуального окружения проекта...
-echo.
+echo [ШАГ 1] Поиск виртуального окружения...
 
-:: Проверяем наличие venv в проекте
+REM Проверяем наличие venv в проекте
 if exist ".venv\Scripts\python.exe" (
     echo ✅ Найдено venv: .venv\Scripts\python.exe
-    set VENV_PYTHON=.venv\Scripts\python.exe
-    goto use_venv
+    setlocal EnableDelayedExpansion
+    set "PYTHON_CMD=.venv\Scripts\python.exe"
+    goto install_venv
 ) else if exist "venv\Scripts\python.exe" (
     echo ✅ Найдено venv: venv\Scripts\python.exe  
-    set VENV_PYTHON=venv\Scripts\python.exe
-    goto use_venv
+    setlocal EnableDelayedExpansion
+    set "PYTHON_CMD=venv\Scripts\python.exe"
+    goto install_venv
 ) else (
     echo ❌ Виртуальное окружение не найдено!
     echo Использую глобальный Python...
-    goto use_global
+    setlocal EnableDelayedExpansion
+    set "PYTHON_CMD=python"
+    goto install_global
 )
 
-:use_venv
+:install_venv
 echo.
-echo [ШАГ 2] Проверка Python в venv...
-echo Использую Python из venv: %VENV_PYTHON%
-%VENV_PYTHON% --version
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Python в venv не работает!
-    goto use_global
+echo [ШАГ 2] Установка зависимостей в venv...
+echo Использую: !PYTHON_CMD!
+!PYTHON_CMD! --version
+if !ERRORLEVEL! NEQ 0 (
+    echo ❌ Ошибка с Python в venv!
+    goto error_exit
 )
+
 echo.
-
-echo [ШАГ 3] Проверка и установка зависимостей в venv...
-echo.
-
-:: Обновляем pip
-echo Обновляю pip в venv...
-%VENV_PYTHON% -m pip install --upgrade pip >nul 2>&1
-
-:: Проверяем pygame
-echo Проверяю pygame в venv...
-%VENV_PYTHON% -c "import pygame; print('✅ pygame уже установлен:', pygame.version.ver)" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo ✅ pygame уже установлен и работает!
-) else (
-    echo pygame не установлен - устанавливаю...
-    %VENV_PYTHON% -m pip install pygame >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        echo ✅ pygame установлен!
-    ) else (
-        echo ❌ Ошибка установки pygame!
-        goto failed
+echo [ШАГ 3] Установка pygame...
+!PYTHON_CMD! -m pip install pygame==2.5.2 --no-cache-dir --force-reinstall
+if !ERRORLEVEL! NEQ 0 (
+    echo ❌ Ошибка установки pygame! Пробую альтернативный способ...
+    !PYTHON_CMD! -m pip install pygame --pre --no-cache-dir --force-reinstall
+    if !ERRORLEVEL! NEQ 0 (
+        echo ❌ Все способы установки pygame не удались!
+        goto error_exit
     )
-)
-
-:: Проверяем numpy  
-echo Проверяю numpy в venv...
-%VENV_PYTHON% -c "import numpy; print('✅ numpy уже установлен:', numpy.__version__)" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo ✅ numpy уже установлен и работает!
 ) else (
-    echo numpy не установлен - устанавливаю...
-    %VENV_PYTHON% -m pip install numpy >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        echo ✅ numpy установлен!
-    ) else (
-        echo ❌ Ошибка установки numpy!
-        goto failed
-    )
+    echo ✅ pygame успешно установлен!
 )
 
 echo.
-echo [ШАГ 4] Финальная проверка установки...
-
-:: Финальная проверка pygame
-%VENV_PYTHON% -c "import pygame; print('✅ pygame ФИНАЛЬНО РАБОТАЕТ!', pygame.version.ver)"
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ pygame не работает после установки!
-    goto failed
+echo [ШАГ 4] Установка numpy...
+!PYTHON_CMD! -m pip install numpy --no-cache-dir --force-reinstall
+if !ERRORLEVEL! NEQ 0 (
+    echo ❌ Ошибка установки numpy!
+    goto error_exit
+) else (
+    echo ✅ numpy успешно установлен!
 )
 
-:: Финальная проверка numpy
-%VENV_PYTHON% -c "import numpy; print('✅ numpy ФИНАЛЬНО РАБОТАЕТ!', numpy.__version__)"
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ numpy не работает после установки!
-    goto failed
+echo.
+echo [ШАГ 5] Проверка установки...
+!PYTHON_CMD! -c "import pygame, numpy; print('OK')"
+if !ERRORLEVEL! NEQ 0 (
+    echo ❌ Библиотеки не работают после установки!
+    goto error_exit
 )
 
 echo.
@@ -95,79 +74,50 @@ echo ========================================
 echo ✅ УСТАНОВКА УСПЕШНА В VENV!
 echo ========================================
 echo.
-echo Игра готова к запуску:
-echo %VENV_PYTHON% PyGameBall.py
+echo 🎮 Игра готова к запуску!
+echo Команда для запуска:
+echo !PYTHON_CMD! PyGameBall.py
 echo.
-echo Альтернативные способы:
+echo Или активируйте venv:
 echo .venv\Scripts\activate
 echo python PyGameBall.py
-echo.
-echo poetry run python PyGameBall.py
-goto end
+goto success_exit
 
-:use_global
+:install_global
 echo.
-echo [ШАГ 2] Использую глобальный Python...
+echo [ШАГ 2] Установка в глобальном Python...
 python --version
 if %ERRORLEVEL% NEQ 0 (
     echo ❌ Глобальный Python не найден!
-    goto failed
-)
-
-:: Проверяем версию
-for /f "tokens=2" %%i in ('python --version 2^>^&1') do set VER=%%i
-echo Версия: %VER%
-
-if "%VER%"=="3.14" (
-    echo 🚨 Python 3.14 несовместим с pygame!
-    echo Используйте venv с Python 3.11 или готовый .exe
-    goto failed
+    goto error_exit
 )
 
 echo.
-echo [ШАГ 3] Проверка пакетов в глобальном Python...
-
-:: Проверяем pygame
-python -c "import pygame; print('✅ pygame работает:', pygame.version.ver)" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo ✅ pygame установлен в глобальном Python
+echo [ШАГ 3] Установка pygame...
+python -m pip install pygame==2.5.2 --no-cache-dir --force-reinstall
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ Ошибка установки pygame!
+    goto error_exit
 ) else (
-    echo pygame не установлен - устанавливаю...
-    python -m pip install pygame >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 (
-        echo ❌ Ошибка установки pygame!
-        goto failed
-    )
-    echo ✅ pygame установлен в глобальный Python
-)
-
-:: Проверяем numpy
-python -c "import numpy; print('✅ numpy работает:', numpy.__version__)" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo ✅ numpy установлен в глобальном Python
-) else (
-    echo numpy не установлен - устанавливаю...
-    python -m pip install numpy >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 (
-        echo ❌ Ошибка установки numpy!
-        goto failed
-    )
-    echo ✅ numpy установлен в глобальный Python
+    echo ✅ pygame успешно установлен!
 )
 
 echo.
-echo [ШАГ 4] Финальная проверка...
-
-python -c "import pygame; print('✅ pygame OK!', pygame.version.ver)"
+echo [ШАГ 4] Установка numpy...
+python -m pip install numpy --no-cache-dir --force-reinstall
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ pygame не работает!
-    goto failed
+    echo ❌ Ошибка установки numpy!
+    goto error_exit
+) else (
+    echo ✅ numpy успешно установлен!
 )
 
-python -c "import numpy; print('✅ numpy OK!', numpy.__version__)"
+echo.
+echo [ШАГ 5] Проверка установки...
+python -c "import pygame, numpy; print('OK')"
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ numpy не работает!
-    goto failed
+    echo ❌ Библиотеки не работают после установки!
+    goto error_exit
 )
 
 echo.
@@ -175,11 +125,12 @@ echo ========================================
 echo ✅ УСТАНОВКА УСПЕШНА!
 echo ========================================
 echo.
-echo Игра готова к запуску:
+echo 🎮 Игра готова к запуску!
+echo Команда для запуска:
 echo python PyGameBall.py
-goto end
+goto success_exit
 
-:failed
+:error_exit
 echo.
 echo ========================================
 echo ❌ УСТАНОВКА НЕ УДАЛАСЬ
@@ -189,7 +140,20 @@ echo РЕШЕНИЯ:
 echo 1. Используйте готовый .exe: Arkanoid_v2.1.0.exe
 echo 2. Установите Python 3.11-3.13 (не 3.14)
 echo 3. Активируйте venv: .venv\Scripts\activate
+echo 4. Запустите: python -m pip install pygame numpy
+echo.
+echo Попробуйте вручную:
+echo python -m pip install pygame==2.5.2 numpy
+pause
+exit /b 1
 
-:end
+:success_exit
+echo.
+echo 🎯 Поддерживаемые функции:
+echo    - Обычная игра
+echo    - AI помощник
+echo    - Система рекордов
+echo    - Настройки сложности
 echo.
 pause
+exit /b 0

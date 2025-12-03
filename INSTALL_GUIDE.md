@@ -17,18 +17,6 @@
    - Следуйте инструкциям на экране
    - Дождитесь завершения установки
 
-### Для Linux/Mac:
-1. **Установите Python**:
-   - Ubuntu/Debian: `sudo apt update && sudo apt install python3 python3-pip`
-   - macOS (Homebrew): `brew install python3`
-   - macOS (с сайта): https://www.python.org/downloads/
-
-2. **Сделайте скрипт исполняемым и запустите**:
-   ```bash
-   chmod +x install_dependencies.sh
-   ./install_dependencies.sh
-   ```
-
 **⚠️ Если нет интерпретатора bash (Windows без WSL/Git Bash):**
 Используйте командную строку Windows:
 ```cmd
@@ -79,9 +67,7 @@ python -m pip install -r requirements.txt
 # Включает готовые пакеты для научных вычислений
 ```
 
-**4. Установите Visual C++ Build Tools:**
-- Скачайте с: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-- Позволит компилировать pygame из исходников
+
 ## 📦 Список зависимостей
 В проекте используются следующие библиотеки:
 - **pygame** (2.5.2) - для создания игр

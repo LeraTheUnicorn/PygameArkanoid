@@ -13,7 +13,7 @@ from datetime import datetime
 def get_game_directory():
     """
     Определяет каталог игры.
-    В приоритете: каталог установки Windows (%LOCALAPPDATA%\Games\Arkanoid)
+    В приоритете: каталог установки Windows (%LOCALAPPDATA%\\Games\\Arkanoid)
     Если каталог установки недоступен, использует текущую директорию
     """
     # Пытаемся получить каталог установки из переменных окружения
@@ -41,8 +41,18 @@ def get_highscores_file_path():
     resources_dir = os.path.join(game_dir, "resources")
 
     # Создаем каталог, если он не существует
-    if not os.path.exists(resources_dir):
-        os.makedirs(resources_dir, exist_ok=True)
+    try:
+        if not os.path.exists(resources_dir):
+            os.makedirs(resources_dir, exist_ok=True)
+    except (OSError, PermissionError):
+        # Если не удается создать каталог в LOCALAPPDATA, используем текущую директорию
+        resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+        try:
+            if not os.path.exists(resources_dir):
+                os.makedirs(resources_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            # Если и здесь не получается, используем каталог без resources
+            resources_dir = os.path.dirname(os.path.abspath(__file__))
 
     return os.path.join(resources_dir, "data", "highscores.json")
 
@@ -70,8 +80,19 @@ class HighScoreManager:
         try:
             with open(HIGHSCORES_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.highscores, f, ensure_ascii=False, indent=2)
-        except IOError:
-            print("Ошибка сохранения рекордов")
+        except (IOError, OSError, PermissionError) as e:
+            print(f"Ошибка сохранения рекордов: {e}")
+            print(f"Попытка сохранить в: {HIGHSCORES_FILE}")
+            # Пытаемся сохранить в текущую директорию как fallback
+            try:
+                fallback_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "highscores_backup.json")
+                with open(fallback_path, "w", encoding="utf-8") as f:
+                    json.dump(self.highscores, f, ensure_ascii=False, indent=2)
+                print(f"Рекорды сохранены в fallback файл: {fallback_path}")
+            except Exception as fallback_error:
+                print(f"Не удалось сохранить рекорды даже в fallback: {fallback_error}")
+        except Exception as e:
+            print(f"Неожиданная ошибка при сохранении рекордов: {e}")
 
     def add_score(self, player_name: str, score: int, game_time_seconds: int) -> bool:
         """
