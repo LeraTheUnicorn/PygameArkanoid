@@ -16,6 +16,20 @@
   {
     "player_name": "robot",
     "score": 50,
+    "time_seconds": 18,
+    "time_formatted": "0:18",
+    "date": "2025-12-04 01:06"
+  },
+  {
+    "player_name": "robot",
+    "score": 50,
+    "time_seconds": 20,
+    "time_formatted": "0:20",
+    "date": "2025-12-04 01:09"
+  },
+  {
+    "player_name": "robot",
+    "score": 50,
     "time_seconds": 24,
     "time_formatted": "0:24",
     "date": "2025-12-03 23:43"
@@ -29,30 +43,30 @@
   },
   {
     "player_name": "robot",
-    "score": 49,
-    "time_seconds": 32,
-    "time_formatted": "0:32",
-    "date": "2025-12-03 23:54"
+    "score": 50,
+    "time_seconds": 46,
+    "time_formatted": "0:46",
+    "date": "2025-12-04 01:05"
   },
   {
     "player_name": "robot",
-    "score": 48,
-    "time_seconds": 58,
-    "time_formatted": "0:58",
-    "date": "2025-12-03 23:40"
+    "score": 49,
+    "time_seconds": 18,
+    "time_formatted": "0:18",
+    "date": "2025-12-04 01:08"
   },
   {
-    "player_name": "ош",
-    "score": 3,
-    "time_seconds": 8,
-    "time_formatted": "0:08",
-    "date": "2025-12-03 23:33"
+    "player_name": "robot",
+    "score": 49,
+    "time_seconds": 21,
+    "time_formatted": "0:21",
+    "date": "2025-12-04 01:28"
   },
   {
-    "player_name": "фывапролджэя",
-    "score": 3,
-    "time_seconds": 10,
-    "time_formatted": "0:10",
-    "date": "2025-12-03 23:33"
+    "player_name": "robot",
+    "score": 49,
+    "time_seconds": 28,
+    "time_formatted": "0:28",
+    "date": "2025-12-04 01:07"
   }
 ]
