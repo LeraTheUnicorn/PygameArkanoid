@@ -23,8 +23,8 @@ def get_current_version():
                 if line.startswith("VERSION ="):
                     return line.split('"')[1]
     except:
-        return "1.6.1"
-    return "1.6.1"
+        return "2.1.0"
+    return "2.1.0"
 
 
 def build_executable():

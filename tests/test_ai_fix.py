@@ -84,7 +84,7 @@ def check_logs():
     """Проверяет последние логи на наличие вертикальных паттернов"""
     print("\nПроверка логов...")
 
-    logs_dir = "ai/logs"
+    logs_dir = "../ai/logs"
     if not os.path.exists(logs_dir):
         print("Директория логов не найдена")
         return
