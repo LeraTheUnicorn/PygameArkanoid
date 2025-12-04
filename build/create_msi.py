@@ -35,9 +35,23 @@ def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
     # Check if required files exist
     required_files = [
-        "dist/Arkanoid.exe",
-        "resources/icons/game.ico"
-    ]
+        "PyGameBall.py",
+        "highscores.py",
+        "settings.py",
+        "resources/data/highscores.json",
+        "resources/data/settings.json",
+        "ai/models/ai_model.json",
+        "ai/ai_player.py",
+        "ai/game_state.py",
+        "ai/learning_system.py",
+        "ai/performance_logger.py",
+        "ai/position_optimizer.py",
+        "ai/trajectory_predictor.py",
+        "ai/__init__.py",
+        "README.MD",
+        "docs/changelog.md",
+        "docs/LICENSE.txt"
+   ]
 
     for file in required_files:
         if not (project_root / file).exists():
@@ -63,8 +77,10 @@ def create_wxs_file(project_root, version="2.1.5"):
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
-          <Directory Id="ProgramMenuFolder" Name="Arkanoid" />
-        </Directory>
+          <Directory Id="RESOURCES" Name="resources" />
+          <Directory Id="AI" Name="ai" />
+          <Directory Id="DOCS" Name="docs" />
+       </Directory>
       </Directory>
     </Directory>
   </Fragment>
@@ -73,14 +89,61 @@ def create_wxs_file(project_root, version="2.1.5"):
     <ComponentGroup Id="ProductComponents">
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
-        <File Id="Arkanoid.exe" Source="dist/Arkanoid.exe" KeyPath="yes" />
-        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+        <File Id="PyGameBall.py" Source="PyGameBall.py" KeyPath="yes" />
+       </Component>
+
+      <!-- Python files -->
+      <Component Id="Highscores" Directory="INSTALLFOLDER">
+        <File Id="highscores.py" Source="highscores.py" />
+      </Component>
+      <Component Id="Settings" Directory="INSTALLFOLDER">
+        <File Id="settings.py" Source="settings.py" />
       </Component>
 
-      <!-- Icon -->
-      <Component Id="GameIcon" Directory="INSTALLFOLDER">
-        <File Id="game.ico" Source="resources/icons/game.ico" KeyPath="yes" />
+      <!-- AI files -->
+      <Component Id="AIPlayer" Directory="AI">
+        <File Id="ai_player.py" Source="ai/ai_player.py" />
       </Component>
+      <Component Id="AIGameState" Directory="AI">
+        <File Id="game_state.py" Source="ai/game_state.py" />
+      </Component>
+      <Component Id="AILearning" Directory="AI">
+        <File Id="learning_system.py" Source="ai/learning_system.py" />
+      </Component>
+      <Component Id="AILogger" Directory="AI">
+        <File Id="performance_logger.py" Source="ai/performance_logger.py" />
+      </Component>
+      <Component Id="AIOptimizer" Directory="AI">
+        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" />
+      </Component>
+      <Component Id="AITrajectory" Directory="AI">
+        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" />
+      </Component>
+      <Component Id="AIInit" Directory="AI">
+        <File Id="__init__.py" Source="ai/__init__.py" />
+      </Component>
+
+      <!-- Resources -->
+      <Component Id="ResourcesData" Directory="RESOURCES">
+        <File Id="highscores.json" Source="resources/data/highscores.json" />
+        <File Id="settings.json" Source="resources/data/settings.json" />
+      </Component>
+
+      <!-- AI components -->
+      <Component Id="AIModel" Directory="AI">
+        <File Id="ai_model.json" Source="ai/models/ai_model.json" />
+      </Component>
+
+      <!-- Documentation -->
+      <Component Id="Readme" Directory="DOCS">
+        <File Id="README.MD" Source="README.MD" />
+      </Component>
+      <Component Id="Changelog" Directory="DOCS">
+        <File Id="changelog.md" Source="docs/changelog.md" />
+      </Component>
+      <Component Id="License" Directory="DOCS">
+        <File Id="LICENSE.txt" Source="docs/LICENSE.txt" />
+     </Component>
     </ComponentGroup>
   </Fragment>
 </Wix>'''
