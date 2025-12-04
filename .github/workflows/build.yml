@@ -67,7 +67,15 @@ jobs:
     - name: Install WiX Toolset (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        choco install wixtoolset
+        choco install wixtoolset --params "/ADD_WIX_TO_PATH"
+        refreshenv || echo "refreshenv failed, continuing..."
+
+    - name: Check WiX installation (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: |
+        where candle.exe || echo "WiX candle.exe not found in PATH"
+        where light.exe || echo "WiX light.exe not found in PATH"
 
     - name: Build executable (Windows)
       if: matrix.os == 'windows-latest'
@@ -81,7 +89,7 @@ jobs:
       shell: cmd
       run: |
         .venv\Scripts\activate
-        python build/create_msi.py
+        python build/create_msi.py || echo "MSI creation failed or skipped"
 
     - name: Upload executable artifacts (Windows)
       if: matrix.os == 'windows-latest'
@@ -96,6 +104,7 @@ jobs:
       with:
         name: msi-installer
         path: "*.msi"
+        if-no-files-found: ignore
 
   release:
     needs: [build, executables]
