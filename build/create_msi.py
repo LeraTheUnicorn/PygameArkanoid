@@ -35,9 +35,9 @@ def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
     # Check if required files exist
     required_files = [
-        "PyGameBall.py",
-        "highscores.py",
-        "settings.py",
+        "src/game/PyGameBall.py",
+        "src/game/highscores.py",
+        "src/game/settings.py",
         "resources/data/highscores.json",
         "resources/data/settings.json",
         "ai/models/ai_model.json",
@@ -77,6 +77,7 @@ def create_wxs_file(project_root, version="2.1.5"):
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
+          <Directory Id="ProgramMenuFolder" Name="Arkanoid" />
           <Directory Id="RESOURCES" Name="resources" />
           <Directory Id="AI" Name="ai" />
           <Directory Id="DOCS" Name="docs" />
@@ -89,15 +90,16 @@ def create_wxs_file(project_root, version="2.1.5"):
     <ComponentGroup Id="ProductComponents">
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
-        <File Id="PyGameBall.py" Source="PyGameBall.py" KeyPath="yes" />
+        <File Id="PyGameBall.py" Source="src/game/PyGameBall.py" KeyPath="yes" />
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
        </Component>
 
       <!-- Python files -->
       <Component Id="Highscores" Directory="INSTALLFOLDER">
-        <File Id="highscores.py" Source="highscores.py" />
+        <File Id="highscores.py" Source="src/game/highscores.py" />
       </Component>
       <Component Id="Settings" Directory="INSTALLFOLDER">
-        <File Id="settings.py" Source="settings.py" />
+        <File Id="settings.py" Source="src/game/settings.py" />
       </Component>
 
       <!-- AI files -->
