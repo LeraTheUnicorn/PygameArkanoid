@@ -1,0 +1,4729 @@
+{
+  "session_id": "20251204_032822_102",
+  "session_start": 1764808102.7194722,
+  "session_end": 1764808106.0747194,
+  "total_duration": 3.3552472591400146,
+  "total_actions": 149,
+  "actions": [
+    {
+      "timestamp": 1764808104.1260765,
+      "session_time": 1.406604290008545,
+      "type": "ai_activated"
+    },
+    {
+      "timestamp": 1764808104.1260765,
+      "session_time": 1.406604290008545,
+      "type": "game_start",
+      "initial_bricks_count": 50,
+      "initial_ball_position": {
+        "x": 400,
+        "y": 524
+      },
+      "initial_ball_velocity": {
+        "x": 15,
+        "y": -15
+      }
+    },
+    {
+      "timestamp": 1764808104.2750778,
+      "session_time": 1.5556056499481201,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 427,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.2920854,
+      "session_time": 1.57261323928833,
+      "type": "paddle_movement",
+      "from_position": 427,
+      "to_position": 454,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.3086154,
+      "session_time": 1.5891432762145996,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 481,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.324641,
+      "session_time": 1.6051688194274902,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 508,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.340662,
+      "session_time": 1.621189832687378,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.3572037,
+      "session_time": 1.6377315521240234,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.3736405,
+      "session_time": 1.6541683673858643,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 589,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.3897092,
+      "session_time": 1.6702370643615723,
+      "type": "paddle_movement",
+      "from_position": 589,
+      "to_position": 616,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.4061346,
+      "session_time": 1.6866624355316162,
+      "type": "paddle_movement",
+      "from_position": 616,
+      "to_position": 643,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.4221556,
+      "session_time": 1.702683448791504,
+      "type": "paddle_movement",
+      "from_position": 643,
+      "to_position": 670,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.4386842,
+      "session_time": 1.7192120552062988,
+      "type": "paddle_movement",
+      "from_position": 670,
+      "to_position": 697,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.454717,
+      "session_time": 1.7352447509765625,
+      "type": "paddle_movement",
+      "from_position": 697,
+      "to_position": 724,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.454717,
+      "session_time": 1.7352447509765625,
+      "action_type": "brick_hit",
+      "success": true,
+      "confidence": 1.0,
+      "bricks_destroyed": [
+        {
+          "x": 685,
+          "y": 180
+        }
+      ],
+      "remaining_bricks": 49,
+      "ball_speed": 15,
+      "game_state_before": {
+        "ball_position": {
+          "x": 715,
+          "y": 209
+        },
+        "paddle_position": {
+          "x": 697,
+          "y": 547
+        },
+        "bricks_remaining": 50,
+        "ball_speed": 15
+      },
+      "trajectory_prediction": null
+    },
+    {
+      "timestamp": 1764808104.4717312,
+      "session_time": 1.7522590160369873,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 28,
+      "predicted_trajectory": [
+        {
+          "x": 730,
+          "y": 194
+        },
+        {
+          "x": 745,
+          "y": 209
+        },
+        {
+          "x": 760,
+          "y": 224
+        },
+        {
+          "x": 775,
+          "y": 239
+        },
+        {
+          "x": 790,
+          "y": 254
+        },
+        {
+          "x": 800,
+          "y": 269
+        },
+        {
+          "x": 785,
+          "y": 284
+        },
+        {
+          "x": 770,
+          "y": 299
+        },
+        {
+          "x": 755,
+          "y": 314
+        },
+        {
+          "x": 740,
+          "y": 329
+        },
+        {
+          "x": 725,
+          "y": 344
+        },
+        {
+          "x": 710,
+          "y": 359
+        },
+        {
+          "x": 695,
+          "y": 374
+        },
+        {
+          "x": 680,
+          "y": 389
+        },
+        {
+          "x": 665,
+          "y": 404
+        },
+        {
+          "x": 650,
+          "y": 419
+        },
+        {
+          "x": 635,
+          "y": 434
+        },
+        {
+          "x": 620,
+          "y": 449
+        },
+        {
+          "x": 605,
+          "y": 464
+        },
+        {
+          "x": 590,
+          "y": 479
+        },
+        {
+          "x": 575,
+          "y": 494
+        },
+        {
+          "x": 560,
+          "y": 509
+        },
+        {
+          "x": 545,
+          "y": 524
+        },
+        {
+          "x": 530,
+          "y": 539
+        },
+        {
+          "x": 515,
+          "y": 554
+        },
+        {
+          "x": 500,
+          "y": 569
+        },
+        {
+          "x": 485,
+          "y": 584
+        },
+        {
+          "x": 470,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.4717312,
+      "session_time": 1.7522590160369873,
+      "type": "paddle_movement",
+      "from_position": 724,
+      "to_position": 697,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.488826,
+      "session_time": 1.7693538665771484,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 27,
+      "predicted_trajectory": [
+        {
+          "x": 745,
+          "y": 209
+        },
+        {
+          "x": 760,
+          "y": 224
+        },
+        {
+          "x": 775,
+          "y": 239
+        },
+        {
+          "x": 790,
+          "y": 254
+        },
+        {
+          "x": 800,
+          "y": 269
+        },
+        {
+          "x": 785,
+          "y": 284
+        },
+        {
+          "x": 770,
+          "y": 299
+        },
+        {
+          "x": 755,
+          "y": 314
+        },
+        {
+          "x": 740,
+          "y": 329
+        },
+        {
+          "x": 725,
+          "y": 344
+        },
+        {
+          "x": 710,
+          "y": 359
+        },
+        {
+          "x": 695,
+          "y": 374
+        },
+        {
+          "x": 680,
+          "y": 389
+        },
+        {
+          "x": 665,
+          "y": 404
+        },
+        {
+          "x": 650,
+          "y": 419
+        },
+        {
+          "x": 635,
+          "y": 434
+        },
+        {
+          "x": 620,
+          "y": 449
+        },
+        {
+          "x": 605,
+          "y": 464
+        },
+        {
+          "x": 590,
+          "y": 479
+        },
+        {
+          "x": 575,
+          "y": 494
+        },
+        {
+          "x": 560,
+          "y": 509
+        },
+        {
+          "x": 545,
+          "y": 524
+        },
+        {
+          "x": 530,
+          "y": 539
+        },
+        {
+          "x": 515,
+          "y": 554
+        },
+        {
+          "x": 500,
+          "y": 569
+        },
+        {
+          "x": 485,
+          "y": 584
+        },
+        {
+          "x": 470,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.488826,
+      "session_time": 1.7693538665771484,
+      "type": "paddle_movement",
+      "from_position": 697,
+      "to_position": 670,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.5060065,
+      "session_time": 1.786534309387207,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 26,
+      "predicted_trajectory": [
+        {
+          "x": 760,
+          "y": 224
+        },
+        {
+          "x": 775,
+          "y": 239
+        },
+        {
+          "x": 790,
+          "y": 254
+        },
+        {
+          "x": 800,
+          "y": 269
+        },
+        {
+          "x": 785,
+          "y": 284
+        },
+        {
+          "x": 770,
+          "y": 299
+        },
+        {
+          "x": 755,
+          "y": 314
+        },
+        {
+          "x": 740,
+          "y": 329
+        },
+        {
+          "x": 725,
+          "y": 344
+        },
+        {
+          "x": 710,
+          "y": 359
+        },
+        {
+          "x": 695,
+          "y": 374
+        },
+        {
+          "x": 680,
+          "y": 389
+        },
+        {
+          "x": 665,
+          "y": 404
+        },
+        {
+          "x": 650,
+          "y": 419
+        },
+        {
+          "x": 635,
+          "y": 434
+        },
+        {
+          "x": 620,
+          "y": 449
+        },
+        {
+          "x": 605,
+          "y": 464
+        },
+        {
+          "x": 590,
+          "y": 479
+        },
+        {
+          "x": 575,
+          "y": 494
+        },
+        {
+          "x": 560,
+          "y": 509
+        },
+        {
+          "x": 545,
+          "y": 524
+        },
+        {
+          "x": 530,
+          "y": 539
+        },
+        {
+          "x": 515,
+          "y": 554
+        },
+        {
+          "x": 500,
+          "y": 569
+        },
+        {
+          "x": 485,
+          "y": 584
+        },
+        {
+          "x": 470,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.5060065,
+      "session_time": 1.786534309387207,
+      "type": "paddle_movement",
+      "from_position": 670,
+      "to_position": 643,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.5225363,
+      "session_time": 1.8030641078948975,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 25,
+      "predicted_trajectory": [
+        {
+          "x": 775,
+          "y": 239
+        },
+        {
+          "x": 790,
+          "y": 254
+        },
+        {
+          "x": 800,
+          "y": 269
+        },
+        {
+          "x": 785,
+          "y": 284
+        },
+        {
+          "x": 770,
+          "y": 299
+        },
+        {
+          "x": 755,
+          "y": 314
+        },
+        {
+          "x": 740,
+          "y": 329
+        },
+        {
+          "x": 725,
+          "y": 344
+        },
+        {
+          "x": 710,
+          "y": 359
+        },
+        {
+          "x": 695,
+          "y": 374
+        },
+        {
+          "x": 680,
+          "y": 389
+        },
+        {
+          "x": 665,
+          "y": 404
+        },
+        {
+          "x": 650,
+          "y": 419
+        },
+        {
+          "x": 635,
+          "y": 434
+        },
+        {
+          "x": 620,
+          "y": 449
+        },
+        {
+          "x": 605,
+          "y": 464
+        },
+        {
+          "x": 590,
+          "y": 479
+        },
+        {
+          "x": 575,
+          "y": 494
+        },
+        {
+          "x": 560,
+          "y": 509
+        },
+        {
+          "x": 545,
+          "y": 524
+        },
+        {
+          "x": 530,
+          "y": 539
+        },
+        {
+          "x": 515,
+          "y": 554
+        },
+        {
+          "x": 500,
+          "y": 569
+        },
+        {
+          "x": 485,
+          "y": 584
+        },
+        {
+          "x": 470,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.5225363,
+      "session_time": 1.8030641078948975,
+      "type": "paddle_movement",
+      "from_position": 643,
+      "to_position": 616,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.5375779,
+      "session_time": 1.818105697631836,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 24,
+      "predicted_trajectory": [
+        {
+          "x": 790,
+          "y": 254
+        },
+        {
+          "x": 800,
+          "y": 269
+        },
+        {
+          "x": 785,
+          "y": 284
+        },
+        {
+          "x": 770,
+          "y": 299
+        },
+        {
+          "x": 755,
+          "y": 314
+        },
+        {
+          "x": 740,
+          "y": 329
+        },
+        {
+          "x": 725,
+          "y": 344
+        },
+        {
+          "x": 710,
+          "y": 359
+        },
+        {
+          "x": 695,
+          "y": 374
+        },
+        {
+          "x": 680,
+          "y": 389
+        },
+        {
+          "x": 665,
+          "y": 404
+        },
+        {
+          "x": 650,
+          "y": 419
+        },
+        {
+          "x": 635,
+          "y": 434
+        },
+        {
+          "x": 620,
+          "y": 449
+        },
+        {
+          "x": 605,
+          "y": 464
+        },
+        {
+          "x": 590,
+          "y": 479
+        },
+        {
+          "x": 575,
+          "y": 494
+        },
+        {
+          "x": 560,
+          "y": 509
+        },
+        {
+          "x": 545,
+          "y": 524
+        },
+        {
+          "x": 530,
+          "y": 539
+        },
+        {
+          "x": 515,
+          "y": 554
+        },
+        {
+          "x": 500,
+          "y": 569
+        },
+        {
+          "x": 485,
+          "y": 584
+        },
+        {
+          "x": 470,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.5375779,
+      "session_time": 1.818105697631836,
+      "type": "paddle_movement",
+      "from_position": 616,
+      "to_position": 589,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.5536077,
+      "session_time": 1.8341355323791504,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 23,
+      "predicted_trajectory": [
+        {
+          "x": 805,
+          "y": 269
+        },
+        {
+          "x": 790,
+          "y": 284
+        },
+        {
+          "x": 775,
+          "y": 299
+        },
+        {
+          "x": 760,
+          "y": 314
+        },
+        {
+          "x": 745,
+          "y": 329
+        },
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.5536077,
+      "session_time": 1.8341355323791504,
+      "type": "paddle_movement",
+      "from_position": 589,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.570517,
+      "session_time": 1.8510448932647705,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 22,
+      "predicted_trajectory": [
+        {
+          "x": 790,
+          "y": 284
+        },
+        {
+          "x": 775,
+          "y": 299
+        },
+        {
+          "x": 760,
+          "y": 314
+        },
+        {
+          "x": 745,
+          "y": 329
+        },
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.570517,
+      "session_time": 1.8510448932647705,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.5869043,
+      "session_time": 1.8674321174621582,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 21,
+      "predicted_trajectory": [
+        {
+          "x": 775,
+          "y": 299
+        },
+        {
+          "x": 760,
+          "y": 314
+        },
+        {
+          "x": 745,
+          "y": 329
+        },
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.5869043,
+      "session_time": 1.8674321174621582,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.6022432,
+      "session_time": 1.8827710151672363,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 20,
+      "predicted_trajectory": [
+        {
+          "x": 760,
+          "y": 314
+        },
+        {
+          "x": 745,
+          "y": 329
+        },
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.6022432,
+      "session_time": 1.8827710151672363,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.6197922,
+      "session_time": 1.900320053100586,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 19,
+      "predicted_trajectory": [
+        {
+          "x": 745,
+          "y": 329
+        },
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.6197922,
+      "session_time": 1.900320053100586,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.6353574,
+      "session_time": 1.9158852100372314,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 18,
+      "predicted_trajectory": [
+        {
+          "x": 730,
+          "y": 344
+        },
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.6353574,
+      "session_time": 1.9158852100372314,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.6524618,
+      "session_time": 1.9329895973205566,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 17,
+      "predicted_trajectory": [
+        {
+          "x": 715,
+          "y": 359
+        },
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.6524618,
+      "session_time": 1.9329895973205566,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.6685967,
+      "session_time": 1.9491245746612549,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 16,
+      "predicted_trajectory": [
+        {
+          "x": 700,
+          "y": 374
+        },
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.6685967,
+      "session_time": 1.9491245746612549,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.684934,
+      "session_time": 1.9654617309570312,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 15,
+      "predicted_trajectory": [
+        {
+          "x": 685,
+          "y": 389
+        },
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.684934,
+      "session_time": 1.9654617309570312,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 508,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7023184,
+      "session_time": 1.9828462600708008,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 14,
+      "predicted_trajectory": [
+        {
+          "x": 670,
+          "y": 404
+        },
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7023184,
+      "session_time": 1.9828462600708008,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7176597,
+      "session_time": 1.99818754196167,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 13,
+      "predicted_trajectory": [
+        {
+          "x": 655,
+          "y": 419
+        },
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7176597,
+      "session_time": 1.99818754196167,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7338784,
+      "session_time": 2.014406204223633,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 12,
+      "predicted_trajectory": [
+        {
+          "x": 640,
+          "y": 434
+        },
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7338784,
+      "session_time": 2.014406204223633,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7503045,
+      "session_time": 2.030832290649414,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 11,
+      "predicted_trajectory": [
+        {
+          "x": 625,
+          "y": 449
+        },
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7503045,
+      "session_time": 2.030832290649414,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7674234,
+      "session_time": 2.0479512214660645,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 10,
+      "predicted_trajectory": [
+        {
+          "x": 610,
+          "y": 464
+        },
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7674234,
+      "session_time": 2.0479512214660645,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.7828956,
+      "session_time": 2.0634233951568604,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 9,
+      "predicted_trajectory": [
+        {
+          "x": 595,
+          "y": 479
+        },
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.7828956,
+      "session_time": 2.0634233951568604,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 562,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.79871,
+      "session_time": 2.079237937927246,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 8,
+      "predicted_trajectory": [
+        {
+          "x": 580,
+          "y": 494
+        },
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.79871,
+      "session_time": 2.079237937927246,
+      "type": "paddle_movement",
+      "from_position": 562,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.8146088,
+      "session_time": 2.0951366424560547,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 7,
+      "predicted_trajectory": [
+        {
+          "x": 565,
+          "y": 509
+        },
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.8146088,
+      "session_time": 2.0951366424560547,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 508,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.830677,
+      "session_time": 2.1112048625946045,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 6,
+      "predicted_trajectory": [
+        {
+          "x": 550,
+          "y": 524
+        },
+        {
+          "x": 535,
+          "y": 539
+        },
+        {
+          "x": 520,
+          "y": 554
+        },
+        {
+          "x": 505,
+          "y": 569
+        },
+        {
+          "x": 490,
+          "y": 584
+        },
+        {
+          "x": 475,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808104.830677,
+      "session_time": 2.1112048625946045,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 535,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.831677,
+      "session_time": 2.1122047901153564,
+      "action_type": "paddle_bounce",
+      "success": true,
+      "confidence": 0.8,
+      "movement_distance": 0.0,
+      "ball_speed": 15,
+      "remaining_bricks": 49,
+      "game_state_before": {
+        "ball_position": {
+          "x": 550,
+          "y": 524
+        },
+        "paddle_position": {
+          "x": 508,
+          "y": 547
+        },
+        "bricks_remaining": 49,
+        "ball_speed": 15
+      },
+      "trajectory_prediction": {
+        "predicted_points": [
+          {
+            "x": 550,
+            "y": 524
+          },
+          {
+            "x": 535,
+            "y": 539
+          },
+          {
+            "x": 520,
+            "y": 554
+          },
+          {
+            "x": 505,
+            "y": 569
+          },
+          {
+            "x": 490,
+            "y": 584
+          },
+          {
+            "x": 475,
+            "y": 599
+          }
+        ],
+        "intersection_point": {
+          "x": 520,
+          "y": 547
+        }
+      },
+      "targeting_info": {
+        "target_brick": {
+          "x": 405,
+          "y": 150,
+          "width": 60,
+          "height": 20,
+          "centerx": 435,
+          "centery": 160
+        },
+        "optimal_offset": -0.29716623547200477,
+        "actual_offset": 0.7
+      }
+    },
+    {
+      "timestamp": 1764808104.846722,
+      "session_time": 2.1272497177124023,
+      "type": "paddle_movement",
+      "from_position": 535,
+      "to_position": 508,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.8807755,
+      "session_time": 2.1613032817840576,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 481,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.897501,
+      "session_time": 2.1780288219451904,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 508,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.913558,
+      "session_time": 2.1940858364105225,
+      "type": "paddle_movement",
+      "from_position": 508,
+      "to_position": 481,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.9465177,
+      "session_time": 2.2270455360412598,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 454,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.9626815,
+      "session_time": 2.2432093620300293,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 481,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.9785855,
+      "session_time": 2.259113311767578,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 454,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808104.9947124,
+      "session_time": 2.275240182876587,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 481,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.010865,
+      "session_time": 2.2913928031921387,
+      "type": "paddle_movement",
+      "from_position": 481,
+      "to_position": 454,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.027637,
+      "session_time": 2.3081648349761963,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 427,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.0436735,
+      "session_time": 2.3242013454437256,
+      "type": "paddle_movement",
+      "from_position": 427,
+      "to_position": 454,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.059189,
+      "session_time": 2.339716911315918,
+      "type": "paddle_movement",
+      "from_position": 454,
+      "to_position": 427,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.0762055,
+      "session_time": 2.3567333221435547,
+      "type": "paddle_movement",
+      "from_position": 427,
+      "to_position": 400,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.0926714,
+      "session_time": 2.373199224472046,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 427,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.1086805,
+      "session_time": 2.3892083168029785,
+      "type": "paddle_movement",
+      "from_position": 427,
+      "to_position": 400,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.1404083,
+      "session_time": 2.420936107635498,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.1558123,
+      "session_time": 2.436340093612671,
+      "type": "paddle_movement",
+      "from_position": 373,
+      "to_position": 400,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.1724079,
+      "session_time": 2.4529356956481934,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.1892471,
+      "session_time": 2.4697749614715576,
+      "type": "paddle_movement",
+      "from_position": 373,
+      "to_position": 346,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.2052631,
+      "session_time": 2.485790967941284,
+      "type": "paddle_movement",
+      "from_position": 346,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.2052631,
+      "session_time": 2.485790967941284,
+      "action_type": "brick_hit",
+      "success": true,
+      "confidence": 1.0,
+      "bricks_destroyed": [
+        {
+          "x": 335,
+          "y": 180
+        }
+      ],
+      "remaining_bricks": 48,
+      "ball_speed": 15,
+      "game_state_before": {
+        "ball_position": {
+          "x": 381,
+          "y": 209
+        },
+        "paddle_position": {
+          "x": 346,
+          "y": 547
+        },
+        "bricks_remaining": 49,
+        "ball_speed": 15
+      },
+      "trajectory_prediction": null
+    },
+    {
+      "timestamp": 1764808105.2227945,
+      "session_time": 2.5033223628997803,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 28,
+      "predicted_trajectory": [
+        {
+          "x": 374,
+          "y": 194
+        },
+        {
+          "x": 367,
+          "y": 209
+        },
+        {
+          "x": 360,
+          "y": 224
+        },
+        {
+          "x": 353,
+          "y": 239
+        },
+        {
+          "x": 346,
+          "y": 254
+        },
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.2227945,
+      "session_time": 2.5033223628997803,
+      "type": "paddle_movement",
+      "from_position": 373,
+      "to_position": 346,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.2387133,
+      "session_time": 2.5192410945892334,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 27,
+      "predicted_trajectory": [
+        {
+          "x": 367,
+          "y": 209
+        },
+        {
+          "x": 360,
+          "y": 224
+        },
+        {
+          "x": 353,
+          "y": 239
+        },
+        {
+          "x": 346,
+          "y": 254
+        },
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.2387133,
+      "session_time": 2.5192410945892334,
+      "type": "paddle_movement",
+      "from_position": 346,
+      "to_position": 319,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.2547245,
+      "session_time": 2.535252332687378,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 26,
+      "predicted_trajectory": [
+        {
+          "x": 360,
+          "y": 224
+        },
+        {
+          "x": 353,
+          "y": 239
+        },
+        {
+          "x": 346,
+          "y": 254
+        },
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.2547245,
+      "session_time": 2.535252332687378,
+      "type": "paddle_movement",
+      "from_position": 319,
+      "to_position": 292,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.27259,
+      "session_time": 2.5531177520751953,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 25,
+      "predicted_trajectory": [
+        {
+          "x": 353,
+          "y": 239
+        },
+        {
+          "x": 346,
+          "y": 254
+        },
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.27259,
+      "session_time": 2.5531177520751953,
+      "type": "paddle_movement",
+      "from_position": 292,
+      "to_position": 265,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.2878551,
+      "session_time": 2.568382978439331,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 24,
+      "predicted_trajectory": [
+        {
+          "x": 346,
+          "y": 254
+        },
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.2878551,
+      "session_time": 2.568382978439331,
+      "type": "paddle_movement",
+      "from_position": 265,
+      "to_position": 238,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.304956,
+      "session_time": 2.5854837894439697,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 23,
+      "predicted_trajectory": [
+        {
+          "x": 339,
+          "y": 269
+        },
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.304956,
+      "session_time": 2.5854837894439697,
+      "type": "paddle_movement",
+      "from_position": 238,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.3215442,
+      "session_time": 2.60207200050354,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 22,
+      "predicted_trajectory": [
+        {
+          "x": 332,
+          "y": 284
+        },
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.3215442,
+      "session_time": 2.60207200050354,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.3361971,
+      "session_time": 2.616724967956543,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 21,
+      "predicted_trajectory": [
+        {
+          "x": 325,
+          "y": 299
+        },
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.3361971,
+      "session_time": 2.616724967956543,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.3524766,
+      "session_time": 2.6330044269561768,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 20,
+      "predicted_trajectory": [
+        {
+          "x": 318,
+          "y": 314
+        },
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.3549826,
+      "session_time": 2.6355104446411133,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.369241,
+      "session_time": 2.649768829345703,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 19,
+      "predicted_trajectory": [
+        {
+          "x": 311,
+          "y": 329
+        },
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.369241,
+      "session_time": 2.649768829345703,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.3856053,
+      "session_time": 2.666133165359497,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 18,
+      "predicted_trajectory": [
+        {
+          "x": 304,
+          "y": 344
+        },
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.3856053,
+      "session_time": 2.666133165359497,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.4025843,
+      "session_time": 2.683112144470215,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 17,
+      "predicted_trajectory": [
+        {
+          "x": 297,
+          "y": 359
+        },
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.4025843,
+      "session_time": 2.683112144470215,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.418738,
+      "session_time": 2.699265718460083,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 16,
+      "predicted_trajectory": [
+        {
+          "x": 290,
+          "y": 374
+        },
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.418738,
+      "session_time": 2.699265718460083,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.4345891,
+      "session_time": 2.7151169776916504,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 15,
+      "predicted_trajectory": [
+        {
+          "x": 283,
+          "y": 389
+        },
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.4345891,
+      "session_time": 2.7151169776916504,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.4515164,
+      "session_time": 2.732044219970703,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 14,
+      "predicted_trajectory": [
+        {
+          "x": 276,
+          "y": 404
+        },
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.4515164,
+      "session_time": 2.732044219970703,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.4661033,
+      "session_time": 2.746631145477295,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 13,
+      "predicted_trajectory": [
+        {
+          "x": 269,
+          "y": 419
+        },
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.4661033,
+      "session_time": 2.746631145477295,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.4837518,
+      "session_time": 2.76427960395813,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 12,
+      "predicted_trajectory": [
+        {
+          "x": 262,
+          "y": 434
+        },
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.4837518,
+      "session_time": 2.76427960395813,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.5007637,
+      "session_time": 2.7812914848327637,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 11,
+      "predicted_trajectory": [
+        {
+          "x": 255,
+          "y": 449
+        },
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.5007637,
+      "session_time": 2.7812914848327637,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.5165904,
+      "session_time": 2.7971181869506836,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 10,
+      "predicted_trajectory": [
+        {
+          "x": 248,
+          "y": 464
+        },
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.5165904,
+      "session_time": 2.7971181869506836,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.532529,
+      "session_time": 2.8130569458007812,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 9,
+      "predicted_trajectory": [
+        {
+          "x": 241,
+          "y": 479
+        },
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.532529,
+      "session_time": 2.8130569458007812,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.5497556,
+      "session_time": 2.8302834033966064,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 8,
+      "predicted_trajectory": [
+        {
+          "x": 234,
+          "y": 494
+        },
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.5497556,
+      "session_time": 2.8302834033966064,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.565786,
+      "session_time": 2.846313714981079,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 7,
+      "predicted_trajectory": [
+        {
+          "x": 227,
+          "y": 509
+        },
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.565786,
+      "session_time": 2.846313714981079,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.5838103,
+      "session_time": 2.8643381595611572,
+      "type": "trajectory_prediction",
+      "predicted_points_count": 6,
+      "predicted_trajectory": [
+        {
+          "x": 220,
+          "y": 524
+        },
+        {
+          "x": 213,
+          "y": 539
+        },
+        {
+          "x": 206,
+          "y": 554
+        },
+        {
+          "x": 199,
+          "y": 569
+        },
+        {
+          "x": 192,
+          "y": 584
+        },
+        {
+          "x": 185,
+          "y": 599
+        }
+      ],
+      "actual_result": null
+    },
+    {
+      "timestamp": 1764808105.5838103,
+      "session_time": 2.8643381595611572,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 184,
+      "movement_distance": 27,
+      "reason": "trajectory_optimization",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.584314,
+      "session_time": 2.864841938018799,
+      "action_type": "paddle_bounce",
+      "success": true,
+      "confidence": 0.8,
+      "movement_distance": 58.0,
+      "ball_speed": 15,
+      "remaining_bricks": 48,
+      "game_state_before": {
+        "ball_position": {
+          "x": 220,
+          "y": 524
+        },
+        "paddle_position": {
+          "x": 211,
+          "y": 547
+        },
+        "bricks_remaining": 48,
+        "ball_speed": 15
+      },
+      "trajectory_prediction": {
+        "predicted_points": [
+          {
+            "x": 220,
+            "y": 524
+          },
+          {
+            "x": 213,
+            "y": 539
+          },
+          {
+            "x": 206,
+            "y": 554
+          },
+          {
+            "x": 199,
+            "y": 569
+          },
+          {
+            "x": 192,
+            "y": 584
+          },
+          {
+            "x": 185,
+            "y": 599
+          }
+        ],
+        "intersection_point": {
+          "x": 206,
+          "y": 547
+        }
+      },
+      "targeting_info": {
+        "target_brick": {
+          "x": 265,
+          "y": 120,
+          "width": 60,
+          "height": 20,
+          "centerx": 295,
+          "centery": 130
+        },
+        "optimal_offset": 0.25817482820975207,
+        "actual_offset": 0.15
+      }
+    },
+    {
+      "timestamp": 1764808105.5992646,
+      "session_time": 2.8797924518585205,
+      "type": "paddle_movement",
+      "from_position": 184,
+      "to_position": 211,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.6157877,
+      "session_time": 2.896315574645996,
+      "type": "paddle_movement",
+      "from_position": 211,
+      "to_position": 238,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.6327875,
+      "session_time": 2.9133152961730957,
+      "type": "paddle_movement",
+      "from_position": 238,
+      "to_position": 265,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.6497974,
+      "session_time": 2.9303252696990967,
+      "type": "paddle_movement",
+      "from_position": 265,
+      "to_position": 238,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.666802,
+      "session_time": 2.9473297595977783,
+      "type": "paddle_movement",
+      "from_position": 238,
+      "to_position": 265,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.701321,
+      "session_time": 2.98184871673584,
+      "type": "paddle_movement",
+      "from_position": 265,
+      "to_position": 292,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.717777,
+      "session_time": 2.998304843902588,
+      "type": "paddle_movement",
+      "from_position": 292,
+      "to_position": 265,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.7356093,
+      "session_time": 3.01613712310791,
+      "type": "paddle_movement",
+      "from_position": 265,
+      "to_position": 292,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.7679498,
+      "session_time": 3.0484776496887207,
+      "type": "paddle_movement",
+      "from_position": 292,
+      "to_position": 319,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.7849872,
+      "session_time": 3.0655150413513184,
+      "type": "paddle_movement",
+      "from_position": 319,
+      "to_position": 292,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.8015044,
+      "session_time": 3.0820322036743164,
+      "type": "paddle_movement",
+      "from_position": 292,
+      "to_position": 319,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.817778,
+      "session_time": 3.0983059406280518,
+      "type": "paddle_movement",
+      "from_position": 319,
+      "to_position": 346,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.8347492,
+      "session_time": 3.115277051925659,
+      "type": "paddle_movement",
+      "from_position": 346,
+      "to_position": 319,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.8517663,
+      "session_time": 3.132294178009033,
+      "type": "paddle_movement",
+      "from_position": 319,
+      "to_position": 346,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.885698,
+      "session_time": 3.1662259101867676,
+      "type": "paddle_movement",
+      "from_position": 346,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.9017267,
+      "session_time": 3.1822545528411865,
+      "type": "paddle_movement",
+      "from_position": 373,
+      "to_position": 346,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.9187517,
+      "session_time": 3.199279546737671,
+      "type": "paddle_movement",
+      "from_position": 346,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.9516726,
+      "session_time": 3.2322003841400146,
+      "type": "paddle_movement",
+      "from_position": 373,
+      "to_position": 400,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": 1764808105.9674182,
+      "session_time": 3.24794602394104,
+      "type": "paddle_movement",
+      "from_position": 400,
+      "to_position": 373,
+      "movement_distance": 27,
+      "reason": "ball_tracking",
+      "confidence": 0.5
+    }
+  ],
+  "game_results": []
+}
