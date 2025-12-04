@@ -67,8 +67,8 @@ jobs:
     - name: Install WiX Toolset (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        choco install wixtoolset --params "/ADD_WIX_TO_PATH"
-        refreshenv || echo "refreshenv failed, continuing..."
+        choco install wixtoolset --yes
+        echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
 
     - name: Check WiX installation (Windows)
       if: matrix.os == 'windows-latest'
