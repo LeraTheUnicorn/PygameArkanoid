@@ -74,7 +74,7 @@ def create_wxs_file(project_root, version="2.1.5"):
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
         <File Id="Arkanoid.exe" Source="dist/Arkanoid.exe" KeyPath="yes" />
-        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Icon="game.ico" IconIndex="0" Advertise="yes" />
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
       </Component>
 
       <!-- Icon -->
