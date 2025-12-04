@@ -30,6 +30,32 @@ def run_command(command, cwd=None):
 
 def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
+    # Check if required files exist
+    required_files = [
+        "PyGameBall.py",
+        "highscores.py",
+        "settings.py",
+        "resources/data/highscores.json",
+        "resources/data/settings.json",
+        "ai/models/ai_model.json",
+        "ai/ai_player.py",
+        "ai/game_state.py",
+        "ai/learning_system.py",
+        "ai/performance_logger.py",
+        "ai/position_optimizer.py",
+        "ai/trajectory_predictor.py",
+        "ai/__init__.py",
+        "README.MD",
+        "docs/changelog.md",
+        "docs/LICENSE.txt"
+    ]
+
+    for file in required_files:
+        if not (project_root / file).exists():
+            print(f"❌ Required file not found: {file}")
+            return None
+
+    print("✓ All required files found")
     wxs_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="Arkanoid Game" Language="1049" Version="{version}"
@@ -55,7 +81,6 @@ def create_wxs_file(project_root, version="2.1.5"):
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
           <Directory Id="RESOURCES" Name="resources" />
           <Directory Id="AI" Name="ai" />
-          <Directory Id="SRC" Name="src" />
           <Directory Id="DOCS" Name="docs" />
         </Directory>
       </Directory>
@@ -75,6 +100,29 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
       <Component Id="Settings" Directory="INSTALLFOLDER">
         <File Id="settings.py" Source="settings.py" />
+      </Component>
+
+      <!-- AI files -->
+      <Component Id="AIPlayer" Directory="AI">
+        <File Id="ai_player.py" Source="ai/ai_player.py" />
+      </Component>
+      <Component Id="AIGameState" Directory="AI">
+        <File Id="game_state.py" Source="ai/game_state.py" />
+      </Component>
+      <Component Id="AILearning" Directory="AI">
+        <File Id="learning_system.py" Source="ai/learning_system.py" />
+      </Component>
+      <Component Id="AILogger" Directory="AI">
+        <File Id="performance_logger.py" Source="ai/performance_logger.py" />
+      </Component>
+      <Component Id="AIOptimizer" Directory="AI">
+        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" />
+      </Component>
+      <Component Id="AITrajectory" Directory="AI">
+        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" />
+      </Component>
+      <Component Id="AIInit" Directory="AI">
+        <File Id="__init__.py" Source="ai/__init__.py" />
       </Component>
 
       <!-- Resources -->
@@ -123,6 +171,9 @@ def main():
 
     # Create WiX source file
     wxs_file = create_wxs_file(project_root)
+    if wxs_file is None:
+        print("❌ Failed to create WiX source file - missing required files")
+        sys.exit(1)
     print(f"✓ Created WiX source file: {wxs_file}")
 
     # Compile WiX source
