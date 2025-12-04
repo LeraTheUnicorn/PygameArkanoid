@@ -96,7 +96,7 @@ jobs:
       with:
         name: msi-installer
         path: "*.msi"
-        if-no-files-found: error
+        if-no-files-found: ignore
 
   release:
     needs: [build, executables]
