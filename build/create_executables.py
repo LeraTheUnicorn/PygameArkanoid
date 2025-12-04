@@ -63,7 +63,8 @@ def main():
         "--name", exe_name,
         "--add-data", f"resources{os.pathsep}resources",  # Include resources
         "--add-data", f"ai{os.pathsep}ai",  # Include AI modules
-        "PyGameBall.py"
+        "--add-data", f"src{os.pathsep}src",  # Include src modules
+        "src/game/PyGameBall.py"
     ]
 
     print(f"\nBuilding executable: {exe_name}")
