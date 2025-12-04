@@ -75,8 +75,7 @@ def create_wxs_file(project_root, version="2.1.5"):
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
 
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-    <UIRef Id="WixUI_InstallDir" />
+    <!-- Basic UI without extension -->
   </Product>
 
   <Fragment>
@@ -200,13 +199,13 @@ def main():
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
-    if not run_command(f'candle.exe -ext WixUIExtension.dll "{wxs_file}"', cwd=project_root):
+    if not run_command(f'candle.exe "{wxs_file}"', cwd=project_root):
         print("[ERROR] Failed to compile WiX source")
         sys.exit(1)
 
     # Link MSI
     msi_file = project_root / f"Arkanoid_v{datetime.now().strftime('%Y%m%d')}.msi"
-    if run_command(f'light.exe -ext WixUIExtension.dll -b . "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
+    if run_command(f'light.exe -b . "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
         if msi_file.exists():
             size = msi_file.stat().st_size / (1024 * 1024)
             print(f"Size: {size:.2f} MB")
