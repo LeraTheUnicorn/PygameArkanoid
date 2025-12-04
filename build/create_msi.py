@@ -35,7 +35,7 @@ def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
     # Check if required files exist
     required_files = [
-        "src/game/PyGameBall.py"
+        "dist/Arkanoid.exe"
    ]
 
     for file in required_files:
@@ -73,7 +73,9 @@ def create_wxs_file(project_root, version="2.1.5"):
     <ComponentGroup Id="ProductComponents">
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
-        <File Id="PyGameBall.py" Source="src/game/PyGameBall.py" KeyPath="yes" />
+        <File Id="Arkanoid.exe" Source="dist/Arkanoid.exe" KeyPath="yes" />
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+        <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
        </Component>
 
 
