@@ -31,7 +31,7 @@ def main():
     """Main build function"""
     project_root = Path(__file__).parent.parent
 
-    print("🏗️  Building Arkanoid Game...")
+    print("Building Arkanoid Game...")
     print("=" * 50)
 
     # Check if venv is available
@@ -42,17 +42,17 @@ def main():
         python_cmd = sys.executable
 
     # Install dependencies
-    print("\n📦 Installing dependencies...")
+    print("\nInstalling dependencies...")
     if not run_command(f"{python_cmd} -m pip install -r requirements.txt", cwd=project_root):
         sys.exit(1)
 
     # Run tests
-    print("\n🧪 Running tests...")
+    print("\nRunning tests...")
     if not run_command(f"{python_cmd} -m pytest tests/ -v", cwd=project_root):
-        print("⚠️  Tests failed, but continuing with build...")
+        print("Warning: Tests failed, but continuing with build...")
 
     # Build package
-    print("\n📦 Building package...")
+    print("\nBuilding package...")
     if not run_command(f"{python_cmd} -m pip install build", cwd=project_root):
         sys.exit(1)
     
@@ -64,15 +64,15 @@ def main():
     if dist_dir.exists():
         files = list(dist_dir.glob("*"))
         if files:
-            print(f"\n✅ Build successful! Created {len(files)} package(s):")
+            print(f"\nBuild successful! Created {len(files)} package(s):")
             for file in files:
                 print(f"  - {file.name}")
         else:
-            print("\n⚠️  Build completed but no files found in dist/")
+            print("\nWarning: Build completed but no files found in dist/")
     else:
-        print("\n❌ Build failed - dist/ directory not created")
+        print("\nError: Build failed - dist/ directory not created")
 
-    print("\n🎉 Build process completed!")
+    print("\nBuild process completed!")
 
 if __name__ == "__main__":
     main()

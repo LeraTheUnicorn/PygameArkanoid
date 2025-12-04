@@ -52,10 +52,10 @@ def create_wxs_file(project_root, version="2.1.5"):
 
     for file in required_files:
         if not (project_root / file).exists():
-            print(f"❌ Required file not found: {file}")
+            print(f"Required file not found: {file}")
             return None
 
-    print("✓ All required files found")
+    print("All required files found")
     wxs_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="Arkanoid Game" Language="1049" Version="{version}"
@@ -166,21 +166,21 @@ def main():
 
     # Check if WiX is available
     if not run_command("candle.exe -? >nul 2>&1", cwd=project_root):
-        print("❌ WiX Toolset is not installed or not in PATH.")
+        print("WiX Toolset is not installed or not in PATH.")
         print("Please install WiX Toolset v3.11 or later from https://wixtoolset.org/")
         sys.exit(1)
 
     # Create WiX source file
     wxs_file = create_wxs_file(project_root)
     if wxs_file is None:
-        print("❌ Failed to create WiX source file - missing required files")
+        print("Failed to create WiX source file - missing required files")
         sys.exit(1)
-    print(f"✓ Created WiX source file: {wxs_file}")
+    print(f"Created WiX source file: {wxs_file}")
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
     if not run_command(f'candle.exe "{wxs_file}"', cwd=project_root):
-        print("❌ Failed to compile WiX source")
+        print("Failed to compile WiX source")
         sys.exit(1)
 
     # Link MSI
@@ -188,21 +188,21 @@ def main():
     if run_command(f'light.exe "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
         if msi_file.exists():
             size = msi_file.stat().st_size / (1024 * 1024)
-            print(f"📁 Size: {size:.2f} MB")
-            print(f"📁 Location: {msi_file}")
-            print("\n✅ MSI installer created successfully!")
+            print(f"Size: {size:.2f} MB")
+            print(f"Location: {msi_file}")
+            print("\nMSI installer created successfully!")
         else:
-            print("❌ MSI file not found")
+            print("MSI file not found")
             sys.exit(1)
     else:
-        print("❌ Failed to create MSI")
+        print("Failed to create MSI")
         sys.exit(1)
 
     # Cleanup
     try:
         wxs_file.unlink()
         wixobj_file.unlink()
-        print("✓ Cleaned up temporary files")
+        print("Cleaned up temporary files")
     except:
         pass
 

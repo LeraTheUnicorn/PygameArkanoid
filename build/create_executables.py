@@ -33,7 +33,7 @@ def main():
     project_root = Path(__file__).parent.parent
     current_platform = platform.system().lower()
 
-    print(f"🏗️  Creating executables for {current_platform}...")
+    print(f"Building executables for {current_platform}...")
     print("=" * 50)
 
     # Check if venv is available
@@ -47,9 +47,9 @@ def main():
     try:
         import PyInstaller
     except ImportError:
-        print("❌ PyInstaller is not installed. Installing...")
+        print("PyInstaller is not installed. Installing...")
         if not run_command(f"{python_cmd} -m pip install pyinstaller", cwd=project_root):
-            print("❌ Failed to install PyInstaller")
+            print("Failed to install PyInstaller")
             sys.exit(1)
 
     # Determine output name based on platform
@@ -73,21 +73,21 @@ def main():
         "src/game/PyGameBall.py"  # Update main entry point
     ]
 
-    print(f"\n📦 Building executable: {exe_name}")
+    print(f"\nBuilding executable: {exe_name}")
     if run_command(" ".join(cmd), cwd=project_root):
         # Check if executable was created
         dist_dir = project_root / "dist"
         exe_path = dist_dir / exe_name
         if exe_path.exists():
             size = exe_path.stat().st_size / (1024 * 1024)  # Size in MB
-            print(f"📁 Size: {size:.2f} MB")
-            print(f"📁 Location: {exe_path}")
+            print(f"Size: {size:.2f} MB")
+            print(f"Location: {exe_path}")
         else:
-            print("⚠️  Executable not found in dist/")
+            print("Warning: Executable not found in dist/")
 
-        print("\n✅ Executable creation completed!")
+        print("\nExecutable creation completed!")
     else:
-        print("\n❌ Executable creation failed!")
+        print("\nExecutable creation failed!")
         sys.exit(1)
 
 if __name__ == "__main__":
