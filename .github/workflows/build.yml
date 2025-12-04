@@ -69,12 +69,23 @@ jobs:
       run: |
         choco install wixtoolset
 
+    - name: Build executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: python build/create_executables.py
+
     - name: Build MSI installer (Windows)
       if: matrix.os == 'windows-latest'
       run: python build/create_msi.py
 
     - name: Upload executable artifacts (Linux/macOS)
       if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: executable-${{ matrix.os }}
+        path: dist/
+
+    - name: Upload executable artifacts (Windows)
+      if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
         name: executable-${{ matrix.os }}
