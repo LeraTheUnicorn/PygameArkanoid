@@ -3,6 +3,11 @@
 VERSION = "2.1.5"
 
 import os
+import sys
+
+# Добавляем корневую папку проекта в sys.path для импорта модулей
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
