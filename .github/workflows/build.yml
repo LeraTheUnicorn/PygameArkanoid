@@ -88,7 +88,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: executable-windows-latest
-        path: build/Arkanoid.exe
+        path: dist/Arkanoid.exe
 
     - name: Upload MSI artifacts (Windows)
       if: matrix.os == 'windows-latest'
