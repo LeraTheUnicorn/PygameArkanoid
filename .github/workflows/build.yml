@@ -114,11 +114,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download executable artifacts
+    - name: Download MSI artifacts
       uses: actions/download-artifact@v4
       with:
-        name: executable-windows-latest
-        path: build/
+        name: msi-installer
+        path: ./
 
     - name: Generate release notes
       run: |
@@ -135,11 +135,11 @@ jobs:
         echo "Files in dist directory:"
         ls -la dist/ || echo "No dist directory found"
 
-    - name: Upload executable to release
+    - name: Upload MSI to release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          build/Arkanoid.exe
+          *.msi
         body_path: release_notes.md
         generate_release_notes: true
       env:
