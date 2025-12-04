@@ -20,9 +20,9 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pygame
-from highscores import HighScoreManager
-from settings import SettingsManager
-from ai.ai_player import AIPlayer
+from src.game.highscores import HighScoreManager
+from src.game.settings import SettingsManager
+from src.ai.ai_player import AIPlayer
 
 
 def resource_path(relative_path):
