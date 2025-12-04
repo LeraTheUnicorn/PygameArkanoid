@@ -35,25 +35,8 @@ def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
     # Check if required files exist
     required_files = [
-        "src/game/PyGameBall.py",
-        "src/game/highscores.py",
-        "src/game/settings.py",
-        "src/game/__init__.py",
-        "resources/data/highscores.json",
-        "resources/data/settings.json",
-        "resources/icons/game.ico",
-        "resources/images/new_image.png",
-        "resources/audio/Night_Prowler.ogg",
-        "ai/models/ai_model.json",
-        "ai/ai_player.py",
-        "ai/game_state.py",
-        "ai/learning_system.py",
-        "ai/performance_logger.py",
-        "ai/position_optimizer.py",
-        "ai/trajectory_predictor.py",
-        "ai/__init__.py",
-        "README.MD",
-        "docs/changelog.md"
+        "dist/Arkanoid.exe",
+        "resources/icons/game.ico"
     ]
 
     for file in required_files:
@@ -74,24 +57,13 @@ def create_wxs_file(project_root, version="2.1.5"):
     <Feature Id="ProductFeature" Title="Arkanoid Game" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
-
-    <!-- Basic UI without extension -->
   </Product>
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
-          <Directory Id="RESOURCES" Name="resources">
-            <Directory Id="RESOURCESDATA" Name="data" />
-            <Directory Id="RESOURCESICONS" Name="icons" />
-            <Directory Id="RESOURCESIMAGES" Name="images" />
-            <Directory Id="RESOURCESAUDIO" Name="audio" />
-          </Directory>
-          <Directory Id="AI" Name="ai">
-            <Directory Id="AIMODELS" Name="models" />
-          </Directory>
-          <Directory Id="DOCS" Name="docs" />
+          <Directory Id="ProgramMenuFolder" Name="Arkanoid" />
         </Directory>
       </Directory>
     </Directory>
@@ -101,71 +73,13 @@ def create_wxs_file(project_root, version="2.1.5"):
     <ComponentGroup Id="ProductComponents">
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
-        <File Id="PyGameBall.py" Source="src/game/PyGameBall.py" KeyPath="yes" />
+        <File Id="Arkanoid.exe" Source="dist/Arkanoid.exe" KeyPath="yes" />
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Icon="game.ico" IconIndex="0" Advertise="yes" />
       </Component>
 
-      <!-- Python files -->
-      <Component Id="GameInit" Directory="INSTALLFOLDER">
-        <File Id="game_init.py" Source="src/game/__init__.py" KeyPath="yes" />
-      </Component>
-      <Component Id="Highscores" Directory="INSTALLFOLDER">
-        <File Id="highscores.py" Source="src/game/highscores.py" KeyPath="yes" />
-      </Component>
-      <Component Id="Settings" Directory="INSTALLFOLDER">
-        <File Id="settings.py" Source="src/game/settings.py" KeyPath="yes" />
-      </Component>
-
-      <!-- AI files -->
-      <Component Id="AIPlayer" Directory="AI">
-        <File Id="ai_player.py" Source="ai/ai_player.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AIGameState" Directory="AI">
-        <File Id="game_state.py" Source="ai/game_state.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AILearning" Directory="AI">
-        <File Id="learning_system.py" Source="ai/learning_system.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AILogger" Directory="AI">
-        <File Id="performance_logger.py" Source="ai/performance_logger.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AIOptimizer" Directory="AI">
-        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AITrajectory" Directory="AI">
-        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" KeyPath="yes" />
-      </Component>
-      <Component Id="AIInit" Directory="AI">
-        <File Id="ai_init.py" Source="ai/__init__.py" KeyPath="yes" />
-      </Component>
-
-      <!-- Resources -->
-      <Component Id="ResourcesDataHighscores" Directory="RESOURCESDATA">
-        <File Id="highscores.json" Source="resources/data/highscores.json" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesDataSettings" Directory="RESOURCESDATA">
-        <File Id="settings.json" Source="resources/data/settings.json" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesIcons" Directory="RESOURCESICONS">
+      <!-- Icon -->
+      <Component Id="GameIcon" Directory="INSTALLFOLDER">
         <File Id="game.ico" Source="resources/icons/game.ico" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesImages" Directory="RESOURCESIMAGES">
-        <File Id="new_image.png" Source="resources/images/new_image.png" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesAudio" Directory="RESOURCESAUDIO">
-        <File Id="Night_Prowler.ogg" Source="resources/audio/Night_Prowler.ogg" KeyPath="yes" />
-      </Component>
-
-      <!-- AI components -->
-      <Component Id="AIModel" Directory="AIMODELS">
-        <File Id="ai_model.json" Source="ai/models/ai_model.json" KeyPath="yes" />
-      </Component>
-
-      <!-- Documentation -->
-      <Component Id="Readme" Directory="DOCS">
-        <File Id="README.MD" Source="README.MD" KeyPath="yes" />
-      </Component>
-      <Component Id="Changelog" Directory="DOCS">
-        <File Id="changelog.md" Source="docs/changelog.md" KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Fragment>
