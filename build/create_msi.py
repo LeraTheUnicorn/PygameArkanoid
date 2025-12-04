@@ -198,7 +198,7 @@ def main():
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
-    if not run_command(f'candle.exe -ext WixUIExtension.dll -b . "{wxs_file}"', cwd=project_root):
+    if not run_command(f'candle.exe -ext WixUIExtension.dll "{wxs_file}"', cwd=project_root):
         print("[ERROR] Failed to compile WiX source")
         sys.exit(1)
 
