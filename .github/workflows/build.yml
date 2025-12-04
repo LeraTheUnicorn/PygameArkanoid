@@ -44,7 +44,6 @@ jobs:
         pytest tests/
 
   build:
-    needs: test
     runs-on: windows-latest
 
     steps:
@@ -74,7 +73,6 @@ jobs:
         path: dist/
 
   executables:
-    needs: test
     runs-on: windows-latest
     strategy:
       matrix:
