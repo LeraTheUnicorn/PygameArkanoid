@@ -35,8 +35,12 @@ def create_wxs_file(project_root, version="2.1.5"):
         "src/game/PyGameBall.py",
         "src/game/highscores.py",
         "src/game/settings.py",
+        "src/game/__init__.py",
         "resources/data/highscores.json",
         "resources/data/settings.json",
+        "resources/icons/game.ico",
+        "resources/images/new_image.png",
+        "resources/audio/Night_Prowler.ogg",
         "ai/models/ai_model.json",
         "ai/ai_player.py",
         "ai/game_state.py",
@@ -46,8 +50,7 @@ def create_wxs_file(project_root, version="2.1.5"):
         "ai/trajectory_predictor.py",
         "ai/__init__.py",
         "README.MD",
-        "docs/changelog.md",
-        "docs/LICENSE.txt"
+        "docs/changelog.md"
     ]
 
     for file in required_files:
@@ -71,16 +74,22 @@ def create_wxs_file(project_root, version="2.1.5"):
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <UIRef Id="WixUI_InstallDir" />
-
-    <WixVariable Id="WixUILicenseRtf" Value="docs/LICENSE.txt" />
   </Product>
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
-          <Directory Id="RESOURCES" Name="resources" />
-          <Directory Id="AI" Name="ai" />
+          <Directory Id="RESOURCES" Name="resources">
+            <Directory Id="RESOURCESDATA" Name="data" />
+            <Directory Id="RESOURCESICONS" Name="icons" />
+            <Directory Id="RESOURCESIMAGES" Name="images" />
+            <Directory Id="RESOURCESAUDIO" Name="audio" />
+          </Directory>
+          <Directory Id="AI" Name="ai">
+            <Directory Id="AIMODELS" Name="models" />
+            <Directory Id="AILOGS" Name="logs" />
+          </Directory>
           <Directory Id="DOCS" Name="docs" />
         </Directory>
       </Directory>
@@ -95,6 +104,9 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
 
       <!-- Python files -->
+      <Component Id="GameInit" Directory="INSTALLFOLDER">
+        <File Id="__init__.py" Source="src/game/__init__.py" />
+      </Component>
       <Component Id="Highscores" Directory="INSTALLFOLDER">
         <File Id="highscores.py" Source="src/game/highscores.py" />
       </Component>
@@ -126,13 +138,22 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
 
       <!-- Resources -->
-      <Component Id="ResourcesData" Directory="RESOURCES">
+      <Component Id="ResourcesData" Directory="RESOURCESDATA">
         <File Id="highscores.json" Source="resources/data/highscores.json" />
         <File Id="settings.json" Source="resources/data/settings.json" />
       </Component>
+      <Component Id="ResourcesIcons" Directory="RESOURCESICONS">
+        <File Id="game.ico" Source="resources/icons/game.ico" />
+      </Component>
+      <Component Id="ResourcesImages" Directory="RESOURCESIMAGES">
+        <File Id="new_image.png" Source="resources/images/new_image.png" />
+      </Component>
+      <Component Id="ResourcesAudio" Directory="RESOURCESAUDIO">
+        <File Id="Night_Prowler.ogg" Source="resources/audio/Night_Prowler.ogg" />
+      </Component>
 
       <!-- AI components -->
-      <Component Id="AIModel" Directory="AI">
+      <Component Id="AIModel" Directory="AIMODELS">
         <File Id="ai_model.json" Source="ai/models/ai_model.json" />
       </Component>
 
@@ -142,9 +163,6 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
       <Component Id="Changelog" Directory="DOCS">
         <File Id="changelog.md" Source="docs/changelog.md" />
-      </Component>
-      <Component Id="License" Directory="DOCS">
-        <File Id="LICENSE.txt" Source="docs/LICENSE.txt" />
       </Component>
     </ComponentGroup>
   </Fragment>
@@ -178,13 +196,13 @@ def main():
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
-    if not run_command(f'candle.exe "{wxs_file}"', cwd=project_root):
+    if not run_command(f'candle.exe -ext WixUIExtension.dll "{wxs_file}"', cwd=project_root):
         print("[ERROR] Failed to compile WiX source")
         sys.exit(1)
 
     # Link MSI
     msi_file = project_root / f"Arkanoid_v{datetime.now().strftime('%Y%m%d')}.msi"
-    if run_command(f'light.exe "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
+    if run_command(f'light.exe -ext WixUIExtension.dll "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
         if msi_file.exists():
             size = msi_file.stat().st_size / (1024 * 1024)
             print(f"Size: {size:.2f} MB")
