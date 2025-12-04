@@ -92,7 +92,15 @@ def create_wxs_file(project_root, version="2.1.5"):
       <!-- Main executable -->
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
         <File Id="PyGameBall.py" Source="src/game/PyGameBall.py" KeyPath="yes" />
+       </Component>
+
+      <!-- Start Menu shortcut -->
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
         <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+       </Component>
+
+      <!-- Desktop shortcut -->
+      <Component Id="DesktopShortcut" Directory="DesktopFolder">
         <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
        </Component>
 
