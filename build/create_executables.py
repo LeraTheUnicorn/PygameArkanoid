@@ -41,7 +41,7 @@ def main():
         import PyInstaller
     except ImportError:
         print("PyInstaller is not installed. Installing...")
-        if not run_command("poetry add --group dev pyinstaller", cwd=project_root):
+        if not run_command("pip install pyinstaller", cwd=project_root):
             print("Failed to install PyInstaller")
             sys.exit(1)
 
@@ -57,7 +57,7 @@ def main():
 
     # PyInstaller command
     cmd = [
-        "poetry", "run", "pyinstaller",
+        "pyinstaller",
         "--onefile",  # Single executable file
         "--windowed",  # No console window
         "--name", exe_name,

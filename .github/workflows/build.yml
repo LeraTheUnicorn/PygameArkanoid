@@ -60,6 +60,11 @@ jobs:
         .venv\Scripts\activate
         pip install -r requirements.txt
 
+    - name: Install PyInstaller
+      run: |
+        .venv\Scripts\activate
+        pip install pyinstaller
+
     - name: Build executable (Linux/macOS)
       if: matrix.os != 'windows-latest'
       run: python build/create_executables.py
