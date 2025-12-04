@@ -77,6 +77,7 @@ def create_wxs_file(project_root, version="2.1.5"):
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
+          <Directory Id="DesktopFolder" Name="Desktop" />
           <Directory Id="ProgramMenuFolder" Name="Arkanoid" />
           <Directory Id="RESOURCES" Name="resources" />
           <Directory Id="AI" Name="ai" />
@@ -92,6 +93,7 @@ def create_wxs_file(project_root, version="2.1.5"):
       <Component Id="MainExecutable" Directory="INSTALLFOLDER">
         <File Id="PyGameBall.py" Source="src/game/PyGameBall.py" KeyPath="yes" />
         <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+        <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="Arkanoid Game" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
        </Component>
 
       <!-- Python files -->
