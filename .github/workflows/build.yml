@@ -114,18 +114,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
-
-    - name: Download executable artifacts (Windows)
-      uses: actions/download-artifact@v4
-      with:
-        name: executable-windows-latest
-        path: dist/
-
     - name: Download MSI installer
       uses: actions/download-artifact@v4
       with:
@@ -141,7 +129,7 @@ jobs:
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/*
+        files: dist/*.msi
         body_path: release_notes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
