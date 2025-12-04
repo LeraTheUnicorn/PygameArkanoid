@@ -105,8 +105,6 @@ def create_wxs_file(project_root, version="2.1.5"):
       <!-- Python files -->
       <Component Id="Highscores" Directory="INSTALLFOLDER">
         <File Id="highscores.py" Source="src/game/highscores.py" />
-      </Component>
-      <Component Id="Settings" Directory="INSTALLFOLDER">
         <File Id="settings.py" Source="src/game/settings.py" />
       </Component>
 
