@@ -96,7 +96,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: executable-windows-latest
-        path: dist/Arkanoid.exe
+        path: build/Arkanoid.exe
 
     - name: Upload MSI artifacts (Windows)
       if: matrix.os == 'windows-latest'
@@ -118,7 +118,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: executable-windows-latest
-        path: dist/
+        path: build/
 
     - name: Generate release notes
       run: |
@@ -139,7 +139,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/Arkanoid.exe
+          build/Arkanoid.exe
         body_path: release_notes.md
         generate_release_notes: true
       env:

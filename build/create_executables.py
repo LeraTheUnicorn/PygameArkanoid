@@ -79,8 +79,8 @@ def main():
     print(f"\nBuilding executable: {exe_name}")
     if run_command(" ".join(cmd), cwd=project_root):
         # Check if executable was created
-        dist_dir = project_root / "dist"
-        exe_path = dist_dir / exe_name
+        build_dir = project_root / "build"
+        exe_path = build_dir / exe_name
         if exe_path.exists():
             size = exe_path.stat().st_size / (1024 * 1024)  # Size in MB
             print(f"Size: {size:.2f} MB")
