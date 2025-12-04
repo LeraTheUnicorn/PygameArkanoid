@@ -16,7 +16,13 @@
 
 ## 🚀 Установка и запуск
 
-**MSI инсталлятор:** 
+### Скачивание готовых сборок
+
+Скачайте установщик или исполняемый файл для вашей платформы из [GitHub Releases](https://github.com/LeraTheUnicorn/PygameArkanoid/releases):
+
+- **Windows**: `Arkanoid_v*.msi`
+- **Linux**: `Arkanoid` (исполняемый файл)
+- **macOS**: `Arkanoid` (исполняемый файл)
 
 ## 🎯 Управление
 

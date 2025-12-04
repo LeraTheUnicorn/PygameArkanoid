@@ -1,0 +1,177 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [published]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      run: poetry install --no-interaction --no-root
+
+    - name: Run tests
+      run: poetry run pytest tests/
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Build package
+      run: poetry build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  executables:
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Build executable (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: python build/create_executables.py
+
+    - name: Install WiX Toolset (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install wixtoolset
+
+    - name: Build MSI installer (Windows)
+      if: matrix.os == 'windows-latest'
+      run: python build/create_msi.py
+
+    - name: Upload executable artifacts (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: executable-${{ matrix.os }}
+        path: dist/
+
+    - name: Upload MSI artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: msi-installer
+        path: "*.msi"
+
+  release:
+    needs: [build, executables]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+    - name: Download executable artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: executable-ubuntu-latest
+        path: dist/
+
+    - name: Download executable artifacts (Windows)
+      uses: actions/download-artifact@v3
+      with:
+        name: executable-windows-latest
+        path: dist/
+
+    - name: Download executable artifacts (macOS)
+      uses: actions/download-artifact@v3
+      with:
+        name: executable-macos-latest
+        path: dist/
+
+    - name: Download MSI installer
+      uses: actions/download-artifact@v3
+      with:
+        name: msi-installer
+        path: dist/
+
+    - name: Generate release notes
+      run: |
+        # Extract changelog for current version
+        VERSION=$(echo ${{ github.event.release.tag_name }} | sed 's/v//')
+        awk "/## \[$VERSION\]/,/^## \[.*\] - .*/ { if (!/^## \[.*\] - .*/ || /^## \[$VERSION\]/) print; else exit }" docs/changelog.md > release_notes.md
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        body_path: release_notes.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
