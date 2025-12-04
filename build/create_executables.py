@@ -36,12 +36,19 @@ def main():
     print(f"🏗️  Creating executables for {current_platform}...")
     print("=" * 50)
 
+    # Check if venv is available
+    venv_python = project_root / ".venv" / "Scripts" / "python.exe"
+    if venv_python.exists():
+        python_cmd = str(venv_python)
+    else:
+        python_cmd = sys.executable
+
     # Check if PyInstaller is available
     try:
         import PyInstaller
     except ImportError:
         print("❌ PyInstaller is not installed. Installing...")
-        if not run_command("poetry add --group dev pyinstaller", cwd=project_root):
+        if not run_command(f"{python_cmd} -m pip install pyinstaller", cwd=project_root):
             print("❌ Failed to install PyInstaller")
             sys.exit(1)
 
@@ -57,7 +64,7 @@ def main():
 
     # PyInstaller command - обновленные пути для текущей структуры проекта
     cmd = [
-        "poetry", "run", "pyinstaller",
+        python_cmd, "-m", "pyinstaller",
         "--onefile",  # Single executable file
         "--windowed",  # No console window
         "--name", exe_name,

@@ -34,24 +34,29 @@ def main():
     print("🏗️  Building Arkanoid Game...")
     print("=" * 50)
 
-    # Check if poetry is available
-    if not run_command("poetry --version"):
-        print("❌ Poetry is not installed. Please install Poetry first.")
-        sys.exit(1)
+    # Check if venv is available
+    venv_python = project_root / ".venv" / "Scripts" / "python.exe"
+    if venv_python.exists():
+        python_cmd = str(venv_python)
+    else:
+        python_cmd = sys.executable
 
     # Install dependencies
     print("\n📦 Installing dependencies...")
-    if not run_command("poetry install --no-dev", cwd=project_root):
+    if not run_command(f"{python_cmd} -m pip install -r requirements.txt", cwd=project_root):
         sys.exit(1)
 
     # Run tests
     print("\n🧪 Running tests...")
-    if not run_command("poetry run pytest tests/ -v", cwd=project_root):
+    if not run_command(f"{python_cmd} -m pytest tests/ -v", cwd=project_root):
         print("⚠️  Tests failed, but continuing with build...")
 
     # Build package
     print("\n📦 Building package...")
-    if not run_command("poetry build", cwd=project_root):
+    if not run_command(f"{python_cmd} -m pip install build", cwd=project_root):
+        sys.exit(1)
+    
+    if not run_command(f"{python_cmd} -m build", cwd=project_root):
         sys.exit(1)
 
     # Check build output
