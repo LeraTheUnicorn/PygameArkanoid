@@ -366,5 +366,21 @@
     "final_bricks_remaining": 1,
     "game_duration": 18.507044315338135,
     "total_actions": 1517
+  },
+  {
+    "type": "game_end",
+    "success": false,
+    "final_score": 48,
+    "final_bricks_remaining": 2,
+    "game_duration": 27.59769582748413,
+    "total_actions": 2021
+  },
+  {
+    "type": "game_end",
+    "success": false,
+    "final_score": 44,
+    "final_bricks_remaining": 6,
+    "game_duration": 27.758615255355835,
+    "total_actions": 2139
   }
 ]
