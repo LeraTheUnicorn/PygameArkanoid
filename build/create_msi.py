@@ -107,7 +107,7 @@ def create_wxs_file(project_root, version="2.1.5"):
 
       <!-- Python files -->
       <Component Id="GameInit" Directory="INSTALLFOLDER">
-        <File Id="__init__.py" Source="src/game/__init__.py" KeyPath="yes" />
+        <File Id="game_init.py" Source="src/game/__init__.py" KeyPath="yes" />
       </Component>
       <Component Id="Highscores" Directory="INSTALLFOLDER">
         <File Id="highscores.py" Source="src/game/highscores.py" KeyPath="yes" />
@@ -136,7 +136,7 @@ def create_wxs_file(project_root, version="2.1.5"):
         <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" KeyPath="yes" />
       </Component>
       <Component Id="AIInit" Directory="AI">
-        <File Id="__init__.py" Source="ai/__init__.py" KeyPath="yes" />
+        <File Id="ai_init.py" Source="ai/__init__.py" KeyPath="yes" />
       </Component>
 
       <!-- Resources -->
