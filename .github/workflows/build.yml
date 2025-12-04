@@ -95,8 +95,8 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
-        name: executable-${{ matrix.os }}
-        path: dist/
+        name: executable-windows-latest
+        path: dist/Arkanoid.exe
 
     - name: Upload MSI artifacts (Windows)
       if: matrix.os == 'windows-latest'
