@@ -25,24 +25,23 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Poetry
-      run: pip install poetry
-
-    - name: Update poetry lock
-      run: poetry lock
-
     - name: Load cached venv
-      id: cached-poetry-dependencies
+      id: cached-pip-dependencies
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
 
     - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      run: |
+        python -m venv .venv
+        .venv\Scripts\activate
+        pip install -r requirements.txt
 
     - name: Run tests
-      run: poetry run pytest tests/
+      run: |
+        .venv\Scripts\activate
+        pytest tests/
 
   build:
     needs: test
@@ -54,16 +53,19 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.11"
-
-    - name: Install Poetry
-      run: pip install poetry
+        python-version: "3.12"
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        python -m venv .venv
+        .venv\Scripts\activate
+        pip install -r requirements.txt
 
     - name: Build package
-      run: poetry build
+      run: |
+        .venv\Scripts\activate
+        pip install build
+        python -m build
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
@@ -86,16 +88,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.11"
-
-    - name: Install Poetry
-      run: pip install poetry
-
-    - name: Update poetry lock
-      run: poetry lock
+        python-version: "3.12"
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        python -m venv .venv
+        .venv\Scripts\activate
+        pip install -r requirements.txt
 
     - name: Build executable (Linux/macOS)
       if: matrix.os != 'windows-latest'

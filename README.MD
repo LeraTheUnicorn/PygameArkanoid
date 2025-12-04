@@ -24,6 +24,22 @@
 - **Linux**: `Arkanoid` (исполняемый файл)
 - **macOS**: `Arkanoid` (исполняемый файл)
 
+### Установка из исходного кода
+
+Если у вас установлен Python 3.12:
+
+```bash
+# Клонируйте репозиторий
+git clone https://github.com/LeraTheUnicorn/PygameArkanoid.git
+cd PygameArkanoid
+
+# Установите зависимости
+pip install -r requirements.txt
+
+# Запустите игру
+python PyGameBall.py
+```
+
 ## 🎯 Управление
 
 ### В игре
