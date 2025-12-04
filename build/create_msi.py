@@ -160,7 +160,7 @@ def main():
     """Create MSI installer"""
     project_root = Path(__file__).parent.parent
 
-    print("🏗️  Creating MSI installer...")
+    print("Creating MSI installer...")
     print("=" * 50)
 
     # Check if WiX is available
