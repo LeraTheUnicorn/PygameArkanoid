@@ -66,7 +66,7 @@ jobs:
 
     - name: Install WiX Toolset (Windows)
       if: matrix.os == 'windows-latest'
-      uses: wixtoolset/wix-action@v1
+      uses: dlemstra/setup-wix@v1
 
 
     - name: Build executable (Windows)
