@@ -14,17 +14,17 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def get_current_version():
-    """Получает текущую версию из PyGameBall.py"""
+    """Получает текущую версию из src/game/PyGameBall.py"""
     try:
         with open(
-            os.path.join(project_root, "PyGameBall.py"), "r", encoding="utf-8"
+            os.path.join(project_root, "src", "game", "PyGameBall.py"), "r", encoding="utf-8"
         ) as f:
             for line in f:
                 if line.startswith("VERSION ="):
                     return line.split('"')[1]
     except:
-        return "2.1.0"
-    return "2.1.0"
+        return "2.1.5"
+    return "2.1.5"
 
 
 def build_executable():
@@ -47,6 +47,8 @@ def build_executable():
             os.path.join(build_dir, "dist"),
             "--workpath",
             os.path.join(build_dir, "temp"),
+            "--paths",
+            os.path.join(project_root, "src"),
             "--add-data",
             f'{os.path.join(project_root, "resources", "audio")};resources/audio',
             "--add-data",
@@ -54,21 +56,27 @@ def build_executable():
             "--add-data",
             f'{os.path.join(project_root, "resources", "data")};resources/data',
             "--add-data",
-            f'{os.path.join(project_root, "highscores.py")};.',
+            f'{os.path.join(project_root, "src", "game", "highscores.py")};src/game',
             "--add-data",
-            f'{os.path.join(project_root, "settings.py")};.',
+            f'{os.path.join(project_root, "src", "game", "settings.py")};src/game',
             "--add-data",
             f'{os.path.join(project_root, "resources")};resources',
             "--hidden-import",
             "pygame",
             "--hidden-import",
             "numpy",
+            "--hidden-import",
+            "src.ai.ai_player",
+            "--hidden-import",
+            "src.game.highscores",
+            "--hidden-import",
+            "src.game.settings",
             "--exclude-module",
             "tkinter",
             "--exclude-module",
             "matplotlib",
             "--clean",
-            os.path.join(project_root, "PyGameBall.py"),
+            os.path.join(project_root, "src", "game", "PyGameBall.py"),
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True)

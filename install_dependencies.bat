@@ -137,7 +137,7 @@ echo ❌ УСТАНОВКА НЕ УДАЛАСЬ
 echo ========================================
 echo.
 echo РЕШЕНИЯ:
-echo 1. Используйте готовый .exe: Arkanoid_v2.1.0.exe
+echo 1. Используйте готовый .exe: Arkanoid_v2.1.5.exe
 echo 2. Установите Python 3.11-3.13 (не 3.14)
 echo 3. Активируйте venv: .venv\Scripts\activate
 echo 4. Запустите: python -m pip install pygame numpy

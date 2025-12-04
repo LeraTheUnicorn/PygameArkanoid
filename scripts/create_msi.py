@@ -199,11 +199,11 @@ def build_msi():
     if not os.path.exists(exe_path) and not os.path.exists(final_release_path):
         print("Exe файл не найден. Создаю exe файл...")
         try:
-            # Создаем exe файл напрямую
+            # Создаем exe файл с помощью build_exe.py
             result = subprocess.run(
                 [
                     sys.executable,
-                    os.path.join(project_root, "scripts", "build_spec.py"),
+                    os.path.join(project_root, "scripts", "build_exe.py"),
                 ],
                 check=True,
                 cwd=project_root,

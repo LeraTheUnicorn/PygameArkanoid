@@ -12,15 +12,19 @@ from typing import Dict
 def get_game_directory():
     """
     Определяет каталог игры.
-    Использует текущую директорию проекта для хранения файлов настроек.
+    При запуске из студии разработки использует local_game_files,
+    иначе использует директорию exe файла или текущую директорию.
     """
-    # Используем директорию, где находится скрипт
-    if getattr(sys, "frozen", False):
-        # Если приложение запущено как exe (PyInstaller)
-        return os.path.dirname(sys.executable)
-    else:
-        # Если приложение запущено как скрипт Python
-        return os.path.dirname(os.path.abspath(__file__))
+    # Проверяем, запущено ли приложение как exe или как скрипт Python
+    if not getattr(sys, "frozen", False):
+        # Если приложение запущено как скрипт Python (из студии разработки)
+        # Используем каталог local_game_files в корне проекта
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        local_game_dir = os.path.join(current_dir, "local_game_files")
+        return local_game_dir
+    
+    # Для exe файлов используем директорию exe файла
+    return os.path.dirname(sys.executable)
 
 
 def get_settings_file_path():
@@ -30,9 +34,15 @@ def get_settings_file_path():
 
     # Создаем каталог, если он не существует
     if not os.path.exists(resources_dir):
-        os.makedirs(resources_dir, exist_ok=True)
+        try:
+            os.makedirs(resources_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            # Если не удается создать каталог, используем текущую директорию
+            resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+            if not os.path.exists(resources_dir):
+                os.makedirs(resources_dir, exist_ok=True)
 
-    return os.path.join(resources_dir, "settings.json")
+    return os.path.join(resources_dir, "data", "settings.json")
 
 
 # Путь к файлу настроек

@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "2.1.0"
+VERSION = "2.1.5"
 
 import os
 
@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pygame
-from game.highscores import HighScoreManager
-from game.settings import SettingsManager
+from highscores import HighScoreManager
+from settings import SettingsManager
 from ai.ai_player import AIPlayer
 
 

@@ -47,7 +47,7 @@
 
 ### Инсталлятор
 
-**MSI инсталлятор:** `FINAL_RELEASE/Arkanoid_v2.1.0_Setup.msi`
+**MSI инсталлятор:** `FINAL_RELEASE/Arkanoid_v2.1.5_Setup.msi`
 
 ## 🎯 Управление
 

@@ -5,6 +5,7 @@
 import pygame
 import time
 import math
+import random
 from typing import List, Tuple, Optional, Dict, Any
 from .game_state import GameState, Point
 from .trajectory_predictor import TrajectoryPredictor
@@ -79,7 +80,11 @@ class AIPlayer:
             "target_brick": None,  # Целевой кубик
             "optimal_offset": 0.0,  # Оптимальное смещение на платформе (-1 до 1)
             "successful_hits": [],  # История удачных ударов
+            "brick_map": {},  # Карта всех кубиков на поле
+            "trajectory_targets": [],  # Цели для текущей траектории
             "hit_patterns": {},  # Паттерны успешных ударов
+            "brick_coordinates": [],  # Координаты центров всех кубиков
+            "visible_targets": [],  # Видимые цели для текущей траектории
         }
 
         # Система предотвращения зацикливания
@@ -122,6 +127,8 @@ class AIPlayer:
         if self.current_game_stats["start_time"] is None:
             self.current_game_stats["start_time"] = start_time
             self.performance_logger.log_game_start(self.current_game_state)
+        # Обновляем карту кубиков
+        self._update_brick_map()
 
         # Логируем предсказание траектории если включен режим отладки
         if self.debug_mode and self.is_ball_moving_towards_paddle():
@@ -131,6 +138,117 @@ class AIPlayer:
             self.performance_logger.log_trajectory_prediction(
                 [{"x": p.x, "y": p.y} for p in predicted_trajectory]
             )
+
+    def is_ball_moving_towards_paddle(self) -> bool:
+        """Проверяет, движется ли мяч к платформе"""
+        if not self.current_game_state:
+            return False
+        return self.current_game_state.is_ball_falling()
+
+    def _update_brick_map(self) -> None:
+        """Обновляет карту всех кубиков на поле и координаты центров"""
+        if not self.current_game_state or not self.current_game_state.remaining_bricks:
+            self.targeting_system["brick_map"] = {}
+            self.targeting_system["brick_coordinates"] = []
+            return
+
+        brick_map = {}
+        brick_coordinates = []
+
+        for brick in self.current_game_state.remaining_bricks:
+            brick_x = getattr(brick, "x", 0)
+            brick_y = getattr(brick, "y", 0)
+            brick_width = getattr(brick, "width", 60)
+            brick_height = getattr(brick, "height", 20)
+
+            # Создаем ключ для кубика
+            brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
+
+            brick_info = {
+                "x": brick_x,
+                "y": brick_y,
+                "width": brick_width,
+                "height": brick_height,
+                "center_x": brick_x + brick_width / 2,
+                "center_y": brick_y + brick_height / 2,
+                "row": int(brick_y / 30),  # Ряд (0-4)
+                "col": int(brick_x / 60),  # Колонка (0-9)
+            }
+
+            brick_map[brick_key] = brick_info
+            brick_coordinates.append({
+                "x": brick_info["center_x"],
+                "y": brick_info["center_y"],
+                "brick": brick,
+                "key": brick_key
+            })
+
+        self.targeting_system["brick_map"] = brick_map
+        self.targeting_system["brick_coordinates"] = brick_coordinates
+
+        # Обновляем видимые цели для текущей траектории мяча
+        self._update_visible_targets()
+
+    def _update_visible_targets(self) -> None:
+        """Обновляет список видимых целей для текущей траектории мяча"""
+        if not self.current_game_state or not self.is_ball_moving_towards_paddle():
+            self.targeting_system["visible_targets"] = []
+            return
+
+        try:
+            # Получаем предсказанную траекторию мяча после отскока
+            landing_x = self._predict_exact_landing_position()
+
+            # Проверяем несколько возможных позиций отскока вокруг точки приземления
+            visible_targets = []
+            test_positions = [-40, -20, 0, 20, 40]  # Возможные смещения на платформе
+
+            for offset in test_positions:
+                test_x = landing_x + offset
+                # Строго ограничиваем границы платформы
+                paddle_half_width = self.paddle_width / 2
+                test_x = max(paddle_half_width, min(self.screen_width - paddle_half_width, test_x))
+
+                # Создаем временное состояние игры с тестовой позицией платформы
+                temp_game_state = self.current_game_state.clone()
+                temp_game_state.paddle_position.x = test_x
+
+                # Получаем точку пересечения мяча с платформой для тестовой позиции
+                intersection_point = self.trajectory_predictor.predict_paddle_intersection(
+                    temp_game_state, self.current_game_state.paddle_position.y
+                )
+
+                if intersection_point is None:
+                    continue  # Пропускаем если нет пересечения
+
+                # Рассчитываем траекторию после отскока с этой позиции
+                after_bounce_trajectory = self.trajectory_predictor.predict_after_bounce_trajectory(
+                    temp_game_state,
+                    intersection_point,
+                    test_x
+                )
+
+                # Находим кубики, которые пересекает эта траектория
+                for coord in self.targeting_system["brick_coordinates"]:
+                    brick_center_x = coord["x"]
+                    brick_center_y = coord["y"]
+
+                    # Проверяем, проходит ли траектория через этот кубик
+                    for point in after_bounce_trajectory[::2]:  # Проверяем каждую вторую точку для оптимизации
+                        if hasattr(point, 'x') and hasattr(point, 'y'):
+                            distance = math.sqrt(
+                                (point.x - brick_center_x) ** 2 + (point.y - brick_center_y) ** 2
+                            )
+                            if distance < 35:  # Радиус попадания в кубик
+                                if coord not in visible_targets:
+                                    visible_targets.append(coord)
+                                break
+
+            self.targeting_system["visible_targets"] = visible_targets
+
+        except Exception as e:
+            print(f"Ошибка при обновлении видимых целей: {e}")
+            self.targeting_system["visible_targets"] = []
 
     def is_ball_moving_towards_paddle(self) -> bool:
         """Проверяет, движется ли мяч к платформе"""
@@ -172,19 +290,24 @@ class AIPlayer:
                     paddle_half_width = self.paddle_width / 2
                     optimal_position = landing_x - (optimal_offset * paddle_half_width)
 
-                    # Ограничиваем позицию границами экрана
-                    optimal_position = max(
-                        paddle_half_width,
-                        min(self.screen_width - paddle_half_width, optimal_position),
-                    )
+                    # Строго ограничиваем позицию границами экрана с запасом
+                    min_position = paddle_half_width + 5  # +5 пикселей запас
+                    max_position = self.screen_width - paddle_half_width - 5
+                    optimal_position = max(min_position, min(max_position, optimal_position))
 
                     return int(optimal_position)
                 else:
                     # Нет кубиков - просто ловим мяч
                     return int(landing_x)
             else:
-                # Мяч движется вверх - следим за ним
-                return int(self._track_ball_position())
+                # Мяч движется вверх - проверяем, отбивается ли он от потолка
+                ball_y = self.current_game_state.ball_position.y
+                if ball_y < 50:  # Мяч близко к потолку - возможен симметричный отскок
+                    # Используем специальную логику для предотвращения симметричных отскоков
+                    return self._handle_ceiling_bounce_positioning()
+                else:
+                    # Мяч движется вверх - следим за ним
+                    return int(self._track_ball_position())
 
         except Exception as e:
             print(f"Ошибка при расчете оптимальной позиции: {e}")
@@ -192,12 +315,13 @@ class AIPlayer:
 
     def _find_best_target_brick(self) -> Optional[Dict]:
         """
-        Находит лучший кубик для прицеливания
+        Находит лучший кубик для прицеливания с учетом видимости и траектории
 
         Приоритеты:
-        1. Кубики в нижних рядах (ближе к платформе)
-        2. Кубики ближе к текущей траектории мяча
-        3. Кубики с успешной историей попаданий
+        1. Кубики, видимые для текущей траектории мяча
+        2. Кубики в нижних рядах (ближе к платформе)
+        3. Кубики ближе к центру экрана (более предсказуемые)
+        4. Кубики с успешной историей попаданий
 
         Returns:
             Словарь с информацией о кубике или None
@@ -205,9 +329,55 @@ class AIPlayer:
         if not self.current_game_state or not self.current_game_state.remaining_bricks:
             return None
 
+        visible_targets = self.targeting_system["visible_targets"]
+        paddle_y = self.current_game_state.paddle_position.y
+
+        # Сначала ищем среди видимых целей
+        if visible_targets:
+            best_visible_brick = None
+            best_visible_score = -float("inf")
+
+            for target in visible_targets:
+                brick = target["brick"]
+                brick_x = getattr(brick, "x", 0)
+                brick_y = getattr(brick, "y", 0)
+
+                # Оценка видимого кубика
+                score = 1000  # Базовый бонус за видимость
+
+                # Приоритет нижним кубикам
+                distance_to_paddle = paddle_y - brick_y
+                if distance_to_paddle > 0:
+                    score += (1.0 / distance_to_paddle) * 500
+
+                # Приоритет кубикам ближе к центру экрана
+                center_distance = abs(brick_x + 30 - self.screen_width // 2)
+                score -= center_distance * 0.3
+
+                # Бонус за успешные попадания
+                brick_key = target["key"]
+                if brick_key in self.targeting_system["hit_patterns"]:
+                    pattern = self.targeting_system["hit_patterns"][brick_key]
+                    score += pattern.get("success_rate", 0) * 200
+
+                if score > best_visible_score:
+                    best_visible_score = score
+                    best_visible_brick = brick
+
+            if best_visible_brick:
+                return best_visible_brick
+
+        # Если нет видимых целей, используем резервную логику
         bricks = self.current_game_state.remaining_bricks
         ball_x = self.current_game_state.ball_position.x
-        paddle_y = self.current_game_state.paddle_position.y
+        ball_y = self.current_game_state.ball_position.y
+
+        # Специальная логика для малого количества кубиков
+        if len(bricks) <= 5:
+            return self._find_best_target_for_few_bricks(bricks, paddle_y, ball_x)
+
+        # Проверяем, отбивается ли мяч от потолка (низкая Y-координата)
+        is_ceiling_bounce = ball_y < 100 and self.current_game_state.ball_velocity.y > 0
 
         best_brick = None
         best_score = -float("inf")
@@ -222,18 +392,73 @@ class AIPlayer:
             if distance_to_paddle > 0:
                 score += (1.0 / distance_to_paddle) * 1000  # Ближе = лучше
 
-            # Приоритет кубикам ближе к траектории мяча
-            brick_x = (
-                getattr(brick, "x", 0) + getattr(brick, "width", 60) / 2
-            )  # Центр кубика
-            horizontal_distance = abs(brick_x - ball_x)
-            score -= horizontal_distance * 0.5  # Ближе по горизонтали = лучше
+            # При отскоке от потолка уменьшаем приоритет кубикам в центре
+            brick_center_x = getattr(brick, "x", 0) + getattr(brick, "width", 60) / 2
+            if is_ceiling_bounce:
+                # При отскоке от потолка предпочитаем кубики не в центре
+                center_distance = abs(brick_center_x - self.screen_width // 2)
+                score -= center_distance * 0.3  # Штраф за близость к центру
+                # Бонус за кубики ближе к краям
+                edge_distance = min(brick_center_x, self.screen_width - brick_center_x)
+                score += edge_distance * 0.2
+            else:
+                # Обычная логика - ближе к траектории мяча
+                horizontal_distance = abs(brick_center_x - ball_x)
+                score -= horizontal_distance * 0.5  # Ближе по горизонтали = лучше
 
             # Бонус за успешные попадания в этот кубик (из истории)
-            brick_key = f"{int(brick_x/60)}_{int(brick_y/30)}"
+            brick_key = f"{int(brick_center_x/60)}_{int(brick_y/30)}"
             if brick_key in self.targeting_system["hit_patterns"]:
                 pattern = self.targeting_system["hit_patterns"][brick_key]
                 score += pattern.get("success_rate", 0) * 100
+
+            if score > best_score:
+                best_score = score
+                best_brick = brick
+
+        return best_brick
+
+    def _find_best_target_for_few_bricks(self, bricks: List, paddle_y: float, ball_x: float) -> Optional[Dict]:
+        """
+        Специальная логика выбора цели для малого количества оставшихся кубиков.
+        Предотвращает симметричное отбивание и фокусируется на завершении уровня.
+        """
+        if not bricks:
+            return None
+
+        # Для очень малого количества кубиков - выбираем самый нижний
+        if len(bricks) <= 3:
+            # Находим кубик с минимальной Y-координатой (самый нижний)
+            lowest_brick = min(bricks, key=lambda b: getattr(b, "y", 0))
+            return lowest_brick
+
+        # Для 4-5 кубиков - комбинированная стратегия
+        best_brick = None
+        best_score = -float("inf")
+
+        for brick in bricks:
+            score = 0
+
+            # Максимальный приоритет нижним кубикам
+            brick_y = getattr(brick, "y", 0)
+            distance_to_paddle = paddle_y - brick_y
+            if distance_to_paddle > 0:
+                score += (1.0 / distance_to_paddle) * 2000  # Увеличенный вес
+
+            # Приоритет кубикам в центре экрана (более предсказуемые)
+            brick_center_x = getattr(brick, "x", 0) + getattr(brick, "width", 60) / 2
+            center_distance = abs(brick_center_x - self.screen_width // 2)
+            score -= center_distance * 0.3  # Штраф за отдаление от центра
+
+            # Бонус за близость к текущей траектории мяча
+            horizontal_distance = abs(brick_center_x - ball_x)
+            score -= horizontal_distance * 0.2  # Уменьшенный штраф
+
+            # Максимальный бонус за историю успехов
+            brick_key = f"{int(brick_center_x/60)}_{int(brick_y/30)}"
+            if brick_key in self.targeting_system["hit_patterns"]:
+                pattern = self.targeting_system["hit_patterns"][brick_key]
+                score += pattern.get("success_rate", 0) * 300  # Увеличенный бонус
 
             if score > best_score:
                 best_score = score
@@ -284,6 +509,10 @@ class AIPlayer:
         # Ограничиваем смещение
         offset = max(-1.0, min(1.0, offset))
 
+        # Предотвращаем вертикальные удары - если delta_x слишком мал, добавляем случайное смещение
+        if abs(delta_x) < 10:
+            offset = random.choice([-0.3, 0.3])
+
         # Проверяем историю успешных ударов для корректировки
         offset = self._adjust_offset_from_history(offset, target_brick)
 
@@ -318,14 +547,16 @@ class AIPlayer:
 
     def _detect_loop_pattern(self) -> bool:
         """
-        Обнаруживает зацикливание в движениях платформы
+        Обнаруживает зацикливание в движениях платформы (менее агрессивная версия)
 
         Returns:
             True если обнаружено зацикливание
         """
         history = self.loop_prevention_system["movement_history"]
-        if len(history) < self.loop_prevention_system["loop_detection_threshold"]:
-            return False
+        trajectory_history = self.loop_prevention_system["trajectory_history"]
+
+        if len(history) < self.loop_prevention_system["loop_detection_threshold"] * 2:
+            return False  # Нужно больше данных для точного определения
 
         # Проверяем последние движения на повторяющиеся паттерны
         recent_movements = history[
@@ -337,14 +568,38 @@ class AIPlayer:
         for movement in recent_movements:
             movement_counts[movement] = movement_counts.get(movement, 0) + 1
 
-        # Если какое-то движение повторяется слишком часто - это зацикливание
+        # Более строгая проверка - 80% повторений одного движения
         max_count = max(movement_counts.values())
         threshold = (
-            self.loop_prevention_system["loop_detection_threshold"] * 0.6
-        )  # 60% повторений
+            self.loop_prevention_system["loop_detection_threshold"] * 0.8
+        )  # 80% повторений
 
         if max_count >= threshold:
             return True
+
+        # Проверяем позиционную стагнацию - платформа не движется
+        position_history = self.loop_prevention_system["position_history"]
+        if len(position_history) >= 10:
+            recent_positions = position_history[-10:]
+            # Если последние 8 позиций одинаковые - стагнация
+            if len(set(recent_positions[-8:])) <= 2:  # Допускаем небольшое колебание
+                return True
+
+        # Дополнительная проверка на вертикальные траектории
+        if len(trajectory_history) >= 5:  # Нужно больше данных
+            recent_trajectories = trajectory_history[-5:]
+            vertical_count = 0
+            for traj in recent_trajectories:
+                if self.current_game_state and traj.get("ball_x") is not None:
+                    # Проверяем вертикальность по разнице позиций
+                    current_ball_x = self.current_game_state.ball_position.x
+                    prev_ball_x = traj.get("ball_x", current_ball_x)
+                    if abs(current_ball_x - prev_ball_x) < 3:  # Почти вертикально
+                        vertical_count += 1
+
+            # Если 4 из 5 последних траекторий вертикальные - зацикливание
+            if vertical_count >= 4:
+                return True
 
         return False
 
@@ -399,11 +654,11 @@ class AIPlayer:
         elif strategy == "edge_focus":
             # Фокусируемся на краях для смены паттерна
             current_pos = getattr(self.current_game_state, "paddle_position", None)
-            if current_pos:
+            if current_pos and hasattr(current_pos, 'x'):
                 # Если мы были слева, идем вправо и наоборот
-                return self.screen_width - 50 if current_pos.x < screen_center else 50
+                return self.screen_width - 70 if current_pos.x < screen_center else 70
             else:
-                return 50  # По умолчанию левая сторона
+                return 70  # По умолчанию левая сторона с отступом
 
         elif strategy == "predictive_targeting":
             # Более агрессивное прицеливание в дальние кубики
@@ -579,6 +834,49 @@ class AIPlayer:
                 predicted_x = 2 * (screen_width - ball_radius) - predicted_x
 
         return predicted_x
+
+    def _handle_ceiling_bounce_positioning(self) -> int:
+        """
+        Специальная логика позиционирования при отскоке мяча от потолка.
+        Предотвращает симметричные отскоки и зацикливание.
+        """
+        ball_x = self.current_game_state.ball_position.x
+        ball_y = self.current_game_state.ball_position.y
+        vel_x = self.current_game_state.ball_velocity.x
+
+        # Если мяч очень близко к потолку и движется вниз после отскока
+        if ball_y < 30 and self.current_game_state.ball_velocity.y > 0:
+            # Определяем направление движения мяча
+            if abs(vel_x) < 2:  # Почти вертикальный отскок
+                # При вертикальном отскоке смещаемся в сторону оставшихся кубиков
+                remaining_bricks = self.targeting_system["brick_coordinates"]
+                if remaining_bricks:
+                    # Находим среднюю позицию оставшихся кубиков
+                    avg_brick_x = sum(coord["x"] for coord in remaining_bricks) / len(remaining_bricks)
+                    # Позиционируемся ближе к кубикам, но не точно под ними
+                    target_x = (ball_x + avg_brick_x) / 2
+                else:
+                    # Нет кубиков - смещаемся от центра
+                    center_x = self.screen_width // 2
+                    target_x = center_x + (ball_x - center_x) * 0.3  # Смещение на 30%
+            else:
+                # Мяч имеет горизонтальную скорость - следим за ним с небольшим смещением
+                target_x = ball_x + vel_x * 2  # Упреждение на 2 кадра
+
+            # Добавляем случайное смещение для предотвращения симметрии
+            random_offset = random.choice([-15, -10, 0, 10, 15])
+            target_x += random_offset
+
+            # Ограничиваем границы
+            paddle_half_width = self.paddle_width / 2
+            min_x = paddle_half_width + 5
+            max_x = self.screen_width - paddle_half_width - 5
+            target_x = max(min_x, min(max_x, target_x))
+
+            return int(target_x)
+        else:
+            # Стандартное слежение за мячом
+            return int(self._track_ball_position())
 
     def _track_ball_position(self) -> float:
         """Следим за текущей позицией мяча с упреждающим движением"""
@@ -991,10 +1289,10 @@ class AIPlayer:
                 )
 
             # Отображаем оптимальную позицию
-            optimal_x = self.get_optimal_paddle_position()
-            pygame.draw.line(
-                screen, (0, 255, 0), (optimal_x, 0), (optimal_x, self.screen_height), 2
-            )
+            # optimal_x = self.get_optimal_paddle_position()
+            # pygame.draw.line(
+            #     screen, (0, 255, 0), (optimal_x, 0), (optimal_x, self.screen_height), 2
+            # )
 
             # Показываем информацию об AI
             font = pygame.font.SysFont("arial", 16)
@@ -1051,5 +1349,9 @@ class AIPlayer:
             "target_brick": None,
             "optimal_offset": 0.0,
             "successful_hits": [],
+            "brick_map": {},
+            "trajectory_targets": [],
             "hit_patterns": {},
+            "brick_coordinates": [],
+            "visible_targets": [],
         }

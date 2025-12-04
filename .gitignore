@@ -203,6 +203,15 @@ cython_debug/
 *.wixpdb
 wix_build/
 
+# Executable files
+FINAL_RELEASE/*.exe
+
+# But allow MSI installers in FINAL_RELEASE
+!FINAL_RELEASE/*.msi
+
+# Local game files and data
+local_game_files/
+
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
