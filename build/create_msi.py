@@ -21,10 +21,10 @@ def run_command(command, cwd=None):
             text=True,
             check=True
         )
-        print(f"✓ {command}")
+        print(f"OK: {command}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ {command}")
+        print(f"FAIL: {command}")
         print(f"Error: {e.stderr}")
         return False
 
