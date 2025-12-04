@@ -105,64 +105,64 @@ def create_wxs_file(project_root, version="2.1.5"):
 
       <!-- Python files -->
       <Component Id="GameInit" Directory="INSTALLFOLDER">
-        <File Id="__init__.py" Source="src/game/__init__.py" />
+        <File Id="__init__.py" Source="src/game/__init__.py" KeyPath="yes" />
       </Component>
       <Component Id="Highscores" Directory="INSTALLFOLDER">
-        <File Id="highscores.py" Source="src/game/highscores.py" />
+        <File Id="highscores.py" Source="src/game/highscores.py" KeyPath="yes" />
       </Component>
       <Component Id="Settings" Directory="INSTALLFOLDER">
-        <File Id="settings.py" Source="src/game/settings.py" />
+        <File Id="settings.py" Source="src/game/settings.py" KeyPath="yes" />
       </Component>
 
       <!-- AI files -->
       <Component Id="AIPlayer" Directory="AI">
-        <File Id="ai_player.py" Source="ai/ai_player.py" />
+        <File Id="ai_player.py" Source="ai/ai_player.py" KeyPath="yes" />
       </Component>
       <Component Id="AIGameState" Directory="AI">
-        <File Id="game_state.py" Source="ai/game_state.py" />
+        <File Id="game_state.py" Source="ai/game_state.py" KeyPath="yes" />
       </Component>
       <Component Id="AILearning" Directory="AI">
-        <File Id="learning_system.py" Source="ai/learning_system.py" />
+        <File Id="learning_system.py" Source="ai/learning_system.py" KeyPath="yes" />
       </Component>
       <Component Id="AILogger" Directory="AI">
-        <File Id="performance_logger.py" Source="ai/performance_logger.py" />
+        <File Id="performance_logger.py" Source="ai/performance_logger.py" KeyPath="yes" />
       </Component>
       <Component Id="AIOptimizer" Directory="AI">
-        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" />
+        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" KeyPath="yes" />
       </Component>
       <Component Id="AITrajectory" Directory="AI">
-        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" />
+        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" KeyPath="yes" />
       </Component>
       <Component Id="AIInit" Directory="AI">
-        <File Id="__init__.py" Source="ai/__init__.py" />
+        <File Id="__init__.py" Source="ai/__init__.py" KeyPath="yes" />
       </Component>
 
       <!-- Resources -->
       <Component Id="ResourcesData" Directory="RESOURCESDATA">
-        <File Id="highscores.json" Source="resources/data/highscores.json" />
+        <File Id="highscores.json" Source="resources/data/highscores.json" KeyPath="yes" />
         <File Id="settings.json" Source="resources/data/settings.json" />
       </Component>
       <Component Id="ResourcesIcons" Directory="RESOURCESICONS">
-        <File Id="game.ico" Source="resources/icons/game.ico" />
+        <File Id="game.ico" Source="resources/icons/game.ico" KeyPath="yes" />
       </Component>
       <Component Id="ResourcesImages" Directory="RESOURCESIMAGES">
-        <File Id="new_image.png" Source="resources/images/new_image.png" />
+        <File Id="new_image.png" Source="resources/images/new_image.png" KeyPath="yes" />
       </Component>
       <Component Id="ResourcesAudio" Directory="RESOURCESAUDIO">
-        <File Id="Night_Prowler.ogg" Source="resources/audio/Night_Prowler.ogg" />
+        <File Id="Night_Prowler.ogg" Source="resources/audio/Night_Prowler.ogg" KeyPath="yes" />
       </Component>
 
       <!-- AI components -->
       <Component Id="AIModel" Directory="AIMODELS">
-        <File Id="ai_model.json" Source="ai/models/ai_model.json" />
+        <File Id="ai_model.json" Source="ai/models/ai_model.json" KeyPath="yes" />
       </Component>
 
       <!-- Documentation -->
       <Component Id="Readme" Directory="DOCS">
-        <File Id="README.MD" Source="README.MD" />
+        <File Id="README.MD" Source="README.MD" KeyPath="yes" />
       </Component>
       <Component Id="Changelog" Directory="DOCS">
-        <File Id="changelog.md" Source="docs/changelog.md" />
+        <File Id="changelog.md" Source="docs/changelog.md" KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Fragment>
