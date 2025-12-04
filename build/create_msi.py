@@ -91,7 +91,6 @@ def create_wxs_file(project_root, version="2.1.5"):
           </Directory>
           <Directory Id="AI" Name="ai">
             <Directory Id="AIMODELS" Name="models" />
-            <Directory Id="AILOGS" Name="logs" />
           </Directory>
           <Directory Id="DOCS" Name="docs" />
         </Directory>
