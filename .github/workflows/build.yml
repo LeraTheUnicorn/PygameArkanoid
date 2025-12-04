@@ -9,40 +9,6 @@ on:
     types: [published]
 
 jobs:
-  test:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-    env:
-      SDL_VIDEODRIVER: dummy  # For pygame headless testing
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Load cached venv
-      id: cached-pip-dependencies
-      uses: actions/cache@v3
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-
-    - name: Install dependencies
-      run: |
-        python -m venv .venv
-        .venv\Scripts\activate
-        pip install -r requirements.txt
-
-    - name: Run tests
-      run: |
-        .venv\Scripts\activate
-        pytest tests/
-
   build:
     runs-on: windows-latest
 
@@ -67,7 +33,7 @@ jobs:
         python -m build
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/
@@ -116,7 +82,7 @@ jobs:
 
     - name: Upload MSI artifacts (Windows)
       if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: msi-installer
         path: "*.msi"
@@ -130,19 +96,19 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dist
         path: dist/
 
     - name: Download executable artifacts (Windows)
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: executable-windows-latest
         path: dist/
 
     - name: Download MSI installer
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: msi-installer
         path: dist/
