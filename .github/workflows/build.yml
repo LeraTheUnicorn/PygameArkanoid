@@ -114,12 +114,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download MSI installer
-      uses: actions/download-artifact@v4
-      with:
-        name: msi-installer
-        path: dist/
-
     - name: Download executable artifacts
       uses: actions/download-artifact@v4
       with:
@@ -130,14 +124,23 @@ jobs:
       run: |
         # Extract changelog for current version
         VERSION=$(echo ${{ github.event.release.tag_name }} | sed 's/v//')
-        awk "/## \[$VERSION\]/,/^## \[.*\] - .*/ { if (!/^## \[.*\] - .*/ || /^## \[$VERSION\]/) print; else exit }" docs/changelog.md > release_notes.md
+        if [ -f docs/changelog.md ]; then
+          awk "/## \[$VERSION\]/,/^## \[.*\] - .*/ { if (!/^## \[.*\] - .*/ || /^## \[$VERSION\]/) print; else exit }" docs/changelog.md > release_notes.md || echo "# Release $VERSION" > release_notes.md
+        else
+          echo "# Release $VERSION" > release_notes.md
+        fi
 
-    - name: Upload release assets
+    - name: List available files
+      run: |
+        echo "Files in dist directory:"
+        ls -la dist/ || echo "No dist directory found"
+
+    - name: Upload executable to release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/*.msi
           dist/Arkanoid.exe
         body_path: release_notes.md
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
