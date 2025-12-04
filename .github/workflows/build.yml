@@ -66,16 +66,8 @@ jobs:
 
     - name: Install WiX Toolset (Windows)
       if: matrix.os == 'windows-latest'
-      run: |
-        choco install wixtoolset --yes
-        echo C:\Program Files (x86)\WiX Toolset v3.11\bin >> %GITHUB_PATH%
+      uses: wixtoolset/wix-action@v1
 
-    - name: Check WiX installation (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      run: |
-        where candle.exe || echo "WiX candle.exe not found in PATH"
-        where light.exe || echo "WiX light.exe not found in PATH"
 
     - name: Build executable (Windows)
       if: matrix.os == 'windows-latest'
