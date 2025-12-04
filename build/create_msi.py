@@ -69,7 +69,7 @@ def create_wxs_file(project_root, version="2.1.5"):
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-    <MediaTemplate />
+    <MediaTemplate EmbedCab="yes" />
 
     <Feature Id="ProductFeature" Title="Arkanoid Game" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
