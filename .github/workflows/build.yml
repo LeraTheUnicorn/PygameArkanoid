@@ -10,11 +10,10 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12"]
     env:
       SDL_VIDEODRIVER: dummy  # For pygame headless testing
 
@@ -50,7 +49,7 @@ jobs:
 
   build:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -80,10 +79,10 @@ jobs:
 
   executables:
     needs: test
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -146,22 +145,10 @@ jobs:
         name: dist
         path: dist/
 
-    - name: Download executable artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: executable-ubuntu-latest
-        path: dist/
-
     - name: Download executable artifacts (Windows)
       uses: actions/download-artifact@v3
       with:
         name: executable-windows-latest
-        path: dist/
-
-    - name: Download executable artifacts (macOS)
-      uses: actions/download-artifact@v3
-      with:
-        name: executable-macos-latest
         path: dist/
 
     - name: Download MSI installer
