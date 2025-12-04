@@ -46,8 +46,11 @@ def main():
     # Check if PyInstaller is available
     try:
         import PyInstaller
+        print("PyInstaller is already installed")
     except ImportError:
         print("PyInstaller is not installed. Installing...")
+        if not run_command(f"{python_cmd} -m pip install --upgrade pip", cwd=project_root):
+            print("Failed to upgrade pip")
         if not run_command(f"{python_cmd} -m pip install pyinstaller", cwd=project_root):
             print("Failed to install PyInstaller")
             sys.exit(1)

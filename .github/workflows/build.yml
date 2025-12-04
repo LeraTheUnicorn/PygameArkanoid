@@ -61,6 +61,7 @@ jobs:
       run: |
         python -m venv .venv
         .venv\Scripts\activate
+        pip install --upgrade pip
         pip install -r requirements.txt
 
     - name: Install WiX Toolset (Windows)
@@ -70,12 +71,14 @@ jobs:
 
     - name: Build executable (Windows)
       if: matrix.os == 'windows-latest'
+      shell: cmd
       run: |
         .venv\Scripts\activate
         python build/create_executables.py
 
     - name: Build MSI installer (Windows)
       if: matrix.os == 'windows-latest'
+      shell: cmd
       run: |
         .venv\Scripts\activate
         python build/create_msi.py
