@@ -25,7 +25,10 @@ def run_command(command, cwd=None):
         return True
     except subprocess.CalledProcessError as e:
         print(f"[FAIL] {command}")
-        print(f"Error: {e.stderr}")
+        if e.stderr:
+            print(f"Error: {e.stderr}")
+        else:
+            print(f"Stdout: {e.stdout}")
         return False
 
 def create_wxs_file(project_root, version="2.1.5"):
@@ -196,13 +199,13 @@ def main():
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
-    if not run_command(f'candle.exe -ext WixUIExtension.dll "{wxs_file}"', cwd=project_root):
+    if not run_command(f'candle.exe -ext WixUIExtension.dll -b . "{wxs_file}"', cwd=project_root):
         print("[ERROR] Failed to compile WiX source")
         sys.exit(1)
 
     # Link MSI
     msi_file = project_root / f"Arkanoid_v{datetime.now().strftime('%Y%m%d')}.msi"
-    if run_command(f'light.exe -ext WixUIExtension.dll "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
+    if run_command(f'light.exe -ext WixUIExtension.dll -b . "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
         if msi_file.exists():
             size = msi_file.stat().st_size / (1024 * 1024)
             print(f"Size: {size:.2f} MB")
