@@ -140,9 +140,11 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
 
       <!-- Resources -->
-      <Component Id="ResourcesData" Directory="RESOURCESDATA">
+      <Component Id="ResourcesDataHighscores" Directory="RESOURCESDATA">
         <File Id="highscores.json" Source="resources/data/highscores.json" KeyPath="yes" />
-        <File Id="settings.json" Source="resources/data/settings.json" />
+      </Component>
+      <Component Id="ResourcesDataSettings" Directory="RESOURCESDATA">
+        <File Id="settings.json" Source="resources/data/settings.json" KeyPath="yes" />
       </Component>
       <Component Id="ResourcesIcons" Directory="RESOURCESICONS">
         <File Id="game.ico" Source="resources/icons/game.ico" KeyPath="yes" />
