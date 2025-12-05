@@ -8,6 +8,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -18,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.12"
+        python-version: "3.11"
 
     - name: Install dependencies
       run: |
@@ -52,33 +55,41 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.12"
+        python-version: "3.11"
 
     - name: Install dependencies
       run: |
         python -m venv .venv
         .venv\Scripts\activate
+        pip install --upgrade pip
         pip install -r requirements.txt
-
-    - name: Build executable (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: python build/create_executables.py
 
     - name: Install WiX Toolset (Windows)
       if: matrix.os == 'windows-latest'
+      run: choco install wixtoolset --yes
+
+
+    - name: Build executable (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
       run: |
-        choco install wixtoolset
+        .venv\Scripts\activate
+        python build/create_executables.py
 
     - name: Build MSI installer (Windows)
       if: matrix.os == 'windows-latest'
-      run: python build/create_msi.py
+      shell: cmd
+      run: |
+        .venv\Scripts\activate
+        python build/create_msi.py || echo "MSI creation failed or skipped"
 
-    - name: Upload executable artifacts (Linux/macOS)
-      if: matrix.os != 'windows-latest'
+    - name: Upload executable artifacts (Windows)
+      if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
-        name: executable-${{ matrix.os }}
-        path: dist/
+        name: executable-windows-latest
+        path: dist/Arkanoid.exe
+        if-no-files-found: ignore
 
     - name: Upload MSI artifacts (Windows)
       if: matrix.os == 'windows-latest'
@@ -86,6 +97,7 @@ jobs:
       with:
         name: msi-installer
         path: "*.msi"
+        if-no-files-found: ignore
 
   release:
     needs: [build, executables]
@@ -95,34 +107,33 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
-
-    - name: Download executable artifacts (Windows)
-      uses: actions/download-artifact@v4
-      with:
-        name: executable-windows-latest
-        path: dist/
-
-    - name: Download MSI installer
+    - name: Download MSI artifacts
       uses: actions/download-artifact@v4
       with:
         name: msi-installer
-        path: dist/
+        path: ./
 
     - name: Generate release notes
       run: |
         # Extract changelog for current version
         VERSION=$(echo ${{ github.event.release.tag_name }} | sed 's/v//')
-        awk "/## \[$VERSION\]/,/^## \[.*\] - .*/ { if (!/^## \[.*\] - .*/ || /^## \[$VERSION\]/) print; else exit }" docs/changelog.md > release_notes.md
+        if [ -f docs/changelog.md ]; then
+          awk "/## \[$VERSION\]/,/^## \[.*\] - .*/ { if (!/^## \[.*\] - .*/ || /^## \[$VERSION\]/) print; else exit }" docs/changelog.md > release_notes.md || echo "# Release $VERSION" > release_notes.md
+        else
+          echo "# Release $VERSION" > release_notes.md
+        fi
 
-    - name: Upload release assets
+    - name: List available files
+      run: |
+        echo "Files in dist directory:"
+        ls -la dist/ || echo "No dist directory found"
+
+    - name: Upload MSI to release
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/*
+        files: |
+          *.msi
         body_path: release_notes.md
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

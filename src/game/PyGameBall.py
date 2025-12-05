@@ -3,6 +3,11 @@
 VERSION = "2.1.5"
 
 import os
+import sys
+
+# Добавляем корневую папку проекта в sys.path для импорта модулей
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
@@ -15,9 +20,9 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pygame
-from highscores import HighScoreManager
-from settings import SettingsManager
-from ai.ai_player import AIPlayer
+from src.game.highscores import HighScoreManager
+from src.game.settings import SettingsManager
+from src.ai.ai_player import AIPlayer
 
 
 def resource_path(relative_path):

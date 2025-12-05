@@ -21,47 +21,41 @@ def run_command(command, cwd=None):
             text=True,
             check=True
         )
-        print(f"[OK] {command}")
+        print(f"OK: {command}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"[FAIL] {command}")
-        if e.stderr:
-            print(f"Error: {e.stderr}")
-        else:
-            print(f"Stdout: {e.stdout}")
+        print(f"FAIL: {command}")
+        print(f"Error: {e.stderr}")
         return False
 
 def create_wxs_file(project_root, version="2.1.5"):
     """Create WiX source file"""
-    # Check if required files exist
+    # Check if required files exist - обновленные пути для текущей структуры
     required_files = [
         "src/game/PyGameBall.py",
         "src/game/highscores.py",
         "src/game/settings.py",
-        "src/game/__init__.py",
         "resources/data/highscores.json",
         "resources/data/settings.json",
-        "resources/icons/game.ico",
-        "resources/images/new_image.png",
-        "resources/audio/Night_Prowler.ogg",
-        "ai/models/ai_model.json",
-        "ai/ai_player.py",
-        "ai/game_state.py",
-        "ai/learning_system.py",
-        "ai/performance_logger.py",
-        "ai/position_optimizer.py",
-        "ai/trajectory_predictor.py",
-        "ai/__init__.py",
+        "src/ai/models/ai_model.json",
+        "src/ai/ai_player.py",
+        "src/ai/game_state.py",
+        "src/ai/learning_system.py",
+        "src/ai/performance_logger.py",
+        "src/ai/position_optimizer.py",
+        "src/ai/trajectory_predictor.py",
+        "src/ai/__init__.py",
         "README.MD",
-        "docs/changelog.md"
+        "docs/changelog.md",
+        "docs/LICENSE.txt"
     ]
 
     for file in required_files:
         if not (project_root / file).exists():
-            print(f"[ERROR] Required file not found: {file}")
+            print(f"Required file not found: {file}")
             return None
 
-    print("[OK] All required files found")
+    print("All required files found")
     wxs_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="Arkanoid Game" Language="1049" Version="{version}"
@@ -77,21 +71,17 @@ def create_wxs_file(project_root, version="2.1.5"):
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <UIRef Id="WixUI_InstallDir" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="docs/LICENSE.txt" />
   </Product>
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Arkanoid">
-          <Directory Id="RESOURCES" Name="resources">
-            <Directory Id="RESOURCESDATA" Name="data" />
-            <Directory Id="RESOURCESICONS" Name="icons" />
-            <Directory Id="RESOURCESIMAGES" Name="images" />
-            <Directory Id="RESOURCESAUDIO" Name="audio" />
-          </Directory>
-          <Directory Id="AI" Name="ai">
-            <Directory Id="AIMODELS" Name="models" />
-          </Directory>
+          <Directory Id="RESOURCES" Name="resources" />
+          <Directory Id="AI" Name="ai" />
+          <Directory Id="GAME" Name="game" />
           <Directory Id="DOCS" Name="docs" />
         </Directory>
       </Directory>
@@ -106,67 +96,56 @@ def create_wxs_file(project_root, version="2.1.5"):
       </Component>
 
       <!-- Python files -->
-      <Component Id="GameInit" Directory="INSTALLFOLDER">
-        <File Id="game_init.py" Source="src/game/__init__.py" KeyPath="yes" />
+      <Component Id="Highscores" Directory="GAME">
+        <File Id="highscores.py" Source="src/game/highscores.py" />
       </Component>
-      <Component Id="Highscores" Directory="INSTALLFOLDER">
-        <File Id="highscores.py" Source="src/game/highscores.py" KeyPath="yes" />
-      </Component>
-      <Component Id="Settings" Directory="INSTALLFOLDER">
-        <File Id="settings.py" Source="src/game/settings.py" KeyPath="yes" />
+      <Component Id="Settings" Directory="GAME">
+        <File Id="settings.py" Source="src/game/settings.py" />
       </Component>
 
       <!-- AI files -->
       <Component Id="AIPlayer" Directory="AI">
-        <File Id="ai_player.py" Source="ai/ai_player.py" KeyPath="yes" />
+        <File Id="ai_player.py" Source="src/ai/ai_player.py" />
       </Component>
       <Component Id="AIGameState" Directory="AI">
-        <File Id="game_state.py" Source="ai/game_state.py" KeyPath="yes" />
+        <File Id="game_state.py" Source="src/ai/game_state.py" />
       </Component>
       <Component Id="AILearning" Directory="AI">
-        <File Id="learning_system.py" Source="ai/learning_system.py" KeyPath="yes" />
+        <File Id="learning_system.py" Source="src/ai/learning_system.py" />
       </Component>
       <Component Id="AILogger" Directory="AI">
-        <File Id="performance_logger.py" Source="ai/performance_logger.py" KeyPath="yes" />
+        <File Id="performance_logger.py" Source="src/ai/performance_logger.py" />
       </Component>
       <Component Id="AIOptimizer" Directory="AI">
-        <File Id="position_optimizer.py" Source="ai/position_optimizer.py" KeyPath="yes" />
+        <File Id="position_optimizer.py" Source="src/ai/position_optimizer.py" />
       </Component>
       <Component Id="AITrajectory" Directory="AI">
-        <File Id="trajectory_predictor.py" Source="ai/trajectory_predictor.py" KeyPath="yes" />
+        <File Id="trajectory_predictor.py" Source="src/ai/trajectory_predictor.py" />
       </Component>
       <Component Id="AIInit" Directory="AI">
-        <File Id="ai_init.py" Source="ai/__init__.py" KeyPath="yes" />
+        <File Id="__init__.py" Source="src/ai/__init__.py" />
       </Component>
 
       <!-- Resources -->
-      <Component Id="ResourcesDataHighscores" Directory="RESOURCESDATA">
-        <File Id="highscores.json" Source="resources/data/highscores.json" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesDataSettings" Directory="RESOURCESDATA">
-        <File Id="settings.json" Source="resources/data/settings.json" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesIcons" Directory="RESOURCESICONS">
-        <File Id="game.ico" Source="resources/icons/game.ico" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesImages" Directory="RESOURCESIMAGES">
-        <File Id="new_image.png" Source="resources/images/new_image.png" KeyPath="yes" />
-      </Component>
-      <Component Id="ResourcesAudio" Directory="RESOURCESAUDIO">
-        <File Id="Night_Prowler.ogg" Source="resources/audio/Night_Prowler.ogg" KeyPath="yes" />
+      <Component Id="ResourcesData" Directory="RESOURCES">
+        <File Id="highscores.json" Source="resources/data/highscores.json" />
+        <File Id="settings.json" Source="resources/data/settings.json" />
       </Component>
 
       <!-- AI components -->
-      <Component Id="AIModel" Directory="AIMODELS">
-        <File Id="ai_model.json" Source="ai/models/ai_model.json" KeyPath="yes" />
+      <Component Id="AIModel" Directory="AI">
+        <File Id="ai_model.json" Source="src/ai/models/ai_model.json" />
       </Component>
 
       <!-- Documentation -->
       <Component Id="Readme" Directory="DOCS">
-        <File Id="README.MD" Source="README.MD" KeyPath="yes" />
+        <File Id="README.MD" Source="README.MD" />
       </Component>
       <Component Id="Changelog" Directory="DOCS">
-        <File Id="changelog.md" Source="docs/changelog.md" KeyPath="yes" />
+        <File Id="changelog.md" Source="docs/changelog.md" />
+      </Component>
+      <Component Id="License" Directory="DOCS">
+        <File Id="LICENSE.txt" Source="docs/LICENSE.txt" />
       </Component>
     </ComponentGroup>
   </Fragment>
@@ -187,43 +166,43 @@ def main():
 
     # Check if WiX is available
     if not run_command("candle.exe -? >nul 2>&1", cwd=project_root):
-        print("[ERROR] WiX Toolset is not installed or not in PATH.")
+        print("WiX Toolset is not installed or not in PATH.")
         print("Please install WiX Toolset v3.11 or later from https://wixtoolset.org/")
         sys.exit(1)
 
     # Create WiX source file
     wxs_file = create_wxs_file(project_root)
     if wxs_file is None:
-        print("[ERROR] Failed to create WiX source file - missing required files")
+        print("Failed to create WiX source file - missing required files")
         sys.exit(1)
-    print(f"[OK] Created WiX source file: {wxs_file}")
+    print(f"Created WiX source file: {wxs_file}")
 
     # Compile WiX source
     wixobj_file = wxs_file.with_suffix('.wixobj')
-    if not run_command(f'candle.exe -ext WixUIExtension.dll "{wxs_file}"', cwd=project_root):
-        print("[ERROR] Failed to compile WiX source")
+    if not run_command(f'candle.exe "{wxs_file}"', cwd=project_root):
+        print("Failed to compile WiX source")
         sys.exit(1)
 
     # Link MSI
     msi_file = project_root / f"Arkanoid_v{datetime.now().strftime('%Y%m%d')}.msi"
-    if run_command(f'light.exe -ext WixUIExtension.dll -b . "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
+    if run_command(f'light.exe "{wixobj_file}" -out "{msi_file}"', cwd=project_root):
         if msi_file.exists():
             size = msi_file.stat().st_size / (1024 * 1024)
             print(f"Size: {size:.2f} MB")
             print(f"Location: {msi_file}")
-            print("\n[SUCCESS] MSI installer created successfully!")
+            print("\nMSI installer created successfully!")
         else:
-            print("[ERROR] MSI file not found")
+            print("MSI file not found")
             sys.exit(1)
     else:
-        print("[ERROR] Failed to create MSI")
+        print("Failed to create MSI")
         sys.exit(1)
 
     # Cleanup
     try:
         wxs_file.unlink()
         wixobj_file.unlink()
-        print("[OK] Cleaned up temporary files")
+        print("Cleaned up temporary files")
     except:
         pass
 

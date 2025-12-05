@@ -21,10 +21,10 @@ def run_command(command, cwd=None):
             text=True,
             check=True
         )
-        print(f"✓ {command}")
+        print(f"OK: {command}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ {command}")
+        print(f"FAIL: {command}")
         print(f"Error: {e.stderr}")
         return False
 
@@ -33,16 +33,26 @@ def main():
     project_root = Path(__file__).parent.parent
     current_platform = platform.system().lower()
 
-    print(f"🏗️  Creating executables for {current_platform}...")
+    print(f"Building executables for {current_platform}...")
     print("=" * 50)
+
+    # Check if venv is available
+    venv_python = project_root / ".venv" / "Scripts" / "python.exe"
+    if venv_python.exists():
+        python_cmd = str(venv_python)
+    else:
+        python_cmd = sys.executable
 
     # Check if PyInstaller is available
     try:
         import PyInstaller
+        print("PyInstaller is already installed")
     except ImportError:
-        print("❌ PyInstaller is not installed. Installing...")
-        if not run_command("poetry add --group dev pyinstaller", cwd=project_root):
-            print("❌ Failed to install PyInstaller")
+        print("PyInstaller is not installed. Installing...")
+        if not run_command(f"{python_cmd} -m pip install --upgrade pip", cwd=project_root):
+            print("Failed to upgrade pip")
+        if not run_command(f"{python_cmd} -m pip install pyinstaller", cwd=project_root):
+            print("Failed to install PyInstaller")
             sys.exit(1)
 
     # Determine output name based on platform
@@ -55,32 +65,32 @@ def main():
     else:
         exe_name = "Arkanoid"
 
-    # PyInstaller command
+    # PyInstaller command - обновленные пути для текущей структуры проекта
     cmd = [
-        "poetry", "run", "pyinstaller",
+        python_cmd, "-m", "pyinstaller",
         "--onefile",  # Single executable file
         "--windowed",  # No console window
         "--name", exe_name,
         "--add-data", f"resources{os.pathsep}resources",  # Include resources
-        "--add-data", f"ai{os.pathsep}ai",  # Include AI modules
-        "PyGameBall.py"
+        "--add-data", f"src/ai{os.pathsep}src/ai",  # Include AI modules from src/
+        "src/game/PyGameBall.py"  # Update main entry point
     ]
 
-    print(f"\n📦 Building executable: {exe_name}")
+    print(f"\nBuilding executable: {exe_name}")
     if run_command(" ".join(cmd), cwd=project_root):
         # Check if executable was created
-        dist_dir = project_root / "dist"
-        exe_path = dist_dir / exe_name
+        build_dir = project_root / "build"
+        exe_path = build_dir / exe_name
         if exe_path.exists():
             size = exe_path.stat().st_size / (1024 * 1024)  # Size in MB
-            print(f"📁 Size: {size:.2f} MB")
-            print(f"📁 Location: {exe_path}")
+            print(f"Size: {size:.2f} MB")
+            print(f"Location: {exe_path}")
         else:
-            print("⚠️  Executable not found in dist/")
+            print("Warning: Executable not found in dist/")
 
-        print("\n✅ Executable creation completed!")
+        print("\nExecutable creation completed!")
     else:
-        print("\n❌ Executable creation failed!")
+        print("\nExecutable creation failed!")
         sys.exit(1)
 
 if __name__ == "__main__":
