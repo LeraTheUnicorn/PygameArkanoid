@@ -1,3 +1,3 @@
 YOU HAVE BEEN SCAMMED !!!!!
 
-![222DDD.jpg](src/222DDD.jpg)
+![222DDD.jpg](DD.jpg)
