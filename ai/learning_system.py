@@ -175,10 +175,10 @@ class LearningSystem:
         predicted_points = trajectory_data.get("predicted_points", [])
         actual_points = trajectory_data.get("actual_points", [])
 
-        if not predicted_points or not actual_points:
+        if not predicted_points:
             return
 
-        accuracy = self._calculate_trajectory_accuracy(predicted_points, actual_points)
+        # Создаем ключ паттерна для кластеризации
         pattern_key = self._create_trajectory_pattern_key(predicted_points[:3])
 
         if pattern_key not in self.learning_data["trajectory_patterns"]:
@@ -189,13 +189,17 @@ class LearningSystem:
             }
 
         pattern = self.learning_data["trajectory_patterns"][pattern_key]
-        pattern["accuracy_scores"].append(accuracy)
-        pattern["success_rates"].append(1.0 if success else 0.0)
         pattern["pattern_frequency"] += 1
 
-        if len(pattern["accuracy_scores"]) > 100:
-            pattern["accuracy_scores"] = pattern["accuracy_scores"][-50:]
-            pattern["success_rates"] = pattern["success_rates"][-50:]
+        # Рассчитываем точность только если есть actual_points
+        if actual_points:
+            accuracy = self._calculate_trajectory_accuracy(predicted_points, actual_points)
+            pattern["accuracy_scores"].append(accuracy)
+            pattern["success_rates"].append(1.0 if success else 0.0)
+
+            if len(pattern["accuracy_scores"]) > 100:
+                pattern["accuracy_scores"] = pattern["accuracy_scores"][-50:]
+                pattern["success_rates"] = pattern["success_rates"][-50:]
 
     def _calculate_trajectory_accuracy(
         self, predicted: List[Dict], actual: List[Dict]
@@ -347,19 +351,57 @@ class LearningSystem:
         pattern_keys = list(self.learning_data["trajectory_patterns"].keys())
         vectors = []
         for key in pattern_keys:
-            coords = [int(x) for x in key.split("_")]
-            vectors.append(coords[:6])
+            try:
+                coords = [int(x) for x in key.split("_")]
+                # Дополняем до 6 элементов нулями или усекаем
+                while len(coords) < 6:
+                    coords.append(0)
+                vectors.append(coords[:6])
+            except ValueError:
+                # Пропускаем некорректные ключи
+                continue
+
+        if len(vectors) < 2:  # Нужно минимум 2 точки для кластеризации
+            return []
 
         if len(vectors) < n_clusters:
             n_clusters = len(vectors)
 
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        clusters = kmeans.fit_predict(vectors)
+        try:
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            clusters = kmeans.fit_predict(vectors)
+        except Exception as e:
+            self.logger.warning(f"Ошибка кластеризации: {e}")
+            return []
 
         return [
             {"pattern": pattern_keys[i], "cluster": clusters[i]}
             for i in range(len(clusters))
         ]
+
+    def _calculate_cluster_diversity(self, trajectory_clusters: List[Dict]) -> float:
+        """Рассчитывает разнообразие кластеров траекторий"""
+        if not trajectory_clusters:
+            return 0.0
+
+        cluster_counts = {}
+        for item in trajectory_clusters:
+            cluster = item["cluster"]
+            cluster_counts[cluster] = cluster_counts.get(cluster, 0) + 1
+
+        total_patterns = len(trajectory_clusters)
+        entropy = 0.0
+
+        for count in cluster_counts.values():
+            probability = count / total_patterns
+            if probability > 0:
+                entropy -= probability * math.log2(probability)
+
+        # Нормализуем энтропию (максимальная энтропия = log2(число кластеров))
+        max_entropy = math.log2(len(cluster_counts)) if cluster_counts else 1.0
+        diversity = entropy / max_entropy if max_entropy > 0 else 0.0
+
+        return diversity
 
     def generate_behavior_prompt(self, current_situation: Dict[str, Any]) -> str:
         """Генерирует промпт для описания правил поведения и стратегий ИИ"""
@@ -482,8 +524,12 @@ class LearningSystem:
     def save_model(self):
         """Сохраняет модель в файл"""
         try:
+            # Создаем копию данных без ML модели (она не сериализуема в JSON)
+            save_data = self.learning_data.copy()
+            save_data["success_prediction_model"] = None  # ML модель не сохраняем
+
             with open(self.model_path, "w", encoding="utf-8") as f:
-                json.dump(self.learning_data, f, ensure_ascii=False, indent=2)
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
             self.logger.info("Модель сохранена успешно")
         except Exception as e:
             self.logger.error(f"Ошибка при сохранении модели: {e}")
@@ -537,6 +583,11 @@ class LearningSystem:
             stats["successful_adaptations"] / stats["total_learning_iterations"]
         )
 
+        # Анализ кластеров траекторий
+        trajectory_clusters = self.cluster_trajectories()
+        unique_clusters = len(set(cluster["cluster"] for cluster in trajectory_clusters)) if trajectory_clusters else 0
+        cluster_diversity = self._calculate_cluster_diversity(trajectory_clusters)
+
         return {
             "total_iterations": stats["total_learning_iterations"],
             "success_rate": success_rate,
@@ -544,4 +595,6 @@ class LearningSystem:
             "strategy_weights": self.learning_data["strategy_weights"],
             "learned_positions": len(self.learning_data["position_preferences"]),
             "trajectory_patterns": len(self.learning_data["trajectory_patterns"]),
+            "trajectory_clusters_count": unique_clusters,
+            "cluster_diversity": cluster_diversity,
         }

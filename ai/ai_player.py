@@ -281,8 +281,19 @@ class AIPlayer:
             return self.screen_width // 2  # Резервная позиция
 
         try:
-            # Если мяч падает - рассчитываем прицельную позицию
-            if self.is_ball_moving_towards_paddle():
+            ball_y = self.current_game_state.ball_position.y
+
+            # Зоны по Y-координате
+            bricks_zone_end = 210  # Зона кубиков заканчивается на Y=210
+            paddle_zone_start = self.screen_height - 60  # Платформа на Y=540
+
+            # Если мяч находится в зоне кубиков - не двигаем платформу (устраняем дрожание)
+            if ball_y < bricks_zone_end:
+                # Возвращаем текущую позицию платформы, чтобы избежать дрожания
+                return int(self.current_game_state.paddle_position.x)
+
+            # Если мяч в разделительной зоне или падает - рассчитываем прицельную позицию
+            elif ball_y < paddle_zone_start:
                 # Получаем точку приземления мяча
                 landing_x = self._predict_exact_landing_position()
 
@@ -304,12 +315,11 @@ class AIPlayer:
                     paddle_half_width = self.paddle_width / 2
                     optimal_position = landing_x - (optimal_offset * paddle_half_width)
 
-                    # Строго ограничиваем позицию границами экрана с запасом
-                    min_position = paddle_half_width + 5  # +5 пикселей запас
-                    max_position = self.screen_width - paddle_half_width - 5
-                    optimal_position = max(
-                        min_position, min(max_position, optimal_position)
-                    )
+                    # Строго ограничиваем позицию границами экрана
+                    # Центр платформы должен быть в пределах [paddle_half_width, screen_width - paddle_half_width]
+                    min_position = paddle_half_width
+                    max_position = self.screen_width - paddle_half_width
+                    optimal_position = max(min_position, min(max_position, optimal_position))
 
                     return int(optimal_position)
                 else:
@@ -317,7 +327,6 @@ class AIPlayer:
                     return int(landing_x)
             else:
                 # Мяч движется вверх - проверяем, отбивается ли он от потолка
-                ball_y = self.current_game_state.ball_position.y
                 if ball_y < 50:  # Мяч близко к потолку - возможен симметричный отскок
                     # Используем специальную логику для предотвращения симметричных отскоков
                     return self._handle_ceiling_bounce_positioning()
@@ -327,7 +336,7 @@ class AIPlayer:
 
         except Exception as e:
             print(f"Ошибка при расчете оптимальной позиции: {e}")
-            return int(self.current_game_state.ball_position.x)
+            return int(self.current_game_state.paddle_position.x)
 
     def _find_best_target_brick(self) -> Optional[Dict]:
         """
@@ -1239,6 +1248,11 @@ class AIPlayer:
         self.performance_metrics["learning_progress"] = learning_progress.get(
             "success_rate", 0.0
         )
+
+        # Выводим метрики кластеризации траекторий
+        trajectory_clusters = learning_progress.get("trajectory_clusters_count", 0)
+        cluster_diversity = learning_progress.get("cluster_diversity", 0.0)
+        print(f"[AI] Метрики после игры: кластеров траекторий={trajectory_clusters}, разнообразие кластеров={cluster_diversity:.3f}")
 
         # Логируем окончание игры
         self.performance_logger.log_game_end(

@@ -482,7 +482,11 @@ class Paddle:
     def move(self, direction: int) -> None:
         """direction = -1 (влево) / 1 (вправо)."""
         self.rect.x += direction * PADDLE_SPEED
-        self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - self.rect.width))
+        # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+        paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+        min_center_x = paddle_half_width
+        max_center_x = SCREEN_WIDTH - paddle_half_width
+        self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
 
 
 @dataclass
@@ -506,6 +510,14 @@ class Ball:
     def update(self) -> None:
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
+
+        # Строгие границы для центра мяча: радиус мяча = 8 пикселей
+        ball_radius = BALL_SIZE // 2  # 8 пикселей
+        min_center_x = ball_radius
+        max_center_x = SCREEN_WIDTH - ball_radius
+
+        # Ограничиваем позицию мяча
+        self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
 
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
             self.vel_x *= -1
@@ -861,9 +873,6 @@ def main() -> None:
         player_name, sound_enabled, exit_game, auto_mode = get_player_name(
             screen, font, big_font, highscore_manager
         )
-        print(
-            f"Возврат к вводу имени. Авторежим: {auto_mode}, Выход: {exit_game}, Имя: {player_name}"
-        )  # Отладочная информация
         if exit_game:
             pygame.quit()
             return
@@ -980,9 +989,11 @@ def main() -> None:
                         paddle.rect.centerx, int(auto_paddle_speed)
                     )
                     paddle.rect.x += movement * int(auto_paddle_speed)
-                    paddle.rect.x = max(
-                        0, min(paddle.rect.x, SCREEN_WIDTH - paddle.rect.width)
-                    )
+                    # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+                    paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+                    min_center_x = paddle_half_width
+                    max_center_x = SCREEN_WIDTH - paddle_half_width
+                    paddle.rect.centerx = max(min_center_x, min(max_center_x, paddle.rect.centerx))
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
