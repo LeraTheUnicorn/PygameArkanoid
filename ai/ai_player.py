@@ -112,6 +112,10 @@ class AIPlayer:
         # Переменная для обратной связи по скорости
         self._last_paddle_speed_multiplier = 1.0
 
+        # Система отслеживания метрик по сессиям
+        self.session_metrics = []
+        self.session_counter = 0
+
     def update_game_state(
         self, ball, paddle, bricks, score: int, start_time: int
     ) -> None:
@@ -145,12 +149,6 @@ class AIPlayer:
             self.performance_logger.log_trajectory_prediction(
                 [{"x": p.x, "y": p.y} for p in predicted_trajectory]
             )
-
-    def is_ball_moving_towards_paddle(self) -> bool:
-        """Проверяет, движется ли мяч к платформе"""
-        if not self.current_game_state:
-            return False
-        return self.current_game_state.is_ball_falling()
 
     def _update_brick_map(self) -> None:
         """Обновляет карту всех кубиков на поле и координаты центров"""
@@ -658,7 +656,7 @@ class AIPlayer:
         # Устанавливаем кулдаум на 10 кадров
         self.loop_prevention_system["strategy_change_cooldown"] = 10
 
-        print(f"[AI] Зацикливание обнаружено! Смена стратегии на: {new_strategy}")
+        # print(f"[AI] Зацикливание обнаружено! Смена стратегии на: {new_strategy}")
 
         # Очищаем историю для нового старта
         self.loop_prevention_system["movement_history"] = []
@@ -735,7 +733,7 @@ class AIPlayer:
         # Добавляем движение в историю
         self.loop_prevention_system["movement_history"].append(movement)
         if len(self.loop_prevention_system["movement_history"]) > 10:
-            self.loop_prevention_system["movement_history"] = [-1]
+            self.loop_prevention_system["movement_history"] = self.loop_prevention_system["movement_history"][-10:]
 
         # Добавляем позицию в историю
         self.loop_prevention_system["position_history"].append(current_x)
@@ -774,9 +772,9 @@ class AIPlayer:
             new_offset = self._calculate_optimal_offset(landing_x, target_brick)
             self.targeting_system["optimal_offset"] = new_offset
 
-            print(
-                f"[AI] Переоценка после отбития: новая цель и смещение {new_offset:.2f}"
-            )
+            # print(
+            #     f"[AI] Переоценка после отбития: новая цель и смещение {new_offset:.2f}"
+            # )
 
         # Очищаем историю зацикливания для нового цикла
         self.loop_prevention_system["movement_history"] = []
@@ -1394,13 +1392,6 @@ class AIPlayer:
             "learning_progress": 0.0,
         }
 
-        # Сбрасываем систему предотвращения зацикливания
-        self.loop_prevention_system["movement_history"] = []
-        self.loop_prevention_system["position_history"] = []
-        self.loop_prevention_system["trajectory_history"] = []
-        self.loop_prevention_system["strategy_change_cooldown"] = 0
-        self.loop_prevention_system["current_strategy_index"] = 0
-
         # Сбрасываем систему прицеливания
         self.targeting_system = {
             "target_brick": None,
@@ -1412,3 +1403,14 @@ class AIPlayer:
             "brick_coordinates": [],
             "visible_targets": [],
         }
+
+        # Сбрасываем систему предотвращения зацикливания
+        self.loop_prevention_system["movement_history"] = []
+        self.loop_prevention_system["position_history"] = []
+        self.loop_prevention_system["trajectory_history"] = []
+        self.loop_prevention_system["strategy_change_cooldown"] = 0
+        self.loop_prevention_system["current_strategy_index"] = 0
+
+        # Сбрасываем систему отслеживания метрик по сессиям
+        self.session_metrics = []
+        self.session_counter = 0

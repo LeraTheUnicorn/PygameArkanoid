@@ -998,9 +998,9 @@ def main() -> None:
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
                         optimal_x = ai_player.get_optimal_paddle_position()
-                        print(
-                            f"AI Debug: Платформа X={paddle.rect.centerx}, Оптимальная X={optimal_x}, Движение={movement}, AI активен={ai_player.is_active}"
-                        )
+                        # print(
+                        #     f"AI Debug: Платформа X={paddle.rect.centerx}, Оптимальная X={optimal_x}, Движение={movement}, AI активен={ai_player.is_active}"
+                        # )
                 else:
                     # Ручное управление платформой
                     if keys[pygame.K_LEFT]:
