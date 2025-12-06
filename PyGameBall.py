@@ -993,7 +993,9 @@ def main() -> None:
                     paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
                     min_center_x = paddle_half_width
                     max_center_x = SCREEN_WIDTH - paddle_half_width
-                    paddle.rect.centerx = max(min_center_x, min(max_center_x, paddle.rect.centerx))
+                    paddle.rect.centerx = max(
+                        min_center_x, min(max_center_x, paddle.rect.centerx)
+                    )
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду

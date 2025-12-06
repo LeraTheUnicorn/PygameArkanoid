@@ -32,7 +32,9 @@ class CustomJSONEncoder(json.JSONEncoder):
 class PerformanceLogger:
     """Класс для логирования производительности AI системы"""
 
-    def __init__(self, session_id: Optional[str] = None, enable_session_logging: bool = False):
+    def __init__(
+        self, session_id: Optional[str] = None, enable_session_logging: bool = False
+    ):
         self.session_id = session_id or self._generate_session_id()
         self.session_start_time = time.time()
         self.actions_log = []
@@ -362,7 +364,11 @@ class PerformanceLogger:
 
     def __del__(self):
         """Деструктор для автосохранения"""
-        if hasattr(self, "actions_log") and self.actions_log and self.enable_session_logging:
+        if (
+            hasattr(self, "actions_log")
+            and self.actions_log
+            and self.enable_session_logging
+        ):
             self.save_session_log()
 
     def test_json_serialization(self):

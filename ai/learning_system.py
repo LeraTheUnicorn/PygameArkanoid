@@ -194,7 +194,9 @@ class LearningSystem:
 
         # Рассчитываем точность только если есть actual_points
         if actual_points:
-            accuracy = self._calculate_trajectory_accuracy(predicted_points, actual_points)
+            accuracy = self._calculate_trajectory_accuracy(
+                predicted_points, actual_points
+            )
             pattern["accuracy_scores"].append(accuracy)
             pattern["success_rates"].append(1.0 if success else 0.0)
 
@@ -522,7 +524,9 @@ class LearningSystem:
 
         return max(0.0, min(1.0, base_probability))
 
-    def get_adaptive_paddle_speed(self, ball_speed: int, distance_to_target: float) -> float:
+    def get_adaptive_paddle_speed(
+        self, ball_speed: int, distance_to_target: float
+    ) -> float:
         """
         Возвращает адаптивную скорость платформы на основе скорости мяча и расстояния до цели
 
@@ -547,17 +551,25 @@ class LearningSystem:
 
         # Если есть исторические данные, используем среднее
         if factors["speed_multipliers"]:
-            avg_multiplier = sum(factors["speed_multipliers"]) / len(factors["speed_multipliers"])
+            avg_multiplier = sum(factors["speed_multipliers"]) / len(
+                factors["speed_multipliers"]
+            )
             # Корректируем на основе расстояния (чем больше расстояние, тем выше скорость)
-            distance_factor = min(3.0, distance_to_target / 200.0)  # Макс 3x для расстояния > 600px
+            distance_factor = min(
+                3.0, distance_to_target / 200.0
+            )  # Макс 3x для расстояния > 600px
             return max(0.5, min(5.0, avg_multiplier * distance_factor))
 
         # Базовый расчет: скорость платформы пропорциональна скорости мяча
-        base_multiplier = max(1.0, ball_speed / 10.0)  # Минимум 1x, растет с скоростью мяча
+        base_multiplier = max(
+            1.0, ball_speed / 10.0
+        )  # Минимум 1x, растет с скоростью мяча
         distance_factor = min(3.0, distance_to_target / 200.0)
         return max(0.5, min(5.0, base_multiplier * distance_factor))
 
-    def update_paddle_speed_feedback(self, ball_speed: int, speed_multiplier: float, success: bool):
+    def update_paddle_speed_feedback(
+        self, ball_speed: int, speed_multiplier: float, success: bool
+    ):
         """
         Обновляет данные о скорости платформы на основе результата
 
@@ -651,7 +663,11 @@ class LearningSystem:
 
         # Анализ кластеров траекторий
         trajectory_clusters = self.cluster_trajectories()
-        unique_clusters = len(set(cluster["cluster"] for cluster in trajectory_clusters)) if trajectory_clusters else 0
+        unique_clusters = (
+            len(set(cluster["cluster"] for cluster in trajectory_clusters))
+            if trajectory_clusters
+            else 0
+        )
         cluster_diversity = self._calculate_cluster_diversity(trajectory_clusters)
 
         return {

@@ -17,6 +17,7 @@ def test_ai_fix():
 
     # Включаем логирование сессий для тестирования
     import os
+
     os.environ["AI_ENABLE_SESSION_LOGGING"] = "1"
 
     # Команда для запуска игры в venv
