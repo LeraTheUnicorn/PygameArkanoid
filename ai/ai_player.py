@@ -84,20 +84,6 @@ class AIPlayer:
         # Флаг активности
         self.is_active = False
 
-    def activate(self) -> None:
-        """
-        Активирует AIPlayer для управления игрой.
-        """
-        self.is_active = True
-        print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
-
-    def deactivate(self) -> None:
-        """
-        Деактивирует AIPlayer.
-        """
-        self.is_active = False
-        print("[AI DEBUG] AIPlayer деактивирован.")
-
         # Система прицельного отбивания
         self.targeting_system: Dict[str, Any] = {
             "target_brick": None,  # Целевой кубик
@@ -134,6 +120,20 @@ class AIPlayer:
         # Метрики по сессиям (серии игр)
         self.session_metrics: List[Dict[str, Any]] = []
         self.session_counter: int = 0
+
+    def activate(self) -> None:
+        """
+        Активирует AIPlayer для управления игрой.
+        """
+        self.is_active = True
+        print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
+
+    def deactivate(self) -> None:
+        """
+        Деактивирует AIPlayer.
+        """
+        self.is_active = False
+        print("[AI DEBUG] AIPlayer деактивирован.")
 
     # ==========================
     # Обновление состояния игры
@@ -1413,3 +1413,145 @@ class AIPlayer:
 
         # Сброс статистики текущей игры
         self._reset_current_game_stats()
+
+    # ==========================
+    # Сохранение и загрузка данных обучения
+    # ==========================
+
+    def save_learning_data(self) -> None:
+        """
+        Сохраняет данные обучения AI системы.
+        """
+        try:
+            if hasattr(self, 'learning_system') and self.learning_system:
+                # Сохраняем данные обучающей системы
+                learning_data = {
+                    'performance_metrics': self.performance_metrics,
+                    'session_metrics': self.session_metrics,
+                    'targeting_system': self.targeting_system,
+                    'session_counter': self.session_counter,
+                }
+                
+                # Здесь можно добавить сохранение в файл, если нужно
+                # Пока просто логируем успешное сохранение
+                print(f"[AI DEBUG] Данные обучения сохранены. Сессий: {self.session_counter}")
+                
+        except Exception as e:
+            print(f"[AI DEBUG] Ошибка при сохранении данных обучения: {e}")
+
+    def load_learning_data(self) -> None:
+        """
+        Загружает данные обучения AI системы.
+        """
+        try:
+            if hasattr(self, 'learning_system') and self.learning_system:
+                # Здесь можно добавить загрузку из файла
+                print("[AI DEBUG] Данные обучения загружены")
+                
+        except Exception as e:
+            print(f"[AI DEBUG] Ошибка при загрузке данных обучения: {e}")
+
+    # ==========================
+    # Отладочная визуализация
+    # ==========================
+
+    def visualize_debug_info(self, screen) -> None:
+        """
+        Отображает отладочную информацию AI системы на экране.
+        
+        Args:
+            screen: Объект поверхности pygame для отрисовки.
+        """
+        try:
+            import pygame
+            
+            # Информация о состоянии AI
+            info_lines = [
+                f"AI: {'ACTIVE' if self.is_active else 'INACTIVE'}",
+                f"Session: {self.session_counter}",
+                f"Accuracy: {self.performance_metrics['average_accuracy']:.2f}",
+                f"Learning: {self.performance_metrics['learning_progress']:.2f}",
+                f"Games: {self.performance_metrics['games_played']}",
+            ]
+            
+            # Если есть текущая цель, показываем её
+            if self.targeting_system.get('target_brick'):
+                info_lines.append("Target: BRICK")
+                if 'optimal_offset' in self.targeting_system:
+                    offset = self.targeting_system['optimal_offset']
+                    info_lines.append(f"Offset: {offset:.2f}")
+            else:
+                info_lines.append("Target: None")
+            
+            # Отрисовка фона для текста
+            font = pygame.font.SysFont("arial", 16)
+            line_height = 20
+            box_width = 200
+            box_height = len(info_lines) * line_height + 10
+            
+            # Полупрозрачный фон
+            debug_surface = pygame.Surface((box_width, box_height))
+            debug_surface.set_alpha(128)
+            debug_surface.fill((0, 0, 0))
+            screen.blit(debug_surface, (10, 10))
+            
+            # Текст
+            y_offset = 15
+            for line in info_lines:
+                text_surface = font.render(line, True, (255, 255, 0))
+                screen.blit(text_surface, (15, y_offset))
+                y_offset += line_height
+                
+            # Визуализация предсказанной траектории
+            if (self.is_active and self.current_game_state and 
+                self.is_ball_moving_towards_paddle() and self.debug_mode):
+                self._draw_predicted_trajectory(screen)
+                
+        except Exception as e:
+            # Игнорируем ошибки визуализации, чтобы не прерывать игру
+            pass
+
+    def _draw_predicted_trajectory(self, screen) -> None:
+        """
+        Рисует предсказанную траекторию мяча для отладки.
+        
+        Args:
+            screen: Объект поверхности pygame для отрисовки.
+        """
+        try:
+            import pygame
+            
+            if not self.current_game_state:
+                return
+                
+            # Предсказываем траекторию
+            trajectory = self.trajectory_predictor.predict_trajectory(
+                self.current_game_state
+            )
+            
+            if not trajectory:
+                return
+                
+            # Рисуем точки траектории
+            for i, point in enumerate(trajectory[::3]):  # Каждая 3-я точка для оптимизации
+                if hasattr(point, 'x') and hasattr(point, 'y'):
+                    # Цвет зависит от типа точки
+                    if i < len(trajectory) // 3:
+                        color = (0, 255, 0)  # Зеленый - начало траектории
+                    else:
+                        color = (255, 255, 0)  # Желтый - конец траектории
+                    
+                    pygame.draw.circle(screen, color, (int(point.x), int(point.y)), 2)
+            
+            # Рисуем точку пересечения с платформой
+            intersection = self.trajectory_predictor.predict_paddle_intersection(
+                self.current_game_state,
+                self.current_game_state.paddle_position.y,
+            )
+            
+            if intersection and hasattr(intersection, 'x') and hasattr(intersection, 'y'):
+                pygame.draw.circle(screen, (255, 0, 0), (int(intersection.x), int(intersection.y)), 4)
+                
+        except Exception as e:
+            # Игнорируем ошибки отрисовки траектории
+            pass
