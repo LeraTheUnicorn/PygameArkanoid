@@ -54,7 +54,17 @@ class LearningSystem:
 
         Args:
             action_result: Результат последнего действия
+
+        Raises:
+            ValueError: Если action_result не является словарем или пуст.
         """
+        # Проверка входных данных
+        if not isinstance(action_result, dict):
+            raise ValueError("action_result должен быть словарем")
+
+        if not action_result:
+            raise ValueError("action_result не может быть пустым")
+
         # Извлекаем ключевые параметры результата
         success = action_result.get("success", False)
         action_type = action_result.get("action_type", "unknown")
@@ -577,7 +587,17 @@ class LearningSystem:
             ball_speed: Скорость мяча
             speed_multiplier: Использованный множитель скорости
             success: Успешность движения
+
+        Raises:
+            ValueError: Если ball_speed или speed_multiplier некорректны.
         """
+        # Проверка входных данных
+        if ball_speed < 0:
+            raise ValueError("ball_speed не может быть отрицательным")
+
+        if speed_multiplier <= 0:
+            raise ValueError("speed_multiplier должен быть положительным")
+
         speed_category = (ball_speed // 5) * 5
 
         if speed_category not in self.learning_data["paddle_speed_factors"]:
