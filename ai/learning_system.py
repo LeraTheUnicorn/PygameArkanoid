@@ -39,6 +39,7 @@ class LearningSystem:
                 "average_improvement": 0.0,
             },
             "success_prediction_model": None,  # Модель для предсказания успеха
+            "paddle_speed_factors": {},  # Факторы скорости платформы по скорости мяча
         }
 
         # Создаем директорию для модели если её нет
@@ -520,6 +521,71 @@ class LearningSystem:
                 base_probability *= 1.1
 
         return max(0.0, min(1.0, base_probability))
+
+    def get_adaptive_paddle_speed(self, ball_speed: int, distance_to_target: float) -> float:
+        """
+        Возвращает адаптивную скорость платформы на основе скорости мяча и расстояния до цели
+
+        Args:
+            ball_speed: Скорость мяча
+            distance_to_target: Расстояние до целевой позиции (пиксели)
+
+        Returns:
+            Множитель скорости платформы (1.0 = базовая скорость)
+        """
+        # Квантуем скорость мяча для группировки
+        speed_category = (ball_speed // 5) * 5  # Группируем по 5 единиц
+
+        if speed_category not in self.learning_data["paddle_speed_factors"]:
+            self.learning_data["paddle_speed_factors"][speed_category] = {
+                "speed_multipliers": [],
+                "success_cases": 0,
+                "total_cases": 0,
+            }
+
+        factors = self.learning_data["paddle_speed_factors"][speed_category]
+
+        # Если есть исторические данные, используем среднее
+        if factors["speed_multipliers"]:
+            avg_multiplier = sum(factors["speed_multipliers"]) / len(factors["speed_multipliers"])
+            # Корректируем на основе расстояния (чем больше расстояние, тем выше скорость)
+            distance_factor = min(3.0, distance_to_target / 200.0)  # Макс 3x для расстояния > 600px
+            return max(0.5, min(5.0, avg_multiplier * distance_factor))
+
+        # Базовый расчет: скорость платформы пропорциональна скорости мяча
+        base_multiplier = max(1.0, ball_speed / 10.0)  # Минимум 1x, растет с скоростью мяча
+        distance_factor = min(3.0, distance_to_target / 200.0)
+        return max(0.5, min(5.0, base_multiplier * distance_factor))
+
+    def update_paddle_speed_feedback(self, ball_speed: int, speed_multiplier: float, success: bool):
+        """
+        Обновляет данные о скорости платформы на основе результата
+
+        Args:
+            ball_speed: Скорость мяча
+            speed_multiplier: Использованный множитель скорости
+            success: Успешность движения
+        """
+        speed_category = (ball_speed // 5) * 5
+
+        if speed_category not in self.learning_data["paddle_speed_factors"]:
+            self.learning_data["paddle_speed_factors"][speed_category] = {
+                "speed_multipliers": [],
+                "success_cases": 0,
+                "total_cases": 0,
+            }
+
+        factors = self.learning_data["paddle_speed_factors"][speed_category]
+        factors["total_cases"] += 1
+
+        if success:
+            factors["success_cases"] += 1
+            factors["speed_multipliers"].append(speed_multiplier)
+
+        # Ограничиваем размер списка
+        if len(factors["speed_multipliers"]) > 50:
+            # Оставляем только успешные множители
+            factors["speed_multipliers"] = factors["speed_multipliers"][-25:]
 
     def save_model(self):
         """Сохраняет модель в файл"""

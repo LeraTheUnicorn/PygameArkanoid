@@ -109,6 +109,9 @@ class AIPlayer:
         # Параметры платформы для расчёта угла отскока
         self.paddle_width = 120  # Ширина платформы
 
+        # Переменная для обратной связи по скорости
+        self._last_paddle_speed_multiplier = 1.0
+
     def update_game_state(
         self, ball, paddle, bricks, score: int, start_time: int
     ) -> None:
@@ -282,13 +285,16 @@ class AIPlayer:
 
         try:
             ball_y = self.current_game_state.ball_position.y
+            ball_vel_y = self.current_game_state.ball_velocity.y if hasattr(self.current_game_state, 'ball_velocity') else 0
 
             # Зоны по Y-координате
             bricks_zone_end = 210  # Зона кубиков заканчивается на Y=210
+            ball_diameter = 16  # Диаметр мяча
+            separation_zone_start = bricks_zone_end + ball_diameter  # 226 - разделительная зона начинается
             paddle_zone_start = self.screen_height - 60  # Платформа на Y=540
 
-            # Если мяч находится в зоне кубиков - не двигаем платформу (устраняем дрожание)
-            if ball_y < bricks_zone_end:
+            # Если мяч находится в зоне кубиков ИЛИ в разделительной зоне, но движется вверх - не двигаем платформу
+            if ball_y < separation_zone_start or (separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y <= 0):
                 # Возвращаем текущую позицию платформы, чтобы избежать дрожания
                 return int(self.current_game_state.paddle_position.x)
 
@@ -957,9 +963,20 @@ class AIPlayer:
                 # Мы достаточно близко к оптимальной позиции
                 movement = 0
             else:
-                # Рассчитываем движение
+                # Получаем адаптивную скорость от системы обучения
+                if self.current_game_state:
+                    ball_speed = self.current_game_state.ball_speed
+                    distance_to_target = abs(optimal_x - current_x)
+                    speed_multiplier = self.learning_system.get_adaptive_paddle_speed(ball_speed, distance_to_target)
+                    adjusted_paddle_speed = int(paddle_speed * speed_multiplier)
+                    # Сохраняем информацию для обратной связи
+                    self._last_paddle_speed_multiplier = speed_multiplier
+                else:
+                    adjusted_paddle_speed = paddle_speed
+
+                # Рассчитываем движение с адаптивной скоростью
                 movement = self.position_optimizer.calculate_paddle_movement(
-                    current_x, optimal_x, paddle_speed
+                    current_x, optimal_x, adjusted_paddle_speed
                 )
 
                 # Если нет движения, но AI активен, попробуем резервное движение
@@ -1178,6 +1195,12 @@ class AIPlayer:
 
         # Обновляем систему обучения
         self.learning_system.update_strategy(enhanced_result)
+
+        # Обновляем обратную связь по скорости платформы
+        if hasattr(self, '_last_paddle_speed_multiplier') and self.current_game_state:
+            success = action_result.get("success", False)
+            ball_speed = self.current_game_state.ball_speed
+            self.learning_system.update_paddle_speed_feedback(ball_speed, self._last_paddle_speed_multiplier, success)
 
         # Логируем результат
         self.performance_logger.log_action(enhanced_result)
