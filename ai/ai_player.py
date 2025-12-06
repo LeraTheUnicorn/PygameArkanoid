@@ -156,7 +156,18 @@ class AIPlayer:
             bricks: Список оставшихся кубиков.
             score: Текущий счёт игрока.
             start_time: Время начала игры.
+
+        Raises:
+            ValueError: Если входные данные некорректны.
         """
+        # Проверка входных данных
+        if ball is None or paddle is None or bricks is None:
+            raise ValueError("Ball, paddle и bricks не могут быть None")
+        if score < 0:
+            raise ValueError("Score не может быть отрицательным")
+        if start_time < 0:
+            raise ValueError("Start_time не может быть отрицательным")
+
         # Создаём новое состояние игры
         self.current_game_state = GameState.create_from_game_objects(
             ball, paddle, bricks, score, start_time
@@ -1147,7 +1158,16 @@ class AIPlayer:
 
         Args:
             action_result: Словарь с информацией о результате (hit/miss, счёт и т.д.).
+
+        Raises:
+            ValueError: Если action_result не является словарем или пуст.
         """
+        if not isinstance(action_result, dict):
+            raise ValueError("action_result должен быть словарем")
+
+        if not action_result:
+            raise ValueError("action_result не может быть пустым")
+
         if not self.current_game_state:
             return
 
@@ -1265,7 +1285,13 @@ class AIPlayer:
         Args:
             success: True, если все кубики сбиты.
             final_score: Итоговый счёт.
+
+        Raises:
+            ValueError: Если final_score отрицательный.
         """
+        if final_score < 0:
+            raise ValueError("Final_score не может быть отрицательным")
+
         self.performance_metrics["games_played"] += 1
         if success:
             self.performance_metrics["games_won"] += 1
