@@ -1282,9 +1282,15 @@ class AIPlayer:
 
         # Прогресс обучения
         learning_progress = self.learning_system.get_learning_progress()
+        if isinstance(learning_progress, dict):
+            # Если learning_progress - словарь, извлекаем числовое значение
+            learning_progress_value = learning_progress.get("progress", 0.0)
+        else:
+            learning_progress_value = learning_progress
+
         self.performance_metrics["learning_progress"] = (
             self.performance_metrics["learning_progress"] * 0.9
-            + learning_progress * 0.1
+            + learning_progress_value * 0.1
         )
 
         # Логирование окончания игры
