@@ -15,6 +15,10 @@ def test_ai_fix():
     """Тестирует исправления AI системы"""
     print("Запуск тестирования AI исправлений...")
 
+    # Включаем логирование сессий для тестирования
+    import os
+    os.environ["AI_ENABLE_SESSION_LOGGING"] = "1"
+
     # Команда для запуска игры в venv
     cmd = [".venv\\Scripts\\python.exe", "PyGameBall.py"]
 

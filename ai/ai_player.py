@@ -6,6 +6,7 @@ import pygame
 import time
 import math
 import random
+import os
 from typing import List, Tuple, Optional, Dict, Any
 from .game_state import GameState, Point
 from .trajectory_predictor import TrajectoryPredictor
@@ -43,7 +44,10 @@ class AIPlayer:
         self.trajectory_predictor = TrajectoryPredictor(screen_width, screen_height)
         self.position_optimizer = PositionOptimizer(screen_width, screen_height)
         self.learning_system = LearningSystem()
-        self.performance_logger = PerformanceLogger()
+
+        # Проверяем переменную окружения для включения логирования сессий
+        enable_session_logging = os.getenv("AI_ENABLE_SESSION_LOGGING", "0") == "1"
+        self.performance_logger = PerformanceLogger(enable_session_logging=enable_session_logging)
 
         # Параметры системы
         self.screen_width = screen_width

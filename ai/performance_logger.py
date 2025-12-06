@@ -32,20 +32,24 @@ class CustomJSONEncoder(json.JSONEncoder):
 class PerformanceLogger:
     """Класс для логирования производительности AI системы"""
 
-    def __init__(self, session_id: Optional[str] = None):
+    def __init__(self, session_id: Optional[str] = None, enable_session_logging: bool = False):
         self.session_id = session_id or self._generate_session_id()
         self.session_start_time = time.time()
         self.actions_log = []
         self.game_results = []
+        self.enable_session_logging = enable_session_logging
 
         # Создаем директорию для логов если её нет
         self.logs_dir = "ai/logs"
         os.makedirs(self.logs_dir, exist_ok=True)
 
-        # Файл для сохранения логов сессии
-        self.session_log_file = os.path.join(
-            self.logs_dir, f"session_{self.session_id}.json"
-        )
+        # Файл для сохранения логов сессии (только если включено)
+        if self.enable_session_logging:
+            self.session_log_file = os.path.join(
+                self.logs_dir, f"session_{self.session_id}.json"
+            )
+        else:
+            self.session_log_file = None
 
     def _generate_session_id(self) -> str:
         """Генерирует уникальный ID сессии"""
@@ -59,6 +63,9 @@ class PerformanceLogger:
         Args:
             action_data: Данные о действии
         """
+        if not self.enable_session_logging:
+            return
+
         log_entry = {
             "timestamp": time.time(),
             "session_time": time.time() - self.session_start_time,
@@ -202,6 +209,9 @@ class PerformanceLogger:
 
     def save_session_log(self):
         """Сохраняет логи сессии в файл"""
+        if not self.enable_session_logging or not self.session_log_file:
+            return
+
         session_data = {
             "session_id": self.session_id,
             "session_start": self.session_start_time,
@@ -352,7 +362,7 @@ class PerformanceLogger:
 
     def __del__(self):
         """Деструктор для автосохранения"""
-        if hasattr(self, "actions_log") and self.actions_log:
+        if hasattr(self, "actions_log") and self.actions_log and self.enable_session_logging:
             self.save_session_log()
 
     def test_json_serialization(self):

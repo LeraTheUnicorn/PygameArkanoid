@@ -227,3 +227,6 @@ __marimo__/
 /.venv/
 /-p/
 /.kilocode/
+
+# AI session logs (temporary files, not needed in repo)
+ai/logs/session_*.json
