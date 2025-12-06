@@ -21,7 +21,7 @@ def get_game_directory():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         local_game_dir = os.path.join(current_dir, "local_game_files")
         return local_game_dir
-    
+
     # Для exe файлов пытаемся использовать LOCALAPPDATA
     try:
         localappdata = os.environ.get("LOCALAPPDATA")
@@ -30,7 +30,7 @@ def get_game_directory():
             return game_dir
     except:
         pass
-    
+
     # Fallback для exe: директория exe файла
     return os.path.dirname(sys.executable)
 
@@ -46,7 +46,9 @@ def get_highscores_file_path():
             os.makedirs(resources_dir, exist_ok=True)
     except (OSError, PermissionError):
         # Если не удается создать каталог в LOCALAPPDATA, используем текущую директорию
-        resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+        resources_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "resources"
+        )
         try:
             if not os.path.exists(resources_dir):
                 os.makedirs(resources_dir, exist_ok=True)
@@ -86,7 +88,9 @@ class HighScoreManager:
             # Пытаемся сохранить в текущую директорию как fallback
             try:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                fallback_path = os.path.join(current_dir, "local_game_files", "highscores_backup.json")
+                fallback_path = os.path.join(
+                    current_dir, "local_game_files", "highscores_backup.json"
+                )
                 with open(fallback_path, "w", encoding="utf-8") as f:
                     json.dump(self.highscores, f, ensure_ascii=False, indent=2)
                 print(f"Рекорды сохранены в fallback файл: {fallback_path}")

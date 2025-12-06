@@ -173,9 +173,13 @@ def get_player_name(
 
         # Рамка поля ввода (красная для пустого поля)
         if not input_text.strip():
-            pygame.draw.rect(screen, (255, 100, 100), input_rect.inflate(20, 10), 2)  # Красная рамка для пустого поля
+            pygame.draw.rect(
+                screen, (255, 100, 100), input_rect.inflate(20, 10), 2
+            )  # Красная рамка для пустого поля
         else:
-            pygame.draw.rect(screen, (255, 255, 255), input_rect.inflate(20, 10), 2)  # Белая рамка для заполненного
+            pygame.draw.rect(
+                screen, (255, 255, 255), input_rect.inflate(20, 10), 2
+            )  # Белая рамка для заполненного
         screen.blit(input_surface, input_rect)
 
         # Подсказка
@@ -210,15 +214,13 @@ def get_player_name(
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 110),
         )
 
-
-
         pygame.display.flip()
 
     # ФИНАЛЬНАЯ ВАЛИДАЦИЯ: убеждаемся, что имя корректно
     final_name = input_text.strip()
     if not final_name:
         final_name = "robot"  # Крайний случай для авторежима
-    
+
     return final_name, sound_enabled, exit_game, auto_mode
 
 
@@ -509,20 +511,20 @@ class Ball:
             self.vel_x *= -1
             # Дополнительная защита от зацикливания у стен
             # Если мяч слишком долго отскакивает от стен, добавляем случайность
-            if hasattr(self, '_wall_bounce_count'):
+            if hasattr(self, "_wall_bounce_count"):
                 self._wall_bounce_count += 1
             else:
                 self._wall_bounce_count = 1
-                
+
             if self._wall_bounce_count > 10:  # Если много раз отскочил от стен подряд
                 # Добавляем небольшое случайное изменение вертикальной скорости
                 self.vel_y += random.choice([-1, 0, 1])
                 self._wall_bounce_count = 0  # Сбрасываем счетчик
-                
+
         if self.rect.top <= 0:
             self.vel_y *= -1
             # Сбрасываем счетчик отскоков от стен при отскоке от верхней стенки
-            if hasattr(self, '_wall_bounce_count'):
+            if hasattr(self, "_wall_bounce_count"):
                 self._wall_bounce_count = 0
 
     def bounce_vertical(self) -> None:
@@ -847,10 +849,10 @@ def main() -> None:
         game_started = False
 
         # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Пересоздаем AI-систему НО сначала сохраняем предыдущие данные обучения
-        if 'ai_player' in locals() and ai_player is not None:
+        if "ai_player" in locals() and ai_player is not None:
             # Сохраняем данные обучения от предыдущего экземпляра
             ai_player.save_learning_data()
-        
+
         # Создаем новый AI-систему, которая загрузит обновленные данные
         ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
         print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
@@ -1013,24 +1015,28 @@ def main() -> None:
 
                         # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Предотвращение зацикливания
                         # Если offset слишком мал, принудительно устанавливаем значительное горизонтальное движение
-                        min_horizontal_speed = max(2, ball.get_speed() // 2)  # Минимум 2 пикселя или половина скорости
+                        min_horizontal_speed = max(
+                            2, ball.get_speed() // 2
+                        )  # Минимум 2 пикселя или половина скорости
                         if abs(ball.vel_x) < min_horizontal_speed:
                             # Принудительно устанавливаем направление в сторону от текущего положения
                             if ball.rect.centerx < SCREEN_WIDTH // 2:
                                 ball.vel_x = min_horizontal_speed  # Двигаемся вправо
                             else:
                                 ball.vel_x = -min_horizontal_speed  # Двигаемся влево
-                            
+
                             # Добавляем небольшую случайность для разнообразия
                             ball.vel_x += random.choice([-1, 0, 1])
-                        
+
                         # Дополнительная защита от зацикливания - проверяем, не была ли предыдущая скорость слишком малой
-                        if hasattr(ball, '_last_vel_x'):
+                        if hasattr(ball, "_last_vel_x"):
                             # Если предыдущая горизонтальная скорость была очень малой, а новая тоже
                             if abs(ball._last_vel_x) <= 1 and abs(ball.vel_x) <= 1:
                                 # Принудительно меняем направление
-                                ball.vel_x = random.choice([-min_horizontal_speed, min_horizontal_speed])
-                        
+                                ball.vel_x = random.choice(
+                                    [-min_horizontal_speed, min_horizontal_speed]
+                                )
+
                         # Сохраняем текущую скорость для следующей проверки
                         ball._last_vel_x = ball.vel_x
 

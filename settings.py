@@ -22,7 +22,7 @@ def get_game_directory():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         local_game_dir = os.path.join(current_dir, "local_game_files")
         return local_game_dir
-    
+
     # Для exe файлов используем директорию exe файла
     return os.path.dirname(sys.executable)
 
@@ -38,7 +38,9 @@ def get_settings_file_path():
             os.makedirs(resources_dir, exist_ok=True)
         except (OSError, PermissionError):
             # Если не удается создать каталог, используем текущую директорию
-            resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+            resources_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "resources"
+            )
             if not os.path.exists(resources_dir):
                 os.makedirs(resources_dir, exist_ok=True)
 

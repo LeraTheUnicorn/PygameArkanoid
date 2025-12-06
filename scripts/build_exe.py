@@ -17,7 +17,9 @@ def get_current_version():
     """Получает текущую версию из src/game/PyGameBall.py"""
     try:
         with open(
-            os.path.join(project_root, "src", "game", "PyGameBall.py"), "r", encoding="utf-8"
+            os.path.join(project_root, "src", "game", "PyGameBall.py"),
+            "r",
+            encoding="utf-8",
         ) as f:
             for line in f:
                 if line.startswith("VERSION ="):

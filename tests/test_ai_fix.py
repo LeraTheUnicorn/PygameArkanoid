@@ -10,6 +10,7 @@ import os
 import signal
 import sys
 
+
 def test_ai_fix():
     """Тестирует исправления AI системы"""
     print("Запуск тестирования AI исправлений...")
@@ -25,7 +26,7 @@ def test_ai_fix():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=os.getcwd()
+            cwd=os.getcwd(),
         )
 
         print("Игра запущена, ждем инициализации...")
@@ -80,6 +81,7 @@ def test_ai_fix():
     except Exception as e:
         print(f"Ошибка запуска: {e}")
 
+
 def check_logs():
     """Проверяет последние логи на наличие вертикальных паттернов"""
     print("\nПроверка логов...")
@@ -90,7 +92,11 @@ def check_logs():
         return
 
     # Находим последний лог
-    log_files = [f for f in os.listdir(logs_dir) if f.startswith("session_") and f.endswith(".json")]
+    log_files = [
+        f
+        for f in os.listdir(logs_dir)
+        if f.startswith("session_") and f.endswith(".json")
+    ]
     if not log_files:
         print("Логи не найдены")
         return
@@ -102,7 +108,8 @@ def check_logs():
 
     try:
         import json
-        with open(log_path, 'r', encoding='utf-8') as f:
+
+        with open(log_path, "r", encoding="utf-8") as f:
             log_data = json.load(f)
 
         # Проверяем на ai_deactivated (означает завершение сессии)
@@ -150,6 +157,7 @@ def check_logs():
 
     except Exception as e:
         print(f"Ошибка анализа лога: {e}")
+
 
 if __name__ == "__main__":
     test_ai_fix()

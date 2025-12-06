@@ -176,12 +176,14 @@ class AIPlayer:
             }
 
             brick_map[brick_key] = brick_info
-            brick_coordinates.append({
-                "x": brick_info["center_x"],
-                "y": brick_info["center_y"],
-                "brick": brick,
-                "key": brick_key
-            })
+            brick_coordinates.append(
+                {
+                    "x": brick_info["center_x"],
+                    "y": brick_info["center_y"],
+                    "brick": brick,
+                    "key": brick_key,
+                }
+            )
 
         self.targeting_system["brick_map"] = brick_map
         self.targeting_system["brick_coordinates"] = brick_coordinates
@@ -207,25 +209,30 @@ class AIPlayer:
                 test_x = landing_x + offset
                 # Строго ограничиваем границы платформы
                 paddle_half_width = self.paddle_width / 2
-                test_x = max(paddle_half_width, min(self.screen_width - paddle_half_width, test_x))
+                test_x = max(
+                    paddle_half_width,
+                    min(self.screen_width - paddle_half_width, test_x),
+                )
 
                 # Создаем временное состояние игры с тестовой позицией платформы
                 temp_game_state = self.current_game_state.clone()
                 temp_game_state.paddle_position.x = test_x
 
                 # Получаем точку пересечения мяча с платформой для тестовой позиции
-                intersection_point = self.trajectory_predictor.predict_paddle_intersection(
-                    temp_game_state, self.current_game_state.paddle_position.y
+                intersection_point = (
+                    self.trajectory_predictor.predict_paddle_intersection(
+                        temp_game_state, self.current_game_state.paddle_position.y
+                    )
                 )
 
                 if intersection_point is None:
                     continue  # Пропускаем если нет пересечения
 
                 # Рассчитываем траекторию после отскока с этой позиции
-                after_bounce_trajectory = self.trajectory_predictor.predict_after_bounce_trajectory(
-                    temp_game_state,
-                    intersection_point,
-                    test_x
+                after_bounce_trajectory = (
+                    self.trajectory_predictor.predict_after_bounce_trajectory(
+                        temp_game_state, intersection_point, test_x
+                    )
                 )
 
                 # Находим кубики, которые пересекает эта траектория
@@ -234,10 +241,13 @@ class AIPlayer:
                     brick_center_y = coord["y"]
 
                     # Проверяем, проходит ли траектория через этот кубик
-                    for point in after_bounce_trajectory[::2]:  # Проверяем каждую вторую точку для оптимизации
-                        if hasattr(point, 'x') and hasattr(point, 'y'):
+                    for point in after_bounce_trajectory[
+                        ::2
+                    ]:  # Проверяем каждую вторую точку для оптимизации
+                        if hasattr(point, "x") and hasattr(point, "y"):
                             distance = math.sqrt(
-                                (point.x - brick_center_x) ** 2 + (point.y - brick_center_y) ** 2
+                                (point.x - brick_center_x) ** 2
+                                + (point.y - brick_center_y) ** 2
                             )
                             if distance < 35:  # Радиус попадания в кубик
                                 if coord not in visible_targets:
@@ -293,7 +303,9 @@ class AIPlayer:
                     # Строго ограничиваем позицию границами экрана с запасом
                     min_position = paddle_half_width + 5  # +5 пикселей запас
                     max_position = self.screen_width - paddle_half_width - 5
-                    optimal_position = max(min_position, min(max_position, optimal_position))
+                    optimal_position = max(
+                        min_position, min(max_position, optimal_position)
+                    )
 
                     return int(optimal_position)
                 else:
@@ -418,7 +430,9 @@ class AIPlayer:
 
         return best_brick
 
-    def _find_best_target_for_few_bricks(self, bricks: List, paddle_y: float, ball_x: float) -> Optional[Dict]:
+    def _find_best_target_for_few_bricks(
+        self, bricks: List, paddle_y: float, ball_x: float
+    ) -> Optional[Dict]:
         """
         Специальная логика выбора цели для малого количества оставшихся кубиков.
         Предотвращает симметричное отбивание и фокусируется на завершении уровня.
@@ -654,7 +668,7 @@ class AIPlayer:
         elif strategy == "edge_focus":
             # Фокусируемся на краях для смены паттерна
             current_pos = getattr(self.current_game_state, "paddle_position", None)
-            if current_pos and hasattr(current_pos, 'x'):
+            if current_pos and hasattr(current_pos, "x"):
                 # Если мы были слева, идем вправо и наоборот
                 return self.screen_width - 70 if current_pos.x < screen_center else 70
             else:
@@ -852,7 +866,9 @@ class AIPlayer:
                 remaining_bricks = self.targeting_system["brick_coordinates"]
                 if remaining_bricks:
                     # Находим среднюю позицию оставшихся кубиков
-                    avg_brick_x = sum(coord["x"] for coord in remaining_bricks) / len(remaining_bricks)
+                    avg_brick_x = sum(coord["x"] for coord in remaining_bricks) / len(
+                        remaining_bricks
+                    )
                     # Позиционируемся ближе к кубикам, но не точно под ними
                     target_x = (ball_x + avg_brick_x) / 2
                 else:
