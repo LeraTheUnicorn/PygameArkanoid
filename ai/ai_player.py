@@ -1349,6 +1349,8 @@ class AIPlayer:
             if self.loop_prevention_system["strategy_change_cooldown"] == 0:
                 optimal_x = self._apply_alternative_strategy(optimal_x)
 
+            # Допуск по точности позиционирования
+            precision_tolerance = 2
             # Проверяем дрожание и применяем штрафы
             jitter_detected = self._detect_jitter()
             if jitter_detected:
