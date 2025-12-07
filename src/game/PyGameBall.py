@@ -17,6 +17,9 @@ from typing import List
 import pygame
 from highscores import HighScoreManager
 from settings import SettingsManager
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ai.ai_player import AIPlayer
 
 
@@ -482,7 +485,11 @@ class Paddle:
     def move(self, direction: int) -> None:
         """direction = -1 (влево) / 1 (вправо)."""
         self.rect.x += direction * PADDLE_SPEED
-        self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - self.rect.width))
+        # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+        paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+        min_center_x = paddle_half_width
+        max_center_x = SCREEN_WIDTH - paddle_half_width
+        self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
 
 
 @dataclass
@@ -506,6 +513,14 @@ class Ball:
     def update(self) -> None:
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
+
+        # Строгие границы для центра мяча: радиус мяча = 8 пикселей
+        ball_radius = BALL_SIZE // 2  # 8 пикселей
+        min_center_x = ball_radius
+        max_center_x = SCREEN_WIDTH - ball_radius
+
+        # Ограничиваем позицию мяча
+        self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
 
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
             self.vel_x *= -1
@@ -611,10 +626,21 @@ def draw_hud(
     font: pygame.font.Font,
     ball: Ball,
     auto_mode: bool = False,
+    ai_player = None,
 ) -> None:
     # Добавляем индикатор авторежима
     if auto_mode:
-        text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | АВТОРЕЖИМ"
+        # Показываем адаптивную скорость платформы в авторежиме
+        adaptive_speed_text = ""
+        if ai_player and hasattr(ai_player, 'current_game_state') and ai_player.current_game_state:
+            optimal_x = ai_player.get_optimal_paddle_position()
+            paddle_x = ai_player.current_game_state.paddle_position.x
+            adaptive_speed = ai_player.calculate_adaptive_paddle_speed(
+                paddle_x, optimal_x, ball.get_speed()
+            )
+            adaptive_speed_text = f" | Платформа: {adaptive_speed}"
+        
+        text = f"Очки: {score} | Жизни: {lives_left} | Скорость мяча: {ball.get_speed()}{adaptive_speed_text} | АВТОРЕЖИМ"
     else:
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑ ↓ - скорость"
 
@@ -861,9 +887,6 @@ def main() -> None:
         player_name, sound_enabled, exit_game, auto_mode = get_player_name(
             screen, font, big_font, highscore_manager
         )
-        print(
-            f"Возврат к вводу имени. Авторежим: {auto_mode}, Выход: {exit_game}, Имя: {player_name}"
-        )  # Отладочная информация
         if exit_game:
             pygame.quit()
             return
@@ -971,25 +994,27 @@ def main() -> None:
 
                 # Движение платформы
                 if auto_mode:
-                    # В авторежиме скорость платформы пропорциональна скорости мяча
-                    auto_paddle_speed = PADDLE_SPEED * (
-                        ball.get_speed() / BALL_SPEED_DEFAULT
-                    )
-                    # Используем AI систему для автоматического управления
+                    # В авторежиме используем адаптивную скорость платформы
+                    # AI система сама рассчитает оптимальную скорость
                     movement = ai_player.move_paddle_towards(
-                        paddle.rect.centerx, int(auto_paddle_speed)
+                        paddle.rect.centerx, PADDLE_SPEED
                     )
-                    paddle.rect.x += movement * int(auto_paddle_speed)
-                    paddle.rect.x = max(
-                        0, min(paddle.rect.x, SCREEN_WIDTH - paddle.rect.width)
+                    # Применяем движение с учетом адаптивной скорости
+                    paddle.rect.x += movement
+                    # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+                    paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+                    min_center_x = paddle_half_width
+                    max_center_x = SCREEN_WIDTH - paddle_half_width
+                    paddle.rect.centerx = max(
+                        min_center_x, min(max_center_x, paddle.rect.centerx)
                     )
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
                         optimal_x = ai_player.get_optimal_paddle_position()
-                        print(
-                            f"AI Debug: Платформа X={paddle.rect.centerx}, Оптимальная X={optimal_x}, Движение={movement}, AI активен={ai_player.is_active}"
-                        )
+                        # print(
+                        #     f"AI Debug: Платформа X={paddle.rect.centerx}, Оптимальная X={optimal_x}, Движение={movement}, AI активен={ai_player.is_active}"
+                        # )
                 else:
                     # Ручное управление платформой
                     if keys[pygame.K_LEFT]:
@@ -1267,7 +1292,7 @@ def main() -> None:
             if auto_mode:
                 ai_player.visualize_debug_info(screen)
 
-            draw_hud(screen, score, lives_left, font, ball, auto_mode)
+            draw_hud(screen, score, lives_left, font, ball, auto_mode, ai_player)
 
             if not game_started:
                 if auto_mode:

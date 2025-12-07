@@ -1,0 +1,282 @@
+{
+  "strategy_weights": {
+    "aggressive": 0.5,
+    "conservative": 0.5,
+    "precision": 0.975,
+    "speed": 0.5800000000000001
+  },
+  "position_preferences": {},
+  "trajectory_patterns": {
+    "37_5_37_6_36_7": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "34_4_34_4_33_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "31_5_31_6_30_7": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "28_7_28_7_27_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "27_7_26_7_25_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_5_23_6_22_7": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "21_7_20_7_19_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "18_8_17_9_16_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "16_8_16_9_15_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "13_7_13_7_12_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "10_8_10_9_9_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_26_23_27_22_28": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "28_8_28_9_27_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "21_7_20_7_20_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "1_29_2_30": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    }
+  },
+  "success_factors": {
+    "ball_speed": {
+      "total_cases": 31,
+      "successful_cases": 30,
+      "factor_values": [
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        5
+      ]
+    },
+    "bricks_remaining": {
+      "total_cases": 31,
+      "successful_cases": 30,
+      "factor_values": [
+        49,
+        48,
+        47,
+        46,
+        45,
+        44,
+        43,
+        42,
+        41,
+        40,
+        39,
+        38,
+        37,
+        36,
+        35,
+        34,
+        33,
+        32,
+        31,
+        30,
+        29,
+        28,
+        27,
+        26,
+        25,
+        25,
+        24,
+        23,
+        22,
+        21,
+        0
+      ]
+    },
+    "paddle_distance": {
+      "total_cases": 31,
+      "successful_cases": 30,
+      "factor_values": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        98.0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "prediction_confidence": {
+      "total_cases": 31,
+      "successful_cases": 30,
+      "factor_values": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.8,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.5
+      ]
+    }
+  },
+  "historical_performance": [],
+  "learning_stats": {
+    "total_learning_iterations": 31,
+    "successful_adaptations": 30,
+    "failed_adaptations": 1,
+    "average_improvement": 0.9586221511006925
+  },
+  "success_prediction_model": null,
+  "paddle_speed_factors": {
+    "15": {
+      "speed_multipliers": [
+        1.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.7777777777777777,
+        2.888888888888889,
+        2.888888888888889,
+        2.7777777777777777,
+        3.3333333333333335,
+        2.7777777777777777,
+        1.8888888888888888,
+        1.8888888888888888,
+        1.8888888888888888
+      ],
+      "success_cases": 30,
+      "total_cases": 30
+    }
+  }
+}
