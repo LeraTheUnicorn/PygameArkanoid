@@ -354,6 +354,15 @@ class LearningSystem:
             f"Success prediction model trained with accuracy: {accuracy:.2f}"
         )
 
+        # Сохраняем метрики модели для оценки
+        if "model_metrics" not in self.learning_data:
+            self.learning_data["model_metrics"] = {}
+        
+        self.learning_data["model_metrics"]["last_accuracy"] = float(accuracy)
+        self.learning_data["model_metrics"]["training_samples"] = len(X_train)
+        self.learning_data["model_metrics"]["test_samples"] = len(X_test)
+        self.learning_data["model_metrics"]["features_count"] = X.shape[1] if len(X.shape) > 1 else 1
+
         self.learning_data["success_prediction_model"] = model
 
     def cluster_trajectories(self, n_clusters=5):
@@ -690,7 +699,12 @@ class LearningSystem:
         )
         cluster_diversity = self._calculate_cluster_diversity(trajectory_clusters)
 
-        return {
+        # Метрики модели предсказания успеха
+        model_metrics = self.learning_data.get("model_metrics", {})
+        model_accuracy = model_metrics.get("last_accuracy", None)
+        model_trained = self.learning_data.get("success_prediction_model") is not None
+
+        result = {
             "total_iterations": stats["total_learning_iterations"],
             "success_rate": success_rate,
             "average_improvement": stats["average_improvement"],
@@ -699,4 +713,13 @@ class LearningSystem:
             "trajectory_patterns": len(self.learning_data["trajectory_patterns"]),
             "trajectory_clusters_count": unique_clusters,
             "cluster_diversity": cluster_diversity,
+            "prediction_model_trained": model_trained,
         }
+        
+        if model_accuracy is not None:
+            result["prediction_model_accuracy"] = model_accuracy
+            result["model_training_samples"] = model_metrics.get("training_samples", 0)
+            result["model_test_samples"] = model_metrics.get("test_samples", 0)
+            result["model_features_count"] = model_metrics.get("features_count", 0)
+
+        return result
