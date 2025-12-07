@@ -1418,14 +1418,9 @@ class AIPlayer:
         if self.current_game_stats["start_time"] is not None:
             game_duration = int(time.time() - self.current_game_stats["start_time"])
 
-        self.performance_logger.log_game_end(success, final_score, {
-            "accuracy": self.performance_metrics["average_accuracy"],
-            "learning_progress": self.performance_metrics["learning_progress"],
-            "game_duration": game_duration,
-            "bricks_destroyed": self.current_game_stats["bricks_destroyed"],
-            "total_moves": self.current_game_stats["total_moves"],
-            "optimal_moves": self.current_game_stats["optimal_moves"],
-        })
+        self.performance_logger.log_game_end(
+            self.current_game_state, success, final_score
+        )
 
         # Сохраняем данные по сессии и подготавливаемся к новой игре
         self._save_session_metrics(success, final_score)
