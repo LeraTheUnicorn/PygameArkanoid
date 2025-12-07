@@ -1,6 +1,6 @@
 # Игра Арканоид
 # Отслеживание версий
-VERSION = "2.1.5"
+VERSION = "2.2"
 
 import os
 
@@ -1323,3 +1323,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -111,6 +111,18 @@ class AIPlayer:
             "current_strategy_index": 0,
         }
 
+        # Система отслеживания плавности движения
+        self.smoothness_system: Dict[str, Any] = {
+            "recent_movements": [],  # История последних движений (значения: -1, 0, 1)
+            "recent_positions": [],  # История последних позиций
+            "movement_changes": [],  # История смен направления движения
+            "jitter_threshold": 3,  # Порог дрожания (количество смен направления)
+            "jitter_window": 8,  # Окно анализа для дрожания
+            "min_movement_distance": 5,  # Минимальное расстояние для движения (пиксели)
+            "smoothness_penalty": 0.0,  # Текущий штраф за дрожание (0.0 - 1.0)
+            "consecutive_stops": 0,  # Количество последовательных остановок (поощряется)
+        }
+
         # Параметры платформы
         self.paddle_width = 120  # Ширина платформы
 
@@ -360,6 +372,14 @@ class AIPlayer:
             # Мяч ниже кубиков и движется вниз/в разделительной зоне — считаем прицельную позицию
             if ball_y < paddle_zone_start:
                 landing_x = self._predict_exact_landing_position()
+                bricks_count = len(self.current_game_state.remaining_bricks) if self.current_game_state else 0
+                
+                # На поздних этапах используем стратегию максимизации разрушений
+                if bricks_count <= 15:
+                    optimal_position = self._calculate_position_for_max_destruction(landing_x)
+                    if optimal_position is not None:
+                        return int(optimal_position)
+                
                 target_brick = self._find_best_target_brick()
 
                 if target_brick:
@@ -404,13 +424,20 @@ class AIPlayer:
         Находит лучший кубик для прицеливания с учётом видимости, позиции платформы и траектории.
 
         Приоритеты:
-        1. Кубики, видимые для текущей траектории.
-        2. Кубики в нижних рядах (ближе к платформе).
-        3. Кубики ближе к центру экрана (стабильнее).
-        4. Кубики с хорошей историей попаданий.
+        1. На поздних этапах (<= 15 блоков) - максимизация разрушений в следующем цикле.
+        2. Кубики, видимые для текущей траектории.
+        3. Кубики в нижних рядах (ближе к платформе).
+        4. Кубики ближе к центру экрана (стабильнее).
+        5. Кубики с хорошей историей попаданий.
         """
         if not self.current_game_state or not self.current_game_state.remaining_bricks:
             return None
+
+        bricks_count = len(self.current_game_state.remaining_bricks)
+        
+        # На поздних этапах используем стратегию максимизации разрушений
+        if bricks_count <= 15:
+            return self._find_optimal_angle_for_max_destruction()
 
         visible_targets = self.targeting_system["visible_targets"]
         paddle_y = self.current_game_state.paddle_position.y
@@ -498,6 +525,237 @@ class AIPlayer:
                 best_brick = brick
 
         return best_brick
+
+    def _calculate_position_for_max_destruction(self, landing_x: float) -> Optional[float]:
+        """
+        Вычисляет оптимальную позицию платформы для максимизации разрушений в следующем цикле.
+        Используется на поздних этапах игры (<= 15 блоков).
+        
+        Args:
+            landing_x: X-координата приземления мяча.
+            
+        Returns:
+            Оптимальная X-координата центра платформы или None.
+        """
+        if not self.current_game_state:
+            return None
+        
+        paddle_y = self.current_game_state.paddle_position.y
+        paddle_center = self.current_game_state.paddle_position.x
+        paddle_half_width = self.paddle_width / 2
+        
+        # Тестируем различные углы удара (смещения на платформе)
+        test_offsets = [-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0]
+        best_offset = 0.0
+        best_destruction_count = 0
+        
+        intersection_point = self.trajectory_predictor.predict_paddle_intersection(
+            self.current_game_state, paddle_y
+        )
+        
+        if intersection_point is None:
+            return None
+        
+        for offset in test_offsets:
+            # Вычисляем позицию отскока на платформе
+            bounce_x = landing_x - (offset * paddle_half_width)
+            
+            # Ограничиваем границами платформы
+            min_bounce_x = paddle_center - paddle_half_width
+            max_bounce_x = paddle_center + paddle_half_width
+            bounce_x = max(min_bounce_x, min(max_bounce_x, bounce_x))
+            
+            # Симулируем траекторию после отскока
+            after_bounce_trajectory = (
+                self.trajectory_predictor.predict_after_bounce_trajectory(
+                    self.current_game_state, intersection_point, bounce_x
+                )
+            )
+            
+            # Подсчитываем количество блоков, которые будут разрушены
+            destruction_count = self._count_bricks_in_trajectory(
+                after_bounce_trajectory, self.current_game_state.remaining_bricks
+            )
+            
+            # Если это лучший результат, сохраняем
+            if destruction_count > best_destruction_count:
+                best_destruction_count = destruction_count
+                best_offset = offset
+        
+        # Вычисляем оптимальную позицию платформы
+        optimal_position = landing_x - (best_offset * paddle_half_width)
+        
+        # Границы по центру платформы
+        min_position = paddle_half_width
+        max_position = self.screen_width - paddle_half_width
+        optimal_position = max(min_position, min(max_position, optimal_position))
+        
+        return optimal_position
+
+    def _find_optimal_angle_for_max_destruction(self) -> Optional[Any]:
+        """
+        Находит оптимальный угол удара для максимизации количества разрушенных блоков
+        в следующем цикле отскоков. Используется на поздних этапах игры (<= 15 блоков).
+        
+        Returns:
+            Целевой кубик, который приведет к максимальному количеству разрушений.
+        """
+        if not self.current_game_state or not self.current_game_state.remaining_bricks:
+            return None
+        
+        landing_x = self._predict_exact_landing_position()
+        paddle_y = self.current_game_state.paddle_position.y
+        paddle_center = self.current_game_state.paddle_position.x
+        paddle_half_width = self.paddle_width / 2
+        
+        # Тестируем различные углы удара (смещения на платформе)
+        test_offsets = [-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0]
+        best_offset = 0.0
+        best_destruction_count = 0
+        best_target_brick = None
+        
+        for offset in test_offsets:
+            # Вычисляем позицию отскока на платформе
+            bounce_x = landing_x - (offset * paddle_half_width)
+            
+            # Ограничиваем границами платформы
+            min_bounce_x = paddle_center - paddle_half_width
+            max_bounce_x = paddle_center + paddle_half_width
+            bounce_x = max(min_bounce_x, min(max_bounce_x, bounce_x))
+            
+            # Получаем точку пересечения с платформой
+            intersection_point = self.trajectory_predictor.predict_paddle_intersection(
+                self.current_game_state, paddle_y
+            )
+            
+            if intersection_point is None:
+                continue
+            
+            # Симулируем траекторию после отскока
+            after_bounce_trajectory = (
+                self.trajectory_predictor.predict_after_bounce_trajectory(
+                    self.current_game_state, intersection_point, bounce_x
+                )
+            )
+            
+            # Подсчитываем количество блоков, которые будут разрушены
+            destruction_count = self._count_bricks_in_trajectory(
+                after_bounce_trajectory, self.current_game_state.remaining_bricks
+            )
+            
+            # Если это лучший результат, сохраняем
+            if destruction_count > best_destruction_count:
+                best_destruction_count = destruction_count
+                best_offset = offset
+                
+                # Находим первый блок, который будет разрушен
+                first_hit_brick = self._find_first_brick_in_trajectory(
+                    after_bounce_trajectory, self.current_game_state.remaining_bricks
+                )
+                if first_hit_brick:
+                    best_target_brick = first_hit_brick
+        
+        # Если нашли оптимальный угол, возвращаем соответствующий целевой блок
+        if best_target_brick:
+            return best_target_brick
+        
+        # Fallback: используем стандартную логику для малого количества блоков
+        return self._find_best_target_for_few_bricks(
+            self.current_game_state.remaining_bricks,
+            paddle_y,
+            self.current_game_state.ball_position.x
+        )
+
+    def _count_bricks_in_trajectory(
+        self, trajectory: List[Point], bricks: List[Any]
+    ) -> int:
+        """
+        Подсчитывает количество блоков, которые будут разрушены траекторией.
+        
+        Args:
+            trajectory: Траектория мяча после отскока.
+            bricks: Список оставшихся блоков.
+            
+        Returns:
+            Количество блоков, которые будут разрушены.
+        """
+        if not trajectory or not bricks:
+            return 0
+        
+        destroyed_bricks = set()
+        ball_radius = 8  # Радиус мяча
+        
+        for point in trajectory[::2]:  # Проверяем каждую вторую точку для оптимизации
+            if not hasattr(point, 'x') or not hasattr(point, 'y'):
+                continue
+                
+            for brick in bricks:
+                # Пропускаем уже учтенные блоки
+                brick_id = id(brick)
+                if brick_id in destroyed_bricks:
+                    continue
+                
+                brick_x = getattr(brick, "x", 0)
+                brick_y = getattr(brick, "y", 0)
+                brick_width = getattr(brick, "width", 60)
+                brick_height = getattr(brick, "height", 20)
+                
+                # Проверяем пересечение мяча с блоком
+                if (brick_x <= point.x + ball_radius and 
+                    point.x - ball_radius <= brick_x + brick_width and
+                    brick_y <= point.y + ball_radius and 
+                    point.y - ball_radius <= brick_y + brick_height):
+                    destroyed_bricks.add(brick_id)
+        
+        return len(destroyed_bricks)
+
+    def _find_first_brick_in_trajectory(
+        self, trajectory: List[Point], bricks: List[Any]
+    ) -> Optional[Any]:
+        """
+        Находит первый блок, который будет разрушен траекторией.
+        
+        Args:
+            trajectory: Траектория мяча после отскока.
+            bricks: Список оставшихся блоков.
+            
+        Returns:
+            Первый блок, который будет разрушен, или None.
+        """
+        if not trajectory or not bricks:
+            return None
+        
+        ball_radius = 8
+        min_distance = float('inf')
+        first_brick = None
+        
+        for point in trajectory:
+            if not hasattr(point, 'x') or not hasattr(point, 'y'):
+                continue
+                
+            for brick in bricks:
+                brick_x = getattr(brick, "x", 0)
+                brick_y = getattr(brick, "y", 0)
+                brick_width = getattr(brick, "width", 60)
+                brick_height = getattr(brick, "height", 20)
+                
+                # Проверяем пересечение
+                if (brick_x <= point.x + ball_radius and 
+                    point.x - ball_radius <= brick_x + brick_width and
+                    brick_y <= point.y + ball_radius and 
+                    point.y - ball_radius <= brick_y + brick_height):
+                    
+                    # Вычисляем расстояние от начала траектории
+                    distance = math.sqrt(
+                        (point.x - trajectory[0].x) ** 2 + 
+                        (point.y - trajectory[0].y) ** 2
+                    )
+                    
+                    if distance < min_distance:
+                        min_distance = distance
+                        first_brick = brick
+        
+        return first_brick
 
     def _find_best_target_for_few_bricks(
         self,
@@ -791,6 +1049,106 @@ class AIPlayer:
                     self.loop_prevention_system["trajectory_history"][-5:]
                 )
 
+    def _update_smoothness_tracking(self, movement: int, current_x: int) -> None:
+        """Обновляет данные отслеживания плавности движения."""
+        # История движений
+        self.smoothness_system["recent_movements"].append(movement)
+        if len(self.smoothness_system["recent_movements"]) > self.smoothness_system["jitter_window"]:
+            self.smoothness_system["recent_movements"] = (
+                self.smoothness_system["recent_movements"][-self.smoothness_system["jitter_window"]:]
+            )
+
+        # История позиций
+        self.smoothness_system["recent_positions"].append(current_x)
+        if len(self.smoothness_system["recent_positions"]) > self.smoothness_system["jitter_window"]:
+            self.smoothness_system["recent_positions"] = (
+                self.smoothness_system["recent_positions"][-self.smoothness_system["jitter_window"]:]
+            )
+
+        # Отслеживание смен направления движения
+        if len(self.smoothness_system["recent_movements"]) >= 2:
+            prev_movement = self.smoothness_system["recent_movements"][-2]
+            if prev_movement != 0 and movement != 0 and prev_movement != movement:
+                # Произошла смена направления
+                self.smoothness_system["movement_changes"].append(time.time())
+                # Очищаем старые записи (старше 1 секунды)
+                current_time = time.time()
+                self.smoothness_system["movement_changes"] = [
+                    t for t in self.smoothness_system["movement_changes"]
+                    if current_time - t < 1.0
+                ]
+
+    def _detect_jitter(self) -> bool:
+        """
+        Обнаруживает дрожание платформы (частые смены направления движения).
+        
+        Returns:
+            True, если обнаружено дрожание.
+        """
+        movements = self.smoothness_system["recent_movements"]
+        if len(movements) < self.smoothness_system["jitter_threshold"]:
+            return False
+
+        # Подсчитываем количество смен направления в последних движениях
+        direction_changes = 0
+        for i in range(1, len(movements)):
+            prev = movements[i - 1]
+            curr = movements[i]
+            # Смена направления: с -1 на 1, с 1 на -1, или с любого на противоположное
+            if prev != 0 and curr != 0 and prev != curr:
+                direction_changes += 1
+
+        # Если слишком много смен направления - это дрожание
+        threshold = self.smoothness_system["jitter_threshold"]
+        if direction_changes >= threshold:
+            return True
+
+        # Дополнительная проверка: частые смены направления за короткое время
+        movement_changes = self.smoothness_system["movement_changes"]
+        if len(movement_changes) >= threshold:
+            return True
+
+        # Проверка на микродвижения (очень маленькие изменения позиции)
+        positions = self.smoothness_system["recent_positions"]
+        if len(positions) >= 5:
+            recent_positions = positions[-5:]
+            position_variance = max(recent_positions) - min(recent_positions)
+            # Если позиция меняется очень мало, но часто - это дрожание
+            if position_variance < 10 and len([m for m in movements[-5:] if m != 0]) >= 3:
+                return True
+
+        return False
+
+    def _calculate_smooth_movement(
+        self, current_x: int, optimal_x: int, distance: float
+    ) -> int:
+        """
+        Вычисляет плавное движение с учетом штрафов за дрожание.
+        
+        Args:
+            current_x: Текущая позиция платформы.
+            optimal_x: Оптимальная позиция платформы.
+            distance: Расстояние до оптимальной позиции.
+            
+        Returns:
+            Направление движения (-1, 0, 1).
+        """
+        # Если есть штраф за дрожание, увеличиваем порог для движения
+        penalty = self.smoothness_system["smoothness_penalty"]
+        effective_min_distance = self.smoothness_system["min_movement_distance"] * (1 + penalty)
+
+        if distance < effective_min_distance:
+            # Не двигаемся, если расстояние слишком мало (с учетом штрафа)
+            return 0
+
+        # Определяем направление движения
+        if optimal_x > current_x:
+            return 1
+        elif optimal_x < current_x:
+            return -1
+        else:
+            return 0
+
     def _reevaluate_after_bounce(self) -> None:
         """Переоценивает ситуацию после отбития мяча."""
         if not self.current_game_state:
@@ -807,6 +1165,11 @@ class AIPlayer:
         # Сбрасываем историю зацикливания для нового цикла
         self.loop_prevention_system["movement_history"] = []
         self.loop_prevention_system["position_history"] = []
+        
+        # Сбрасываем историю плавности движения после отскока
+        self.smoothness_system["recent_movements"] = []
+        self.smoothness_system["movement_changes"] = []
+        self.smoothness_system["smoothness_penalty"] = 0.0
 
     # ==========================
     # Запись результатов ударов
@@ -986,13 +1349,51 @@ class AIPlayer:
             if self.loop_prevention_system["strategy_change_cooldown"] == 0:
                 optimal_x = self._apply_alternative_strategy(optimal_x)
 
-            # Допуск по точности позиционирования
-            precision_tolerance = 2
+            # Проверяем дрожание и применяем штрафы
+            jitter_detected = self._detect_jitter()
+            if jitter_detected:
+                # Увеличиваем допуск для уменьшения дрожания
+                precision_tolerance = max(5, precision_tolerance + 2)
+                # Увеличиваем штраф за дрожание
+                self.smoothness_system["smoothness_penalty"] = min(
+                    1.0, self.smoothness_system["smoothness_penalty"] + 0.1
+                )
+            else:
+                # Уменьшаем штраф при плавном движении
+                self.smoothness_system["smoothness_penalty"] = max(
+                    0.0, self.smoothness_system["smoothness_penalty"] - 0.05
+                )
+
+            # Допуск по точности позиционирования (учитываем штраф за дрожание)
+            base_precision_tolerance = 2
+            precision_tolerance = base_precision_tolerance + int(
+                self.smoothness_system["smoothness_penalty"] * 3
+            )
             distance_to_optimal = abs(optimal_x - current_x)
 
-            if distance_to_optimal <= precision_tolerance:
+            # Поощряем минимальные движения - если расстояние очень мало, не двигаемся
+            min_movement_distance = self.smoothness_system["min_movement_distance"]
+            if distance_to_optimal < min_movement_distance:
+                # Если расстояние меньше минимального, проверяем, стоит ли двигаться
+                if distance_to_optimal <= precision_tolerance:
+                    movement = 0
+                    # Поощряем точное позиционирование
+                    self.smoothness_system["consecutive_stops"] += 1
+                    if self.smoothness_system["consecutive_stops"] > 3:
+                        # Уменьшаем штраф за хорошее позиционирование
+                        self.smoothness_system["smoothness_penalty"] = max(
+                            0.0, self.smoothness_system["smoothness_penalty"] - 0.1
+                        )
+                else:
+                    # Двигаемся только если действительно нужно
+                    movement = self._calculate_smooth_movement(
+                        current_x, optimal_x, distance_to_optimal
+                    )
+            elif distance_to_optimal <= precision_tolerance:
                 movement = 0
+                self.smoothness_system["consecutive_stops"] += 1
             else:
+                self.smoothness_system["consecutive_stops"] = 0
                 # Адаптивная скорость от системы обучения
                 if self.current_game_state:
                     ball_speed = self.current_game_state.ball_speed
@@ -1015,6 +1416,9 @@ class AIPlayer:
 
             # Обновляем данные по зацикливанию
             self._update_loop_tracking(movement, current_x, optimal_x)
+            
+            # Обновляем данные по плавности движения
+            self._update_smoothness_tracking(movement, current_x)
 
             # Логирование движения
             if movement != 0:
@@ -1035,6 +1439,20 @@ class AIPlayer:
             self.current_game_stats["total_moves"] += 1
             if abs(optimal_x - current_x) < 10:
                 self.current_game_stats["optimal_moves"] += 1
+
+            # Учитываем плавность движения в обучении
+            if movement != 0:
+                # Штрафуем за дрожание при обучении
+                if self.smoothness_system["smoothness_penalty"] > 0.5:
+                    # Высокий штраф за дрожание - это плохое поведение
+                    jitter_penalty = {
+                        "action_type": "movement_jitter",
+                        "success": False,
+                        "penalty": self.smoothness_system["smoothness_penalty"],
+                        "movement_distance": abs(optimal_x - current_x),
+                    }
+                    # Можно добавить в систему обучения для улучшения поведения
+                    # self.learning_system.update_strategy(jitter_penalty)
 
             return movement
 
@@ -1320,25 +1738,31 @@ class AIPlayer:
         )
 
         # Логирование окончания игры
-        game_duration = 0
-        if self.current_game_stats["start_time"] is not None:
-            game_duration = int(time.time() - self.current_game_stats["start_time"])
+        # Создаем минимальное состояние игры, если его нет
+        if self.current_game_state is None:
+            # Создаем пустое состояние для логирования
+            empty_state = GameState(
+                ball_position=Point(0, 0),
+                ball_velocity=Point(0, 0),
+                paddle_position=Point(0, 0),
+                paddle_width=self.paddle_width,
+                remaining_bricks=[],
+                game_score=final_score,
+                game_time=0,
+                ball_speed=0,
+            )
+            game_state = empty_state
+        else:
+            game_state = self.current_game_state
 
-        self.performance_logger.log_game_end(
-            {
-                "success": success,
-                "final_score": final_score,
-                "accuracy": self.performance_metrics["average_accuracy"],
-                "learning_progress": self.performance_metrics["learning_progress"],
-                "game_duration": game_duration,
-                "bricks_destroyed": self.current_game_stats["bricks_destroyed"],
-                "total_moves": self.current_game_stats["total_moves"],
-                "optimal_moves": self.current_game_stats["optimal_moves"],
-            }
-        )
+        self.performance_logger.log_game_end(game_state, success, final_score)
 
         # Сохраняем данные по сессии и подготавливаемся к новой игре
         self._save_session_metrics(success, final_score)
+        
+        # Выводим метрики оценки работы системы scikit-learn
+        self._print_ml_system_metrics(success, final_score)
+        
         self._reset_current_game_stats()
 
     def _reset_current_game_stats(self) -> None:
@@ -1351,6 +1775,191 @@ class AIPlayer:
             "optimal_moves": 0,
             "total_moves": 0,
         }
+
+    def _print_ml_system_metrics(self, success: bool, final_score: int) -> None:
+        """
+        Выводит метрики оценки работы системы scikit-learn в консоль.
+        
+        Args:
+            success: True, если игра выиграна.
+            final_score: Итоговый счёт игры.
+        """
+        try:
+            print("\n" + "=" * 70)
+            print("МЕТРИКИ ОЦЕНКИ РАБОТЫ СИСТЕМЫ AI (scikit-learn)")
+            print("=" * 70)
+            
+            # Базовые метрики игры
+            print(f"\n📊 Результаты игры:")
+            print(f"   Результат: {'✅ ПОБЕДА' if success else '❌ ПОРАЖЕНИЕ'}")
+            print(f"   Финальный счёт: {final_score}")
+            print(f"   Всего игр: {self.performance_metrics['games_played']}")
+            print(f"   Побед: {self.performance_metrics['games_won']}")
+            if self.performance_metrics['games_played'] > 0:
+                win_rate = (self.performance_metrics['games_won'] / 
+                           self.performance_metrics['games_played']) * 100
+                print(f"   Процент побед: {win_rate:.1f}%")
+            
+            # Метрики текущей игры
+            print(f"\n🎯 Метрики текущей игры:")
+            print(f"   Уничтожено кубиков: {self.current_game_stats['bricks_destroyed']}")
+            print(f"   Всего предсказаний: {self.current_game_stats['total_predictions']}")
+            if self.current_game_stats['total_predictions'] > 0:
+                prediction_accuracy = (
+                    self.current_game_stats['successful_predictions'] / 
+                    self.current_game_stats['total_predictions']
+                ) * 100
+                print(f"   Точность предсказаний: {prediction_accuracy:.1f}%")
+            print(f"   Всего ходов: {self.current_game_stats['total_moves']}")
+            if self.current_game_stats['total_moves'] > 0:
+                optimal_move_rate = (
+                    self.current_game_stats['optimal_moves'] / 
+                    self.current_game_stats['total_moves']
+                ) * 100
+                print(f"   Оптимальных ходов: {optimal_move_rate:.1f}%")
+            
+            # Метрики обучения и scikit-learn
+            learning_progress = self.learning_system.get_learning_progress()
+            
+            if isinstance(learning_progress, dict) and learning_progress.get("total_iterations", 0) > 0:
+                print(f"\n🤖 Система обучения (scikit-learn):")
+                print(f"   Всего итераций обучения: {learning_progress.get('total_iterations', 0)}")
+                print(f"   Успешность адаптаций: {learning_progress.get('success_rate', 0.0):.2%}")
+                print(f"   Средний прогресс: {learning_progress.get('average_improvement', 0.0):.2%}")
+                
+                # Кластеризация траекторий (KMeans)
+                print(f"\n📈 Кластеризация траекторий (KMeans):")
+                trajectory_clusters = self.learning_system.cluster_trajectories()
+                unique_clusters = learning_progress.get('trajectory_clusters_count', 0)
+                cluster_diversity = learning_progress.get('cluster_diversity', 0.0)
+                trajectory_patterns = learning_progress.get('trajectory_patterns', 0)
+                
+                print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
+                print(f"   Количество кластеров: {unique_clusters}")
+                print(f"   Разнообразие кластеров: {cluster_diversity:.3f}")
+                
+                if trajectory_clusters:
+                    # Анализ распределения по кластерам
+                    cluster_counts = {}
+                    for item in trajectory_clusters:
+                        cluster_id = item.get("cluster", -1)
+                        cluster_counts[cluster_id] = cluster_counts.get(cluster_id, 0) + 1
+                    
+                    print(f"   Распределение по кластерам:")
+                    for cluster_id, count in sorted(cluster_counts.items()):
+                        percentage = (count / len(trajectory_clusters)) * 100
+                        print(f"      Кластер {cluster_id}: {count} паттернов ({percentage:.1f}%)")
+                else:
+                    print(f"   ⚠️  Недостаточно данных для кластеризации")
+                
+                # Модель предсказания успеха (RandomForestClassifier)
+                print(f"\n🔮 Модель предсказания успеха (RandomForestClassifier):")
+                model = self.learning_system.learning_data.get("success_prediction_model")
+                model_metrics = self.learning_system.learning_data.get("model_metrics", {})
+                
+                if model is not None:
+                    print(f"   ✅ Модель обучена и готова к использованию")
+                    
+                    # Показываем метрики модели
+                    model_accuracy = model_metrics.get("last_accuracy")
+                    if model_accuracy is not None:
+                        print(f"   Точность модели (accuracy): {model_accuracy:.2%}")
+                    
+                    training_samples = model_metrics.get("training_samples", 0)
+                    test_samples = model_metrics.get("test_samples", 0)
+                    features_count = model_metrics.get("features_count", 0)
+                    
+                    if training_samples > 0:
+                        print(f"   Образцов для обучения: {training_samples}")
+                        print(f"   Образцов для тестирования: {test_samples}")
+                        print(f"   Количество признаков: {features_count}")
+                    
+                    # Получаем информацию о факторах успеха
+                    success_factors = self.learning_system.learning_data.get("success_factors", {})
+                    if success_factors:
+                        print(f"   Факторы успеха:")
+                        for factor_name, factor_data in success_factors.items():
+                            total = factor_data.get("total_cases", 0)
+                            successful = factor_data.get("successful_cases", 0)
+                            if total > 0:
+                                success_rate = (successful / total) * 100
+                                print(f"      {factor_name}: {successful}/{total} успешных ({success_rate:.1f}%)")
+                else:
+                    print(f"   ⚠️  Модель ещё не обучена (требуется минимум 100 итераций)")
+                    success_factors = self.learning_system.learning_data.get("success_factors", {})
+                    if success_factors:
+                        total_cases = sum(f.get("total_cases", 0) for f in success_factors.values())
+                        print(f"   Накоплено данных: {total_cases} случаев")
+                        iterations_needed = max(0, 100 - (learning_progress.get('total_iterations', 0) % 100))
+                        print(f"   До следующего обучения: {iterations_needed} итераций")
+                
+                # Веса стратегий
+                strategy_weights = learning_progress.get('strategy_weights', {})
+                if strategy_weights:
+                    print(f"\n⚖️  Веса стратегий:")
+                    for strategy, weight in strategy_weights.items():
+                        bar_length = int(weight * 20)
+                        bar = "█" * bar_length + "░" * (20 - bar_length)
+                        print(f"   {strategy:12s}: {bar} {weight:.3f}")
+                
+                # Предпочтения позиций
+                learned_positions = learning_progress.get('learned_positions', 0)
+                print(f"\n📍 Изученные позиции: {learned_positions}")
+                
+            else:
+                print(f"\n⚠️  Система обучения ещё не накопила достаточно данных")
+                print(f"   Продолжайте играть для активации кластеризации и предсказания")
+            
+            # Общая оценка системы
+            print(f"\n📊 Общая оценка системы:")
+            if isinstance(learning_progress, dict):
+                avg_accuracy = self.performance_metrics.get('average_accuracy', 0.0)
+                learning_prog = self.performance_metrics.get('learning_progress', 0.0)
+                
+                # Комплексная оценка
+                if learning_progress.get('total_iterations', 0) > 0:
+                    # Базовые компоненты оценки
+                    prediction_accuracy_weight = 0.3
+                    learning_progress_weight = 0.25
+                    success_rate_weight = 0.25
+                    model_accuracy_weight = 0.2
+                    
+                    system_score = (
+                        avg_accuracy * prediction_accuracy_weight +
+                        learning_prog * learning_progress_weight +
+                        (learning_progress.get('success_rate', 0.0)) * success_rate_weight
+                    ) * 100
+                    
+                    # Добавляем оценку модели предсказания, если она обучена
+                    model_accuracy = learning_progress.get('prediction_model_accuracy')
+                    if model_accuracy is not None:
+                        system_score += model_accuracy * model_accuracy_weight * 100
+                        print(f"   Точность ML модели: {model_accuracy:.2%}")
+                    else:
+                        # Если модель не обучена, перераспределяем веса
+                        adjusted_weight = prediction_accuracy_weight + learning_progress_weight + success_rate_weight
+                        system_score = system_score / (1 - model_accuracy_weight) * adjusted_weight
+                    
+                    print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
+                    print(f"   Прогресс обучения: {learning_prog:.2%}")
+                    print(f"   Успешность адаптаций: {learning_progress.get('success_rate', 0.0):.2%}")
+                    print(f"   Комплексная оценка системы: {system_score:.1f}/100")
+                    
+                    if system_score >= 80:
+                        print(f"   🟢 ОТЛИЧНО: Система работает эффективно")
+                    elif system_score >= 60:
+                        print(f"   🟡 ХОРОШО: Система работает стабильно")
+                    elif system_score >= 40:
+                        print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
+                    else:
+                        print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
+                else:
+                    print(f"   ⚠️  Недостаточно данных для комплексной оценки")
+            
+            print("=" * 70 + "\n")
+        except Exception as e:
+            # В случае ошибки выводим минимальную информацию
+            print(f"\n⚠️  Ошибка при выводе метрик: {e}\n")
 
     # ==========================
     # Сессии и анализ обучения
@@ -1431,6 +2040,13 @@ class AIPlayer:
         self.loop_prevention_system["trajectory_history"] = []
         self.loop_prevention_system["strategy_change_cooldown"] = 0
         self.loop_prevention_system["current_strategy_index"] = 0
+
+        # Сброс системы плавности движения
+        self.smoothness_system["recent_movements"] = []
+        self.smoothness_system["recent_positions"] = []
+        self.smoothness_system["movement_changes"] = []
+        self.smoothness_system["smoothness_penalty"] = 0.0
+        self.smoothness_system["consecutive_stops"] = 0
 
         # Сброс общих метрик и сессий
         self.performance_metrics = {

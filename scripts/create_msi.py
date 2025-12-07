@@ -45,7 +45,7 @@ def get_current_version():
                         return version_part.strip('"')
     except Exception as e:
         print(f"Ошибка чтения версии: {e}")
-    return "2.1.5"
+    return "2.2"
 
 
 def create_wix_files():

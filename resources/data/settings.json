@@ -15,7 +15,7 @@
     "ai_difficulty": "expert",
     "trajectory_prediction": true,
     "learning_enabled": true,
-    "model_version": "2.1.5",
+    "model_version": "2.2",
     "trajectory_precision": 0.95,
     "position_tolerance": 8,
     "learning_rate": 0.001,

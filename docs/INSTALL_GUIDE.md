@@ -58,7 +58,7 @@ python -m pip install -r requirements.txt
 ```
 
 **2. Установите готовый .exe файл (самый простой способ):**
-- Запустите: `Arkanoid_v2.1.5.exe`
+- Запустите: `Arkanoid_v2.2.exe`
 - Не требует установки Python или зависимостей!
 
 **3. Установите Anaconda:**

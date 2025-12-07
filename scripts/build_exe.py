@@ -25,8 +25,8 @@ def get_current_version():
                 if line.startswith("VERSION ="):
                     return line.split('"')[1]
     except:
-        return "2.1.5"
-    return "2.1.5"
+        return "2.2"
+    return "2.2"
 
 
 def build_executable():
