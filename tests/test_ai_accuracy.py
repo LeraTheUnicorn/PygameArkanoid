@@ -8,17 +8,18 @@ import os
 import pygame
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Добавляем родительскую директорию в путь для импорта модулей
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyGameBall import (
     Paddle,
     Ball,
     build_bricks,
-    AIPlayer,
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
     PADDLE_SPEED,
 )
+from ai.ai_player import AIPlayer
 from ai.game_state import GameState, Point
 
 

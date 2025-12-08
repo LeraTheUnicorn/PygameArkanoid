@@ -28,24 +28,14 @@ def check_wix_installation():
 
 
 def get_current_version():
-    """Получает текущую версию из PyGameBall.py"""
+    """Получает текущую версию из version.py"""
     try:
-        with open(
-            os.path.join(project_root, "PyGameBall.py"), "r", encoding="utf-8"
-        ) as f:
-            for line in f:
-                if "VERSION =" in line:
-                    # Ищем строку вида VERSION = "2.x.x"
-                    parts = line.split('"')
-                    if len(parts) >= 2:
-                        return parts[1]
-                    # Если нет кавычек, пробуем найти после =
-                    version_part = line.split("=")[1].strip()
-                    if version_part.startswith('"') and version_part.endswith('"'):
-                        return version_part.strip('"')
+        sys.path.insert(0, project_root)
+        from version import get_version_string
+        return get_version_string()
     except Exception as e:
-        print(f"Ошибка чтения версии: {e}")
-    return "2.2"
+        print(f"Ошибка чтения версии из version.py: {e}")
+        return "2.2.0001"
 
 
 def create_wix_files():

@@ -94,6 +94,7 @@ class AIPlayer:
             "hit_patterns": {},  # Паттерны успешных ударов
             "brick_coordinates": [],  # Координаты центров кубиков
             "visible_targets": [],  # Видимые цели
+            "recent_target_positions": [],  # История последних выбранных целей для проверки симметрии
         }
 
         # Система предотвращения зацикливания
@@ -310,19 +311,40 @@ class AIPlayer:
                 )
 
                 # Проверяем, какие кубики пересекает эта траектория
+                # Используем точную проверку пересечения с границами кубиков
                 for coord in self.targeting_system["brick_coordinates"]:
-                    brick_center_x = coord["x"]
-                    brick_center_y = coord["y"]
-
-                    # Проверяем каждую вторую точку для оптимизации
-                    for point in after_bounce_trajectory[::2]:
-                        if hasattr(point, "x") and hasattr(point, "y"):
-                            distance = math.sqrt(
-                                (point.x - brick_center_x) ** 2
-                                + (point.y - brick_center_y) ** 2
-                            )
-                            # Радиус условного попадания в кубик
-                            if distance < 35:
+                    brick = coord["brick"]
+                    brick_x = getattr(brick, "x", 0)
+                    brick_y = getattr(brick, "y", 0)
+                    brick_width = getattr(brick, "width", 60)
+                    brick_height = getattr(brick, "height", 20)
+                    
+                    # Точные границы кубика
+                    brick_left = brick_x
+                    brick_right = brick_x + brick_width
+                    brick_top = brick_y
+                    brick_bottom = brick_y + brick_height
+                    
+                    # Радиус мяча для проверки пересечения
+                    ball_radius = 8
+                    
+                    # Проверяем пересечение траектории с кубиком
+                    # Используем более частую проверку для точности
+                    for i, point in enumerate(after_bounce_trajectory):
+                        if not hasattr(point, "x") or not hasattr(point, "y"):
+                            continue
+                            
+                        # Проверяем пересечение мяча (с учетом радиуса) с границами кубика
+                        if (brick_left - ball_radius <= point.x <= brick_right + ball_radius and
+                            brick_top - ball_radius <= point.y <= brick_bottom + ball_radius):
+                            # Дополнительная проверка: мяч действительно попадает в кубик
+                            # Проверяем, что центр мяча находится в расширенной области кубика
+                            if (brick_left <= point.x <= brick_right or
+                                brick_top <= point.y <= brick_bottom or
+                                math.sqrt(
+                                    (point.x - (brick_left + brick_right) / 2) ** 2 +
+                                    (point.y - (brick_top + brick_bottom) / 2) ** 2
+                                ) < (brick_width / 2 + ball_radius)):
                                 if coord not in visible_targets:
                                     visible_targets.append(coord)
                                 break
@@ -452,11 +474,17 @@ class AIPlayer:
         if visible_targets:
             best_visible_brick = None
             best_visible_score = -float("inf")
+            
+            # Получаем историю последних выбранных целей для проверки симметрии
+            recent_targets = self.targeting_system.get("recent_target_positions", [])
+            screen_center = self.screen_width // 2
 
             for target in visible_targets:
                 brick = target["brick"]
                 brick_x = getattr(brick, "x", 0)
                 brick_y = getattr(brick, "y", 0)
+                brick_width = getattr(brick, "width", 60)
+                brick_center_x = brick_x + brick_width / 2
 
                 score = 1000.0  # базовый бонус за видимость
 
@@ -466,8 +494,27 @@ class AIPlayer:
                     score += (1.0 / distance_to_paddle) * 500.0
 
                 # Штраф за удалённость от центра
-                center_distance = abs(brick_x + 30 - self.screen_width // 2)
+                center_distance = abs(brick_center_x - screen_center)
                 score -= center_distance * 0.3
+
+                # Проверка на симметричные паттерны
+                # Штрафуем цели, которые создают симметричные отскоки
+                if recent_targets:
+                    # Проверяем, не создает ли эта цель симметричный паттерн
+                    for prev_target_x in recent_targets[-3:]:  # Проверяем последние 3 цели
+                        # Если текущая цель симметрична предыдущей относительно центра
+                        symmetry_distance = abs(abs(brick_center_x - screen_center) - abs(prev_target_x - screen_center))
+                        if symmetry_distance < 20:  # Слишком симметрично
+                            # Штраф за симметрию
+                            score -= 300.0
+                            
+                        # Дополнительная проверка: если цели находятся на одинаковом расстоянии от центра
+                        # но с разных сторон - это симметричный паттерн
+                        if (abs(brick_center_x - screen_center) < 30 and 
+                            abs(prev_target_x - screen_center) < 30 and
+                            (brick_center_x - screen_center) * (prev_target_x - screen_center) < 0):
+                            # Цели симметричны относительно центра
+                            score -= 400.0
 
                 # Бонус за успешную историю попаданий
                 brick_key = target["key"]
@@ -480,6 +527,14 @@ class AIPlayer:
                     best_visible_brick = brick
 
             if best_visible_brick:
+                # Сохраняем позицию выбранной цели для проверки симметрии
+                selected_brick_x = getattr(best_visible_brick, "x", 0) + getattr(best_visible_brick, "width", 60) / 2
+                if "recent_target_positions" not in self.targeting_system:
+                    self.targeting_system["recent_target_positions"] = []
+                self.targeting_system["recent_target_positions"].append(selected_brick_x)
+                # Ограничиваем историю последними 5 целями
+                if len(self.targeting_system["recent_target_positions"]) > 5:
+                    self.targeting_system["recent_target_positions"] = self.targeting_system["recent_target_positions"][-5:]
                 return best_visible_brick
 
         # 2. Резервная логика, если нет видимых целей
@@ -497,6 +552,10 @@ class AIPlayer:
         best_brick = None
         best_score = -float("inf")
 
+        # Получаем историю последних выбранных целей для проверки симметрии
+        recent_targets = self.targeting_system.get("recent_target_positions", [])
+        screen_center = self.screen_width // 2
+
         for brick in bricks:
             score = 0.0
             brick_y = getattr(brick, "y", 0)
@@ -508,9 +567,26 @@ class AIPlayer:
 
             brick_center_x = getattr(brick, "x", 0) + getattr(brick, "width", 60) / 2
 
+            # Проверка на симметричные паттерны
+            if recent_targets:
+                for prev_target_x in recent_targets[-3:]:  # Проверяем последние 3 цели
+                    # Если текущая цель симметрична предыдущей относительно центра
+                    symmetry_distance = abs(abs(brick_center_x - screen_center) - abs(prev_target_x - screen_center))
+                    if symmetry_distance < 20:  # Слишком симметрично
+                        # Штраф за симметрию
+                        score -= 200.0
+                        
+                    # Дополнительная проверка: если цели находятся на одинаковом расстоянии от центра
+                    # но с разных сторон - это симметричный паттерн
+                    if (abs(brick_center_x - screen_center) < 30 and 
+                        abs(prev_target_x - screen_center) < 30 and
+                        (brick_center_x - screen_center) * (prev_target_x - screen_center) < 0):
+                        # Цели симметричны относительно центра
+                        score -= 300.0
+
             if is_ceiling_bounce:
                 # При отскоке от потолка меньше любим центр
-                center_distance = abs(brick_center_x - self.screen_width // 2)
+                center_distance = abs(brick_center_x - screen_center)
                 score -= center_distance * 0.3
                 # Бонус за близость к краям
                 edge_distance = min(brick_center_x, self.screen_width - brick_center_x)
@@ -529,6 +605,16 @@ class AIPlayer:
             if score > best_score:
                 best_score = score
                 best_brick = brick
+
+        if best_brick:
+            # Сохраняем позицию выбранной цели для проверки симметрии
+            selected_brick_x = getattr(best_brick, "x", 0) + getattr(best_brick, "width", 60) / 2
+            if "recent_target_positions" not in self.targeting_system:
+                self.targeting_system["recent_target_positions"] = []
+            self.targeting_system["recent_target_positions"].append(selected_brick_x)
+            # Ограничиваем историю последними 5 целями
+            if len(self.targeting_system["recent_target_positions"]) > 5:
+                self.targeting_system["recent_target_positions"] = self.targeting_system["recent_target_positions"][-5:]
 
         return best_brick
 
@@ -677,6 +763,7 @@ class AIPlayer:
     ) -> int:
         """
         Подсчитывает количество блоков, которые будут разрушены траекторией.
+        Использует точные координаты кубиков для более точного подсчета.
         
         Args:
             trajectory: Траектория мяча после отскока.
@@ -691,7 +778,9 @@ class AIPlayer:
         destroyed_bricks = set()
         ball_radius = 8  # Радиус мяча
         
-        for point in trajectory[::2]:  # Проверяем каждую вторую точку для оптимизации
+        # Используем более частую проверку для точности
+        # Проверяем каждую точку траектории (не каждую вторую)
+        for point in trajectory:
             if not hasattr(point, 'x') or not hasattr(point, 'y'):
                 continue
                 
@@ -701,17 +790,37 @@ class AIPlayer:
                 if brick_id in destroyed_bricks:
                     continue
                 
+                # Точные координаты кубика
                 brick_x = getattr(brick, "x", 0)
                 brick_y = getattr(brick, "y", 0)
                 brick_width = getattr(brick, "width", 60)
                 brick_height = getattr(brick, "height", 20)
                 
-                # Проверяем пересечение мяча с блоком
-                if (brick_x <= point.x + ball_radius and 
-                    point.x - ball_radius <= brick_x + brick_width and
-                    brick_y <= point.y + ball_radius and 
-                    point.y - ball_radius <= brick_y + brick_height):
-                    destroyed_bricks.add(brick_id)
+                # Точные границы кубика
+                brick_left = brick_x
+                brick_right = brick_x + brick_width
+                brick_top = brick_y
+                brick_bottom = brick_y + brick_height
+                
+                # Точная проверка пересечения мяча (с учетом радиуса) с границами кубика
+                # Мяч пересекает кубик, если его центр находится в расширенной области кубика
+                # или если мяч касается границ кубика
+                if (brick_left - ball_radius <= point.x <= brick_right + ball_radius and
+                    brick_top - ball_radius <= point.y <= brick_bottom + ball_radius):
+                    # Дополнительная проверка: мяч действительно попадает в кубик
+                    # Проверяем, что центр мяча находится в области кубика или очень близко к границам
+                    center_in_brick = (brick_left <= point.x <= brick_right and
+                                      brick_top <= point.y <= brick_bottom)
+                    
+                    # Проверяем расстояние от центра мяча до ближайшей точки кубика
+                    closest_x = max(brick_left, min(point.x, brick_right))
+                    closest_y = max(brick_top, min(point.y, brick_bottom))
+                    distance_to_brick = math.sqrt(
+                        (point.x - closest_x) ** 2 + (point.y - closest_y) ** 2
+                    )
+                    
+                    if center_in_brick or distance_to_brick <= ball_radius:
+                        destroyed_bricks.add(brick_id)
         
         return len(destroyed_bricks)
 
@@ -720,6 +829,7 @@ class AIPlayer:
     ) -> Optional[Any]:
         """
         Находит первый блок, который будет разрушен траекторией.
+        Использует точные координаты кубиков для более точного определения.
         
         Args:
             trajectory: Траектория мяча после отскока.
@@ -740,26 +850,43 @@ class AIPlayer:
                 continue
                 
             for brick in bricks:
+                # Точные координаты кубика
                 brick_x = getattr(brick, "x", 0)
                 brick_y = getattr(brick, "y", 0)
                 brick_width = getattr(brick, "width", 60)
                 brick_height = getattr(brick, "height", 20)
                 
-                # Проверяем пересечение
-                if (brick_x <= point.x + ball_radius and 
-                    point.x - ball_radius <= brick_x + brick_width and
-                    brick_y <= point.y + ball_radius and 
-                    point.y - ball_radius <= brick_y + brick_height):
+                # Точные границы кубика
+                brick_left = brick_x
+                brick_right = brick_x + brick_width
+                brick_top = brick_y
+                brick_bottom = brick_y + brick_height
+                
+                # Точная проверка пересечения мяча (с учетом радиуса) с границами кубика
+                if (brick_left - ball_radius <= point.x <= brick_right + ball_radius and
+                    brick_top - ball_radius <= point.y <= brick_bottom + ball_radius):
+                    # Дополнительная проверка: мяч действительно попадает в кубик
+                    center_in_brick = (brick_left <= point.x <= brick_right and
+                                      brick_top <= point.y <= brick_bottom)
                     
-                    # Вычисляем расстояние от начала траектории
-                    distance = math.sqrt(
-                        (point.x - trajectory[0].x) ** 2 + 
-                        (point.y - trajectory[0].y) ** 2
+                    # Проверяем расстояние от центра мяча до ближайшей точки кубика
+                    closest_x = max(brick_left, min(point.x, brick_right))
+                    closest_y = max(brick_top, min(point.y, brick_bottom))
+                    distance_to_brick = math.sqrt(
+                        (point.x - closest_x) ** 2 + (point.y - closest_y) ** 2
                     )
                     
-                    if distance < min_distance:
-                        min_distance = distance
-                        first_brick = brick
+                    if center_in_brick or distance_to_brick <= ball_radius:
+                        # Вычисляем расстояние от начала траектории
+                        distance = math.sqrt(
+                            (point.x - trajectory[0].x) ** 2 + 
+                            (point.y - trajectory[0].y) ** 2
+                        )
+                        
+                        if distance < min_distance:
+                            min_distance = distance
+                            first_brick = brick
+                            break  # Нашли первый кубик, выходим из внутреннего цикла
         
         return first_brick
 
@@ -822,6 +949,7 @@ class AIPlayer:
     def _calculate_optimal_offset(self, landing_x: float, target_brick: Any) -> float:
         """
         Рассчитывает оптимальное смещение на платформе для попадания в кубик.
+        Использует точные координаты кубика для избежания пропущенных попаданий.
 
         Args:
             landing_x: X-координата приземления мяча.
@@ -830,18 +958,53 @@ class AIPlayer:
         Returns:
             Смещение от -1.0 до 1.0 (0 — центр платформы).
         """
+        # Точные координаты кубика
+        brick_x = getattr(target_brick, "x", 0)
+        brick_y = getattr(target_brick, "y", 0)
+        brick_width = getattr(target_brick, "width", 60)
+        brick_height = getattr(target_brick, "height", 20)
+        
         # Центр целевого кубика
-        brick_center_x = (
-            getattr(target_brick, "x", 0) + getattr(target_brick, "width", 60) / 2
-        )
-        brick_center_y = (
-            getattr(target_brick, "y", 0) + getattr(target_brick, "height", 20) / 2
-        )
+        brick_center_x = brick_x + brick_width / 2
+        brick_center_y = brick_y + brick_height / 2
+        
+        # Учитываем границы кубика для более точного прицеливания
+        # Предпочитаем прицеливаться в центр, но учитываем возможность попадания в края
+        brick_left = brick_x
+        brick_right = brick_x + brick_width
+        brick_top = brick_y
+        brick_bottom = brick_y + brick_height
 
         paddle_y = self.current_game_state.paddle_position.y
 
-        # Требуемый угол отскока
-        delta_x = brick_center_x - landing_x
+        # Рассчитываем оптимальную точку попадания в кубик
+        # Предпочитаем центр кубика, но учитываем текущую траекторию мяча
+        ball_x = self.current_game_state.ball_position.x
+        ball_vel_x = self.current_game_state.ball_velocity.x
+        
+        # Если мяч движется в сторону кубика, можно прицеливаться ближе к краю
+        # для более эффективного попадания
+        if abs(ball_vel_x) > 0:
+            # Определяем, в какую сторону движется мяч относительно кубика
+            if ball_vel_x > 0 and ball_x < brick_center_x:
+                # Мяч движется вправо и находится слева от кубика
+                # Прицеливаемся немного правее центра для компенсации движения
+                target_x = brick_center_x + min(brick_width * 0.15, 10)
+            elif ball_vel_x < 0 and ball_x > brick_center_x:
+                # Мяч движется влево и находится справа от кубика
+                # Прицеливаемся немного левее центра
+                target_x = brick_center_x - min(brick_width * 0.15, 10)
+            else:
+                # Стандартное прицеливание в центр
+                target_x = brick_center_x
+        else:
+            target_x = brick_center_x
+
+        # Ограничиваем целевую точку границами кубика
+        target_x = max(brick_left, min(brick_right, target_x))
+
+        # Требуемый угол отскока с учетом точной целевой точки
+        delta_x = target_x - landing_x
         delta_y = paddle_y - brick_center_y
 
         if delta_y <= 0:
@@ -857,9 +1020,21 @@ class AIPlayer:
         # Ограничиваем диапазон
         offset = max(-1.0, min(1.0, offset))
 
-        # Если почти строго вертикальный удар — добавляем небольшой рандом
-        if abs(delta_x) < 10:
-            offset = random.choice([-0.3, 0.3])
+        # Проверка на симметричные паттерны
+        # Если смещение очень близко к 0 (вертикальный удар), избегаем его
+        if abs(offset) < 0.1:
+            # Выбираем направление в сторону кубика, избегая симметрии
+            if delta_x > 0:
+                offset = 0.25  # Смещение вправо
+            else:
+                offset = -0.25  # Смещение влево
+        elif abs(delta_x) < 10:
+            # Почти вертикальный удар — добавляем небольшое смещение для избежания симметрии
+            # Выбираем направление в сторону кубика
+            if delta_x > 0:
+                offset = max(0.2, offset)
+            else:
+                offset = min(-0.2, offset)
 
         # Уточняем по истории успешных ударов
         offset = self._adjust_offset_from_history(offset, target_brick)

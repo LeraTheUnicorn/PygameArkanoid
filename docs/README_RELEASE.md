@@ -2,7 +2,7 @@
 
 ## 🚀 Готовый исполняемый файл
 
-### Arkanoid_v2.0.0.exe
+### Arkanoid_v2.2.0001.exe
 
 **Размер:** ~30 МБ\
 **Требования:** Windows 7/10/11 (64-bit)\
@@ -10,7 +10,7 @@
 
 #### Использование:
 
-1. Скачайте файл `Arkanoid_v2.0.0.exe`
+1. Скачайте файл `Arkanoid_v2.2.0001.exe` (или последнюю версию)
 1. Запустите двойным кликом
 1. Игра готова к использованию без установки Python!
 
@@ -56,7 +56,8 @@ python scripts/build_spec.py
 rm -rf dist build *.spec
 
 # Сборка с PyInstaller (обновленные пути к ресурсам)
-pyinstaller --onefile --windowed --name Arkanoid_v2.0.0 ^
+# Версия автоматически определяется из version.py
+pyinstaller --onefile --windowed --name Arkanoid_v{version} ^
     --add-data "game_resources/sounds;sounds" ^
     --add-data "game_resources/images;images" ^
     --add-data "game_resources/highscores.py;." ^
@@ -69,19 +70,21 @@ pyinstaller --onefile --windowed --name Arkanoid_v2.0.0 ^
     --clean PyGameBall.py
 
 # Копирование в папку FINAL_RELEASE
+# Версия автоматически определяется из version.py
 mkdir -p FINAL_RELEASE
-cp dist/Arkanoid_v2.0.0.exe FINAL_RELEASE/
+cp dist/Arkanoid_v{version}.exe FINAL_RELEASE/
 ```
 
 ## 📁 Структура проекта
 
 ```
 PythonProject2/
-├── PyGameBall.py               # Основной файл игры (v2.0.0)
+├── version.py                  # 🎯 ЕДИНСТВЕННЫЙ файл с версией (X.Y.ZZZZ)
+├── PyGameBall.py               # Основной файл игры (импортирует версию из version.py)
 ├── FINAL_RELEASE/              # Готовые релизы
-│   ├── Arkanoid_v2.0.0.exe    # ✅ Готовый исполняемый файл
-│   ├── Arkanoid_v2.0.0_Setup.exe    # EXE инсталлятор
-│   └── Arkanoid_v2.0.0_Setup.msi    # MSI инсталлятор
+│   ├── Arkanoid_v2.2.0001.exe    # ✅ Готовый исполняемый файл
+│   ├── Arkanoid_v2.2.0001_Setup.exe    # EXE инсталлятор
+│   └── Arkanoid_v2.2.0001_Setup.msi    # MSI инсталлятор
 ├── game_resources/             # 🎯 ЕДИНСТВЕННАЯ папка с ресурсами
 │   ├── highscores.py           # Система рекордов
 │   ├── settings.py             # Настройки игры
@@ -165,17 +168,34 @@ PythonProject2/
 
 ## 📝 Версионирование
 
-- **Мажорная версия** (X.0.0) - революционные изменения (например, AI-система в v1.8.0)
-- **Минорная версия** (X.Y.0) - новые функции, исправления UI
-- **Патч версия** (X.Y.Z) - мелкие исправления, оптимизации
+### Формат версии: X.Y.ZZZZ
+
+- **Мажорная версия** (X) - революционные изменения (например, AI-система в v1.8.0)
+- **Минорная версия** (Y) - новые функции, исправления UI
+- **Индекс сборки** (ZZZZ) - 4-значный номер, увеличивается при каждом изменении файлов
+
+### Централизованное управление версией
+
+**Версия хранится в одном месте:** `version.py`
+
+Это единственный источник истины для версии проекта. Все остальные файлы импортируют версию оттуда.
 
 ### Автоматическое обновление версий:
 
-- `PyGameBall.py` - VERSION = "X.Y.Z"
-- `pyproject.toml` - version = "X.Y.Z"
+- `version.py` - **ЕДИНСТВЕННЫЙ** файл с версией (VERSION = "X.Y.ZZZZ")
+- `PyGameBall.py` - импортирует версию из `version.py`
+- `src/game/PyGameBall.py` - импортирует версию из `version.py`
+- `pyproject.toml` - version = "X.Y.Z" (Poetry формат, без 4-значного индекса)
 - `README.md` - бейдж и текст версии
 - `changelog.md` - записи об изменениях
-- Все скрипты сборки автоматически определяют версию
+- Все скрипты сборки автоматически читают версию из `version.py`
+
+### Правило обновления версии:
+
+**При каждом изменении файлов проекта:**
+1. Увеличьте индекс сборки в `version.py` (ZZZZ)
+2. Обновите `changelog.md` с описанием изменений
+3. Все остальные файлы автоматически получат новую версию
 
 ______________________________________________________________________
 

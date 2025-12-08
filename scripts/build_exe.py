@@ -14,19 +14,14 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def get_current_version():
-    """Получает текущую версию из src/game/PyGameBall.py"""
+    """Получает текущую версию из version.py"""
     try:
-        with open(
-            os.path.join(project_root, "src", "game", "PyGameBall.py"),
-            "r",
-            encoding="utf-8",
-        ) as f:
-            for line in f:
-                if line.startswith("VERSION ="):
-                    return line.split('"')[1]
-    except:
-        return "2.2"
-    return "2.2"
+        sys.path.insert(0, project_root)
+        from version import get_version_string
+        return get_version_string()
+    except Exception as e:
+        print(f"Ошибка чтения версии из version.py: {e}")
+        return "2.2.0001"
 
 
 def build_executable():

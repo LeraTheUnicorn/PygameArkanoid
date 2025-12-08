@@ -12,8 +12,11 @@ def test_imports():
     """Тест импорта всех модулей"""
     print("Testing imports...")
 
+    # Добавляем родительскую директорию в путь
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
     try:
-        from PyGameBall import Paddle, Ball, build_bricks, AIPlayer
+        from PyGameBall import Paddle, Ball, build_bricks
 
         print("PASS: Main game modules imported successfully")
     except Exception as e:

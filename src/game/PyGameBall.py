@@ -1,24 +1,27 @@
 # Игра Арканоид
-# Отслеживание версий
-VERSION = "2.2"
-
+# Версия импортируется из централизованного файла version.py
+import sys
 import os
+
+# Добавляем корневую директорию проекта в путь для импорта всех модулей
+# Это единственный путь, который нужен - он позволяет импортировать:
+# - version.py из корня
+# - highscores, settings, ai модули из корня
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from version import VERSION, get_version
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
 import random
 import time
 import numpy as np
-import sys
-import os
 from dataclasses import dataclass, field
 from typing import List
 
 import pygame
-import sys
-import os
-# Добавляем родительскую директорию в путь для импорта модулей
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from highscores import HighScoreManager
 from settings import SettingsManager
 from ai.ai_player import AIPlayer
@@ -107,20 +110,21 @@ def get_player_name(
     font: pygame.font.Font,
     big_font: pygame.font.Font,
     highscore_manager: HighScoreManager,
-) -> tuple[str, bool, bool, bool]:
-    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры и флаг авторежима"""
+) -> tuple[str, bool, bool, bool, bool]:
+    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры, флаг авторежима и флаг режима обучения"""
     input_text = ""
     input_active = True
     sound_enabled = True
     exit_game = False
     auto_mode = False  # Всегда начинаем с сброса флага авторежима
+    training_mode = False  # Режим обучения (клавиша 8)
 
     while input_active:
         # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return "", sound_enabled, exit_game, False  # Выход из игры по крестику
+                return "", sound_enabled, exit_game, False, False  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Имя обязательно для ввода!
@@ -141,7 +145,7 @@ def get_player_name(
                     input_text += event.unicode
                 elif event.key == pygame.K_ESCAPE:
                     # Выход из игры
-                    return "", sound_enabled, True, False
+                    return "", sound_enabled, True, False, False
                 elif event.key == pygame.K_m:
                     # Переключение всех звуков (музыки и эффектов)
                     if sound_enabled:
@@ -159,6 +163,17 @@ def get_player_name(
                     if not getattr(sys, "frozen", False):
                         print(
                             f"Авторежим активирован через клавишу 0, имя: {input_text}"
+                        )  # Отладочная информация
+                elif event.key == 56:  # Клавиша 8
+                    # Режим обучения - запуск игры сразу после нажатия 8
+                    input_text = "training"
+                    auto_mode = True
+                    training_mode = True
+                    input_active = False
+                    # Не выводим в exe файле
+                    if not getattr(sys, "frozen", False):
+                        print(
+                            f"Режим обучения активирован через клавишу 8, имя: {input_text}"
                         )  # Отладочная информация
 
         # Отрисовка экрана
@@ -220,6 +235,14 @@ def get_player_name(
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 110),
         )
 
+        # Подсказка о режиме обучения
+        render_colored_hint(
+            screen,
+            font,
+            "8 - режим обучения ИИ",
+            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 140),
+        )
+
         pygame.display.flip()
 
     # ФИНАЛЬНАЯ ВАЛИДАЦИЯ: убеждаемся, что имя корректно
@@ -227,7 +250,7 @@ def get_player_name(
     if not final_name:
         final_name = "robot"  # Крайний случай для авторежима
 
-    return final_name, sound_enabled, exit_game, auto_mode
+    return final_name, sound_enabled, exit_game, auto_mode, training_mode
 
 
 def show_highscores(
@@ -813,6 +836,87 @@ def show_settings_window(
         pygame.display.flip()
 
     return sound_enabled
+
+
+def _print_training_summary(ai_player, training_rounds: int) -> None:
+    """
+    Выводит итоговую статистику обучения в консоль.
+    
+    Args:
+        ai_player: Экземпляр AIPlayer с данными обучения
+        training_rounds: Количество сыгранных раундов в режиме обучения
+    """
+    # Не выводим в exe файле, чтобы не открывать консоль
+    import sys
+    if getattr(sys, "frozen", False):
+        return  # Пропускаем вывод в скомпилированном exe
+    
+    try:
+        print("\n" + "=" * 70)
+        print("ИТОГИ РЕЖИМА ОБУЧЕНИЯ ИИ")
+        print("=" * 70)
+        
+        # Основная статистика
+        print(f"\n📊 Общая статистика:")
+        print(f"   Сыграно раундов: {training_rounds}")
+        print(f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}")
+        print(f"   Побед: {ai_player.performance_metrics.get('games_won', 0)}")
+        
+        if ai_player.performance_metrics.get('games_played', 0) > 0:
+            win_rate = (ai_player.performance_metrics.get('games_won', 0) / 
+                       ai_player.performance_metrics.get('games_played', 0)) * 100
+            print(f"   Процент побед: {win_rate:.1f}%")
+        
+        total_score = ai_player.performance_metrics.get('total_score', 0)
+        if training_rounds > 0:
+            avg_score = total_score / training_rounds
+            print(f"   Средний счёт за раунд: {avg_score:.1f}")
+        
+        # Метрики обучения
+        print(f"\n🤖 Прогресс обучения:")
+        avg_accuracy = ai_player.performance_metrics.get('average_accuracy', 0.0)
+        learning_progress = ai_player.performance_metrics.get('learning_progress', 0.0)
+        print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
+        print(f"   Прогресс обучения: {learning_progress:.2%}")
+        
+        # Статистика системы обучения
+        learning_data = ai_player.learning_system.get_learning_progress()
+        if isinstance(learning_data, dict) and learning_data.get("total_iterations", 0) > 0:
+            print(f"\n📈 Детальная статистика обучения:")
+            print(f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}")
+            print(f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}")
+            print(f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}")
+            
+            # Информация о модели
+            model = ai_player.learning_system.learning_data.get("success_prediction_model")
+            if model is not None:
+                model_metrics = ai_player.learning_system.learning_data.get("model_metrics", {})
+                model_accuracy = model_metrics.get("last_accuracy")
+                if model_accuracy is not None:
+                    print(f"   Точность ML модели: {model_accuracy:.2%}")
+            
+            # Кластеризация
+            trajectory_patterns = learning_data.get('trajectory_patterns', 0)
+            unique_clusters = learning_data.get('trajectory_clusters_count', 0)
+            if trajectory_patterns > 0:
+                print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
+                print(f"   Количество кластеров: {unique_clusters}")
+        
+        # Оценка эффективности
+        print(f"\n📊 Оценка эффективности:")
+        if learning_progress > 0.8:
+            print(f"   🟢 ОТЛИЧНО: Система показывает высокий прогресс обучения")
+        elif learning_progress > 0.6:
+            print(f"   🟡 ХОРОШО: Система стабильно обучается")
+        elif learning_progress > 0.4:
+            print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система накапливает опыт")
+        else:
+            print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных для оценки")
+        
+        print("=" * 70 + "\n")
+        
+    except Exception as e:
+        print(f"\n⚠️  Ошибка при выводе статистики обучения: {e}\n")
 
 
 def main() -> None:

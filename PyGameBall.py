@@ -1,6 +1,6 @@
 # Игра Арканоид
-# Отслеживание версий
-VERSION = "2.2"
+# Версия импортируется из централизованного файла version.py
+from version import VERSION, get_version
 
 import os
 
@@ -103,20 +103,21 @@ def get_player_name(
     font: pygame.font.Font,
     big_font: pygame.font.Font,
     highscore_manager: HighScoreManager,
-) -> tuple[str, bool, bool, bool]:
-    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры и флаг авторежима"""
+) -> tuple[str, bool, bool, bool, bool]:
+    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры, флаг авторежима и флаг режима обучения"""
     input_text = ""
     input_active = True
     sound_enabled = True
     exit_game = False
     auto_mode = False  # Всегда начинаем с сброса флага авторежима
+    training_mode = False  # Режим обучения (клавиша 8)
 
     while input_active:
         # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return "", sound_enabled, exit_game, False  # Выход из игры по крестику
+                return "", sound_enabled, exit_game, False, False  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Имя обязательно для ввода!
@@ -137,7 +138,7 @@ def get_player_name(
                     input_text += event.unicode
                 elif event.key == pygame.K_ESCAPE:
                     # Выход из игры
-                    return "", sound_enabled, True, False
+                    return "", sound_enabled, True, False, False
                 elif event.key == pygame.K_m:
                     # Переключение всех звуков (музыки и эффектов)
                     if sound_enabled:
@@ -155,6 +156,17 @@ def get_player_name(
                     if not getattr(sys, "frozen", False):
                         print(
                             f"Авторежим активирован через клавишу 0, имя: {input_text}"
+                        )  # Отладочная информация
+                elif event.key == 56:  # Клавиша 8
+                    # Режим обучения - запуск игры сразу после нажатия 8
+                    input_text = "training"
+                    auto_mode = True
+                    training_mode = True
+                    input_active = False
+                    # Не выводим в exe файле
+                    if not getattr(sys, "frozen", False):
+                        print(
+                            f"Режим обучения активирован через клавишу 8, имя: {input_text}"
                         )  # Отладочная информация
 
         # Отрисовка экрана
@@ -216,6 +228,14 @@ def get_player_name(
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 110),
         )
 
+        # Подсказка о режиме обучения
+        render_colored_hint(
+            screen,
+            font,
+            "8 - режим обучения ИИ",
+            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 140),
+        )
+
         pygame.display.flip()
 
     # ФИНАЛЬНАЯ ВАЛИДАЦИЯ: убеждаемся, что имя корректно
@@ -223,7 +243,7 @@ def get_player_name(
     if not final_name:
         final_name = "robot"  # Крайний случай для авторежима
 
-    return final_name, sound_enabled, exit_game, auto_mode
+    return final_name, sound_enabled, exit_game, auto_mode, training_mode
 
 
 def show_highscores(
@@ -812,6 +832,87 @@ def show_settings_window(
     return sound_enabled
 
 
+def _print_training_summary(ai_player, training_rounds: int) -> None:
+    """
+    Выводит итоговую статистику обучения в консоль.
+    
+    Args:
+        ai_player: Экземпляр AIPlayer с данными обучения
+        training_rounds: Количество сыгранных раундов в режиме обучения
+    """
+    # Не выводим в exe файле, чтобы не открывать консоль
+    import sys
+    if getattr(sys, "frozen", False):
+        return  # Пропускаем вывод в скомпилированном exe
+    
+    try:
+        print("\n" + "=" * 70)
+        print("ИТОГИ РЕЖИМА ОБУЧЕНИЯ ИИ")
+        print("=" * 70)
+        
+        # Основная статистика
+        print(f"\n📊 Общая статистика:")
+        print(f"   Сыграно раундов: {training_rounds}")
+        print(f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}")
+        print(f"   Побед: {ai_player.performance_metrics.get('games_won', 0)}")
+        
+        if ai_player.performance_metrics.get('games_played', 0) > 0:
+            win_rate = (ai_player.performance_metrics.get('games_won', 0) / 
+                       ai_player.performance_metrics.get('games_played', 0)) * 100
+            print(f"   Процент побед: {win_rate:.1f}%")
+        
+        total_score = ai_player.performance_metrics.get('total_score', 0)
+        if training_rounds > 0:
+            avg_score = total_score / training_rounds
+            print(f"   Средний счёт за раунд: {avg_score:.1f}")
+        
+        # Метрики обучения
+        print(f"\n🤖 Прогресс обучения:")
+        avg_accuracy = ai_player.performance_metrics.get('average_accuracy', 0.0)
+        learning_progress = ai_player.performance_metrics.get('learning_progress', 0.0)
+        print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
+        print(f"   Прогресс обучения: {learning_progress:.2%}")
+        
+        # Статистика системы обучения
+        learning_data = ai_player.learning_system.get_learning_progress()
+        if isinstance(learning_data, dict) and learning_data.get("total_iterations", 0) > 0:
+            print(f"\n📈 Детальная статистика обучения:")
+            print(f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}")
+            print(f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}")
+            print(f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}")
+            
+            # Информация о модели
+            model = ai_player.learning_system.learning_data.get("success_prediction_model")
+            if model is not None:
+                model_metrics = ai_player.learning_system.learning_data.get("model_metrics", {})
+                model_accuracy = model_metrics.get("last_accuracy")
+                if model_accuracy is not None:
+                    print(f"   Точность ML модели: {model_accuracy:.2%}")
+            
+            # Кластеризация
+            trajectory_patterns = learning_data.get('trajectory_patterns', 0)
+            unique_clusters = learning_data.get('trajectory_clusters_count', 0)
+            if trajectory_patterns > 0:
+                print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
+                print(f"   Количество кластеров: {unique_clusters}")
+        
+        # Оценка эффективности
+        print(f"\n📊 Оценка эффективности:")
+        if learning_progress > 0.8:
+            print(f"   🟢 ОТЛИЧНО: Система показывает высокий прогресс обучения")
+        elif learning_progress > 0.6:
+            print(f"   🟡 ХОРОШО: Система стабильно обучается")
+        elif learning_progress > 0.4:
+            print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система накапливает опыт")
+        else:
+            print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных для оценки")
+        
+        print("=" * 70 + "\n")
+        
+    except Exception as e:
+        print(f"\n⚠️  Ошибка при выводе статистики обучения: {e}\n")
+
+
 def main() -> None:
     pygame.init()
     pygame.mixer.init()  # Инициализация аудио микшера
@@ -862,6 +963,8 @@ def main() -> None:
     running = True
     sound_enabled = True
     auto_mode = False
+    training_mode = False
+    training_rounds = 0  # Счетчик раундов в режиме обучения
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
         # Сбрасываем флаг завершения авторежима для каждого нового запуска
@@ -877,7 +980,7 @@ def main() -> None:
         ball.vel_y = 0
         bricks = build_bricks()
         score = 0
-        lives_left = MAX_LIVES
+        lives_left = MAX_LIVES if not training_mode else 999  # Бесконечные жизни в режиме обучения
         game_over = False
         game_started = False
 
@@ -893,7 +996,7 @@ def main() -> None:
             print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
 
         # Ввод имени игрока
-        player_name, sound_enabled, exit_game, auto_mode = get_player_name(
+        player_name, sound_enabled, exit_game, auto_mode, training_mode = get_player_name(
             screen, font, big_font, highscore_manager
         )
         if exit_game:
@@ -932,13 +1035,21 @@ def main() -> None:
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    # В режиме обучения QUIT завершает обучение и выводит статистику
+                    if training_mode:
+                        running = False
+                        break
                     # В ручном режиме QUIT немедленно закрывает приложение
                     pygame.quit()
                     return
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         # Выход из игры
-                        if auto_mode:
+                        if training_mode:
+                            # В режиме обучения ESC завершает обучение и выводит статистику
+                            running = False
+                            break
+                        elif auto_mode:
                             # В авторежиме ESC полностью закрывает приложение
                             pygame.quit()
                             return
@@ -1132,8 +1243,10 @@ def main() -> None:
                             ].play()
 
                     if ball.rect.bottom >= SCREEN_HEIGHT:
-                        lives_left -= 1
-                        if lives_left <= 0:
+                        # В режиме обучения не уменьшаем жизни (бесконечные жизни)
+                        if not training_mode:
+                            lives_left -= 1
+                        if lives_left <= 0 and not training_mode:
                             game_over = True
                             # Рассчитываем время игры и сохраняем результат
                             game_time_seconds = int(time.time() - game_start_time)
@@ -1209,14 +1322,18 @@ def main() -> None:
                                 game_started = True
                                 ball.vel_x = ball.get_speed()
                                 ball.vel_y = -ball.get_speed()
+                            
+                            # В режиме обучения также автоматически запускаем игру заново
+                            if training_mode:
+                                game_started = True
+                                ball.vel_x = ball.get_speed()
+                                ball.vel_y = -ball.get_speed()
 
                     if not bricks:
-                        game_over = True
-                        # Рассчитываем время игры и сохраняем результат
-                        game_time_seconds = int(time.time() - game_start_time)
-
-                        # Обучаем AI на результате игры (победа)
-                        if auto_mode:
+                        # В режиме обучения автоматически перезапускаем игру
+                        if training_mode:
+                            # Обучаем AI на результате игры (победа)
+                            game_time_seconds = int(time.time() - game_start_time)
                             ai_result = {
                                 "action_type": "game_end",
                                 "success": True,  # Игра выиграна
@@ -1226,56 +1343,93 @@ def main() -> None:
                             }
                             ai_player.learn_from_result(ai_result)
                             ai_player.on_game_end(True, score)
+                            
+                            # Увеличиваем счетчик раундов
+                            training_rounds += 1
+                            
+                            # Автоматически перезапускаем игру
+                            paddle = Paddle()
+                            ball = Ball()
+                            ball_speed = settings_manager.get_ball_speed()
+                            ball.set_speed(ball_speed)
+                            ball.reset(paddle.rect)
+                            ball.vel_y = 0
+                            bricks = build_bricks()
+                            score = 0
+                            lives_left = 999  # Бесконечные жизни
+                            game_over = False
+                            game_started = True  # Автоматически запускаем
+                            ball.vel_x = ball.get_speed()
+                            ball.vel_y = -ball.get_speed()
+                            # Перезапускаем отсчет времени игры
+                            game_start_time = time.time()
+                        else:
+                            # Обычный режим - показываем экран результатов
+                            game_over = True
+                            # Рассчитываем время игры и сохраняем результат
+                            game_time_seconds = int(time.time() - game_start_time)
 
-                        # В любом режиме показываем экран результатов
-                        sound_enabled, restart_game, exit_game = show_game_results(
-                            screen,
-                            font,
-                            big_font,
-                            score,
-                            player_name,
-                            game_time_seconds,
-                            highscore_manager,
-                            settings_manager,
-                            ball,
-                            auto_mode,
-                        )
-
-                        # Если игрок хочет выйти из игры
-                        if exit_game:
-                            # Сохраняем данные обучения перед выходом
+                            # Обучаем AI на результате игры (победа)
                             if auto_mode:
-                                ai_player.save_learning_data()
-                            pygame.quit()
-                            return
+                                ai_result = {
+                                    "action_type": "game_end",
+                                    "success": True,  # Игра выиграна
+                                    "final_score": score,
+                                    "game_duration": game_time_seconds,
+                                    "bricks_remaining": 0,
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player.on_game_end(True, score)
 
-                        # Обработка перезапуска в зависимости от режима
-                        if restart_game:
-                            if auto_mode:
-                                # В авторежиме возвращаемся к вводу имени
-                                auto_mode_complete = True
-                                running = False  # Останавливаем текущую игру
-                                break  # Выход из игрового цикла
-                            else:
-                                # В ручном режиме перезапускаем игру - ПОЛНЫЙ СБРОС СОСТОЯНИЯ
-                                paddle = Paddle()
-                                ball = Ball()
-                                ball_speed = settings_manager.get_ball_speed()
-                                ball.set_speed(ball_speed)
-                                ball.reset(paddle.rect)
-                                ball.vel_y = 0
-                                bricks = build_bricks()
-                                score = 0
-                                lives_left = MAX_LIVES
-                                game_over = False
-                                game_started = False
-                                # Пересоздаем AI для новой игры
-                                ai_player = AIPlayer(
-                                    SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
-                                )
-                                ai_player.activate()
-                                # Перезапускаем отсчет времени игры
-                                game_start_time = time.time()
+                            # В любом режиме показываем экран результатов
+                            sound_enabled, restart_game, exit_game = show_game_results(
+                                screen,
+                                font,
+                                big_font,
+                                score,
+                                player_name,
+                                game_time_seconds,
+                                highscore_manager,
+                                settings_manager,
+                                ball,
+                                auto_mode,
+                            )
+
+                            # Если игрок хочет выйти из игры
+                            if exit_game:
+                                # Сохраняем данные обучения перед выходом
+                                if auto_mode:
+                                    ai_player.save_learning_data()
+                                pygame.quit()
+                                return
+
+                            # Обработка перезапуска в зависимости от режима
+                            if restart_game:
+                                if auto_mode:
+                                    # В авторежиме возвращаемся к вводу имени
+                                    auto_mode_complete = True
+                                    running = False  # Останавливаем текущую игру
+                                    break  # Выход из игрового цикла
+                                else:
+                                    # В ручном режиме перезапускаем игру - ПОЛНЫЙ СБРОС СОСТОЯНИЯ
+                                    paddle = Paddle()
+                                    ball = Ball()
+                                    ball_speed = settings_manager.get_ball_speed()
+                                    ball.set_speed(ball_speed)
+                                    ball.reset(paddle.rect)
+                                    ball.vel_y = 0
+                                    bricks = build_bricks()
+                                    score = 0
+                                    lives_left = MAX_LIVES
+                                    game_over = False
+                                    game_started = False
+                                    # Пересоздаем AI для новой игры
+                                    ai_player = AIPlayer(
+                                        SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
+                                    )
+                                    ai_player.activate()
+                                    # Перезапускаем отсчет времени игры
+                                    game_start_time = time.time()
 
             screen.fill((10, 10, 30))
             draw_bricks(screen, bricks)
@@ -1313,7 +1467,16 @@ def main() -> None:
             draw_hud(screen, score, lives_left, font, ball, auto_mode, ai_player)
 
             if not game_started:
-                if auto_mode:
+                if training_mode:
+                    # В режиме обучения показываем специальную подсказку
+                    training_hint = big_font.render(
+                        f"РЕЖИМ ОБУЧЕНИЯ | Раунд: {training_rounds + 1}", True, (0, 255, 255)
+                    )
+                    training_rect = training_hint.get_rect(
+                        center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+                    )
+                    screen.blit(training_hint, training_rect)
+                elif auto_mode:
                     # В авторежиме показываем другую подсказку
                     auto_hint = big_font.render(
                         "АВТОРЕЖИМ АКТИВЕН", True, (255, 255, 0)
@@ -1338,14 +1501,30 @@ def main() -> None:
 
             # Проверяем, нужно ли остановить игру в ручном режиме
             if not running:
+                # В режиме обучения при остановке выводим статистику
+                if training_mode:
+                    break  # Выход для вывода статистики
                 # В ручном режиме при остановке игры полностью закрываем приложение
                 if not auto_mode:
                     pygame.quit()
                     return
                 break  # Выход для возврата к вводу имени
 
+    # В режиме обучения выводим статистику перед выходом
+    if training_mode:
+        _print_training_summary(ai_player, training_rounds)
+        # Сохраняем данные обучения только если они полные
+        try:
+            if ai_player.performance_metrics.get('games_played', 0) > 0:
+                ai_player.save_learning_data()
+                if not getattr(sys, "frozen", False):
+                    print("[AI] Данные обучения сохранены.")
+        except Exception as e:
+            if not getattr(sys, "frozen", False):
+                print(f"[AI] Предупреждение: не удалось сохранить данные обучения: {e}")
+
     # Сохраняем данные обучения AI при выходе из игры
-    if auto_mode:
+    if auto_mode and not training_mode:
         ai_player.save_learning_data()
 
     pygame.quit()

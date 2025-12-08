@@ -20,7 +20,9 @@ def test_game_state_reset():
     # Test 1: Check that paddle, ball, bricks are created in the main loop
     print("1. Checking game state initialization in main loop...")
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check for state reset in the main loop
@@ -56,7 +58,9 @@ def test_game_state_reset():
     # Test 2: Check that state variables are not duplicated at the top level
     print("2. Checking for duplicate state initialization...")
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Count occurrences of key state variables
@@ -85,7 +89,9 @@ def test_game_state_reset():
     # Test 3: Check for proper game flow logic
     print("3. Checking game flow logic...")
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check for main game loop structure
@@ -116,7 +122,9 @@ def test_game_state_reset():
     # Test 4: Check for auto mode handling
     print("4. Checking auto mode handling...")
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check for auto mode specific logic

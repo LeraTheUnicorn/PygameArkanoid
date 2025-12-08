@@ -7,49 +7,81 @@ classDiagram
         -position_optimizer: PositionOptimizer
         -learning_system: LearningSystem
         -performance_logger: PerformanceLogger
-        -game_state: GameState
+        -current_game_state: GameState
         -targeting_system: dict
         -loop_prevention_system: dict
-        +update_game_state(ball, paddle, bricks)
-        +get_optimal_position(): int
-        +learn_from_action(success: bool)
-        +log_performance()
+        -smoothness_system: dict
+        -is_active: bool
+        +activate()
+        +deactivate()
+        +update_game_state(ball, paddle, bricks, score, start_time)
+        +get_optimal_paddle_position(): int
+        +move_paddle_towards(current_x, paddle_speed): int
+        +calculate_adaptive_paddle_speed(current_x, optimal_x, ball_speed): int
+        +learn_from_result(action_result: Dict)
         +_find_best_target_brick(): Dict
+        +_predict_exact_landing_position(): float
         +_detect_loop_pattern(): bool
-        +_change_strategy_if_looping()
+        +_apply_alternative_strategy(optimal_position): int
+        +_reevaluate_after_bounce()
+        +_update_loop_tracking()
+        +_update_brick_map()
+        +_update_visible_targets()
     }
 
     class TrajectoryPredictor {
-        -physics: PhysicsEngine
-        +predict_trajectory(ball, paddle_position): List[Point]
-        +calculate_bounce_point(ball, paddle_position): Point
-        +predict_after_bounce(ball, bounce_point): List[Point]
+        -screen_width: int
+        -screen_height: int
+        +predict_trajectory(ball, max_steps): List[Point]
+        +predict_paddle_intersection(ball, paddle_y): Optional[Point]
+        +predict_after_bounce_trajectory(ball, bounce_point, paddle_offset): List[Point]
+        +find_optimal_bounce_position(ball, target_brick, paddle_y): Optional[float]
+        +_calculate_bounce_velocity_x(ball, paddle_offset): float
+        +_evaluate_trajectory_effectiveness(trajectory, bricks): float
     }
 
     class PositionOptimizer {
-        -target_cubes: List[pygame.Rect]
-        +find_optimal_position(ball, bricks): int
-        +calculate_bounce_angle(target_brick): float
-        +evaluate_success_probability(position, target_brick): float
+        -screen_width: int
+        -screen_height: int
+        +find_optimal_position(game_state, trajectory_predictor): int
+        +calculate_paddle_movement(current_x, target_x, paddle_speed): int
+        +evaluate_position_quality(game_state, paddle_x): float
+        +find_target_bricks(game_state, trajectory_predictor): List
+        +optimize_for_multiple_shots(game_state, trajectory_predictor): int
+        +_follow_ball_position(game_state): int
+        +_bounce_x_to_paddle_x(bounce_x, paddle_width): int
+        +_get_brick_weight(brick): float
     }
 
     class LearningSystem {
         -model_data: dict
-        -learning_rate: float
-        +update_strategy(action_result: dict)
-        +get_strategy_adjustment(): dict
+        -model_path: str
+        -strategy_weights: dict
+        -position_preferences: dict
+        -trajectory_patterns: dict
+        +update_strategy(action_result: Dict)
         +save_model()
         +load_model()
+        +_reinforce_successful_strategy(action_result: Dict)
+        +_penalize_failed_strategy(action_result: Dict)
+        +_determine_strategy_type(action_result: Dict): str
+        +_update_position_preferences(action_result: Dict)
+        +_analyze_trajectory_pattern(trajectory_data: Dict, success: bool)
     }
 
     class PerformanceLogger {
-        -log_file: str
+        -session_id: str
         -session_data: dict
-        +log_action(action: dict)
-        +log_result(result: dict)
-        +analyze_performance()
-        +generate_report()
-        +test_json_serialization()
+        -enable_session_logging: bool
+        -log_file: str
+        +log_action(action_data: Dict)
+        +log_game_start(game_state: GameState)
+        +log_game_end(game_state: GameState, success: bool, final_score: int)
+        +log_paddle_movement(current_x, target_x, movement)
+        +log_trajectory_prediction(predicted_trajectory, actual_result)
+        +log_brick_interaction(brick, interaction_type)
+        +save_session_log()
+        +_generate_session_id(): str
     }
 
     class TargetingSystem {
@@ -76,11 +108,22 @@ classDiagram
         -alternative_strategies: List[str]
         -loop_detection_threshold: int
         -strategy_change_cooldown: int
+        -current_strategy_index: int
         +_detect_loop_pattern(): bool
-        +_change_strategy_if_looping()
-        +_apply_alternative_strategy(): int
+        +_apply_alternative_strategy(optimal_position: int): int
         +_reevaluate_after_bounce()
-        +_update_loop_tracking()
+        +_update_loop_tracking(movement, current_x, optimal_x)
+    }
+    
+    class SmoothnessSystem {
+        -recent_movements: List[int]
+        -recent_positions: List[int]
+        -movement_changes: List[int]
+        -jitter_threshold: int
+        -jitter_window: int
+        -min_movement_distance: int
+        -smoothness_penalty: float
+        -consecutive_stops: int
     }
 
     class CeilingBounceSystem {
@@ -104,12 +147,16 @@ classDiagram
     AIPlayer --> GameState
     AIPlayer --> TargetingSystem
     AIPlayer --> LoopPreventionSystem
+    AIPlayer --> SmoothnessSystem
     AIPlayer --> CeilingBounceSystem
     PositionOptimizer --> GameState
+    PositionOptimizer --> TrajectoryPredictor
     TrajectoryPredictor --> GameState
     TargetingSystem --> GameState
     LoopPreventionSystem --> GameState
+    SmoothnessSystem --> GameState
     CeilingBounceSystem --> GameState
+    PerformanceLogger --> GameState
 ```
 
 ## Поток данных в системе
@@ -123,8 +170,8 @@ flowchart TD
      D --> E
 
      E --> F[Расчет траектории падения]
-     F --> G[Предсказание отскока]
-     G --> H[Траектория после отскока]
+     F --> G[TrajectoryPredictor.predict_paddle_intersection]
+     G --> H[TrajectoryPredictor.predict_after_bounce_trajectory]
 
      H --> I{Мяч от потолка?}
      I -->|Да| J[CeilingBounceSystem.handle_positioning]
@@ -136,81 +183,86 @@ flowchart TD
      M -->|Нет| O[Анализ видимых целей]
      N --> P[Расчет оптимального угла]
      O --> P
-     P --> Q[Выбор лучшей позиции]
+     P --> Q[get_optimal_paddle_position]
 
      Q --> R[Предотвращение вертикальных ударов]
-     R --> S[Проверка зацикливания]
+     R --> S[Проверка зацикливания _detect_loop_pattern]
      S --> T{Зацикливание?}
      T -->|Да| U[Смена стратегии с кулдауном]
      T -->|Нет| V[Применение текущей стратегии]
-     U --> W[Применение альтернативной стратегии]
+     U --> W[_apply_alternative_strategy]
      V --> W
-     W --> X[Строгое ограничение границ]
+     W --> X[calculate_adaptive_paddle_speed]
 
      J --> X
-     X --> Y[Получение команды движения]
+     X --> Y[move_paddle_towards]
 
      H --> Y
      Y --> Z[Движение платформы]
 
      Z --> AA[Выполнение действия]
      AA --> BB[Оценка результата]
-     BB --> CC[Переоценка после отбития]
-     CC --> DD[LearningSystem.update_strategy]
-     DD --> EE[PerformanceLogger.log_action]
+     BB --> CC[_reevaluate_after_bounce]
+     CC --> DD[learn_from_result]
+     DD --> EE[LearningSystem.update_strategy]
+     EE --> FF[PerformanceLogger.log_action]
 
-     EE --> FF[Проверка условий игры]
-     FF --> GG{Игра завершена?}
-     GG -->|Нет| A
-     GG -->|Да| HH[Сохранение итогов]
-     HH --> II[Генерация отчета]
+     FF --> GG[Проверка условий игры]
+     GG --> HH{Игра завершена?}
+     HH -->|Нет| A
+     HH -->|Да| II[PerformanceLogger.log_game_end]
+     II --> JJ[Сохранение итогов]
+     JJ --> KK[Генерация отчета]
 ```
 
 ## Алгоритм принятия решений
 
 ```mermaid
 flowchart TD
-     A[Получение текущего состояния] --> B{Мяч падает?}
-     B -->|Да| C[Анализ траектории и карты кубиков]
+     A[update_game_state] --> B{Мяч падает?}
+     B -->|Да| C[_update_brick_map и _update_visible_targets]
      B -->|Нет| D{Мяч у потолка?}
      D -->|Да| E[Специальная логика отскоков от потолка]
-     D -->|Нет| F[Следим за мячом с упреждением]
+     D -->|Нет| F[_predict_exact_landing_position]
 
-     C --> G[Обновление видимых целей]
-     G --> H[Поиск оптимальной позиции]
-     H --> I{Мало кубиков ≤5?}
-     I -->|Да| J[Приоритет нижним кубикам]
-     I -->|Нет| K[Анализ по видимости и расстоянию]
-     J --> L[Расчет смещения для прицеливания]
-     K --> L
+     C --> G[TrajectoryPredictor.predict_trajectory]
+     G --> H[TrajectoryPredictor.predict_paddle_intersection]
+     H --> I[TrajectoryPredictor.predict_after_bounce_trajectory]
+     I --> J[get_optimal_paddle_position]
 
-     L --> M[Предотвращение вертикальных ударов]
-     M --> N[Проверка зацикливания 80%]
-     N --> O{Зацикливание?}
-     O -->|Да| P[Смена стратегии с кулдауном]
-     O -->|Нет| Q[Применение текущей стратегии]
-     P --> R[Альтернативная стратегия]
-     Q --> R
+     J --> K{Мало кубиков ≤5?}
+     K -->|Да| L[_find_best_target_for_few_bricks]
+     K -->|Нет| M[_find_best_target_brick]
+     L --> N[Расчет optimal_offset]
+     M --> N
 
-     R --> S[Строгое ограничение границ ±5px]
-     S --> T[Расчет пути движения]
+     N --> O[Предотвращение вертикальных ударов]
+     O --> P[_detect_loop_pattern - проверка 80%]
+     P --> Q{Зацикливание?}
+     Q -->|Да| R[_apply_alternative_strategy с кулдауном]
+     Q -->|Нет| S[Применение текущей стратегии]
+     R --> T[calculate_adaptive_paddle_speed]
+     S --> T
 
-     E --> T
-     F --> T
-     T --> U[Движение к цели]
-     U --> V[Корректировка позиции]
-     V --> W[Отскок мяча]
+     T --> U[Строгое ограничение границ ±5px]
+     U --> V[move_paddle_towards]
 
-     W --> X[Оценка результата]
-     X --> Y{Попали в кубик?}
-     Y -->|Да| Z[Запись успешного удара]
-     Y -->|Нет| AA[Анализ неудачи]
-     Z --> BB[Обновление паттернов попаданий]
-     AA --> BB
-     BB --> CC[Переоценка после отбития]
-     CC --> DD[Корректировка стратегии]
-     DD --> EE[Сохранение данных обучения]
-     EE --> FF[Следующий ход]
+     E --> V
+     F --> V
+     V --> W[Движение платформы]
+     W --> X[Отскок мяча]
+
+     X --> Y[Оценка результата]
+     Y --> Z{Попали в кубик?}
+     Z -->|Да| AA[Запись успешного удара]
+     Z -->|Нет| BB[Анализ неудачи]
+     AA --> CC[_reevaluate_after_bounce]
+     BB --> CC
+     CC --> DD[learn_from_result]
+     DD --> EE[LearningSystem.update_strategy]
+     EE --> FF[PerformanceLogger.log_action]
+     FF --> GG[Сохранение данных обучения]
+     GG --> HH[Следующий ход]
 ```
 
 ## Физическая модель траектории и система предотвращения зацикливания
@@ -269,12 +321,26 @@ graph TB
 
 Эти диаграммы показывают:
 
-1. **Структуру классов** - как компоненты системы взаимодействуют друг с другом
-1. **Поток данных** - как информация движется через систему с учетом новых компонентов
-1. **Алгоритм принятия решений** - обновленную логику работы AIPlayer с версией 2.2
+1. **Структуру классов** - как компоненты системы взаимодействуют друг с другом, включая все актуальные методы и системы
+1. **Поток данных** - как информация движется через систему с учетом всех компонентов версии 2.2.0002
+1. **Алгоритм принятия решений** - обновленную логику работы AIPlayer с реальными методами из кода
 1. **Физическую модель** - расширенную модель траектории с анализом отскоков от потолка
 
-Ключевые принципы версии 2.2:
+## Обновления версии 2.2.0002
+
+Диаграмма обновлена для соответствия реальной реализации кода:
+
+### Основные изменения:
+- ✅ Исправлены названия методов: `get_optimal_paddle_position()`, `learn_from_result()`, `move_paddle_towards()`
+- ✅ Добавлены методы активации: `activate()`, `deactivate()`
+- ✅ Добавлен метод адаптивной скорости: `calculate_adaptive_paddle_speed()`
+- ✅ Добавлена система плавности движения: `SmoothnessSystem`
+- ✅ Обновлены методы TrajectoryPredictor: `predict_paddle_intersection()`, `predict_after_bounce_trajectory()`
+- ✅ Обновлены методы PositionOptimizer: `find_optimal_position()`, `calculate_paddle_movement()`
+- ✅ Обновлены методы PerformanceLogger: `log_game_start()`, `log_game_end()`, `log_paddle_movement()`
+- ✅ Добавлены связи между компонентами: PositionOptimizer использует TrajectoryPredictor
+
+### Ключевые принципы версии 2.2.0002:
 
 - **Модульность** - каждый компонент отвечает за свою область с четким разделением ответственности
 - **Обучение** - система улучшается на основе опыта с сохранением паттернов попаданий
@@ -283,3 +349,5 @@ graph TB
 - **Устойчивость** - предотвращение зацикливания с порогом 80% и позиционной стагнацией
 - **Адаптивность** - специальная логика для различных сценариев (мало кубиков, отскоки от потолка)
 - **Точность** - строгое ограничение границ экрана и предотвращение вертикальных ударов
+- **Плавность** - система предотвращения дрожания платформы (SmoothnessSystem)
+- **Адаптивная скорость** - динамическая корректировка скорости платформы в зависимости от ситуации

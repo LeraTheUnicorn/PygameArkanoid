@@ -45,7 +45,9 @@ def test_auto_mode_fix():
 
     # Read source code and check for required logic
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check for conditional logic for auto_mode
@@ -77,7 +79,9 @@ def test_auto_mode_fix():
     print("3. Checking show_game_results calls update...")
 
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Find all function calls
@@ -109,7 +113,9 @@ def test_auto_mode_fix():
     print("4. Checking key 0 handling for auto mode...")
 
     try:
-        with open("../PyGameBall.py", "r", encoding="utf-8") as f:
+        # Правильный путь к PyGameBall.py
+        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check for key 48 (0) handling
