@@ -15,11 +15,12 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pygame
-from highscores import HighScoreManager
-from settings import SettingsManager
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# Добавляем родительскую директорию в путь для импорта модулей
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from highscores import HighScoreManager
+from settings import SettingsManager
 from ai.ai_player import AIPlayer
 
 
@@ -154,9 +155,11 @@ def get_player_name(
                     input_text = "robot"
                     auto_mode = True
                     input_active = False
-                    print(
-                        f"Авторежим активирован через клавишу 0, имя: {input_text}"
-                    )  # Отладочная информация
+                    # Не выводим в exe файле
+                    if not getattr(sys, "frozen", False):
+                        print(
+                            f"Авторежим активирован через клавишу 0, имя: {input_text}"
+                        )  # Отладочная информация
 
         # Отрисовка экрана
         screen.fill((10, 10, 30))
@@ -633,12 +636,15 @@ def draw_hud(
         # Показываем адаптивную скорость платформы в авторежиме
         adaptive_speed_text = ""
         if ai_player and hasattr(ai_player, 'current_game_state') and ai_player.current_game_state:
-            optimal_x = ai_player.get_optimal_paddle_position()
-            paddle_x = ai_player.current_game_state.paddle_position.x
-            adaptive_speed = ai_player.calculate_adaptive_paddle_speed(
-                paddle_x, optimal_x, ball.get_speed()
-            )
-            adaptive_speed_text = f" | Платформа: {adaptive_speed}"
+            try:
+                optimal_x = ai_player.get_optimal_paddle_position()
+                paddle_x = ai_player.current_game_state.paddle_position.x
+                adaptive_speed = ai_player.calculate_adaptive_paddle_speed(
+                    paddle_x, optimal_x, ball.get_speed()
+                )
+                adaptive_speed_text = f" | Платформа: {adaptive_speed}"
+            except (AttributeError, Exception):
+                pass
         
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость мяча: {ball.get_speed()}{adaptive_speed_text} | АВТОРЕЖИМ"
     else:
@@ -841,9 +847,13 @@ def main() -> None:
             pygame.mixer.music.set_volume(0.3)
             # Музыка будет запущена после ввода имени игрока
         except pygame.error:
-            print("Фоновая музыка не загружена")
+            # Не выводим в exe файле
+            if not getattr(sys, "frozen", False):
+                print("Фоновая музыка не загружена")
     except pygame.error as e:
-        print(f"Звуковые эффекты не загружены: {e}")
+        # Не выводим в exe файле
+        if not getattr(sys, "frozen", False):
+            print(f"Звуковые эффекты не загружены: {e}")
         paddle_bounce_sound = None
         brick_hit_sounds = None
 
@@ -881,7 +891,9 @@ def main() -> None:
 
         # Создаем новый AI-систему, которая загрузит обновленные данные
         ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
-        print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
+        # Не выводим в exe файле
+        if not getattr(sys, "frozen", False):
+            print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
 
         # Ввод имени игрока
         player_name, sound_enabled, exit_game, auto_mode = get_player_name(
@@ -896,7 +908,9 @@ def main() -> None:
             try:
                 pygame.mixer.music.play(-1)  # Цикличное воспроизведение фоновой музыки
             except pygame.error:
-                print("Не удалось запустить фоновую музыку")
+                # Не выводим в exe файле
+                if not getattr(sys, "frozen", False):
+                    print("Не удалось запустить фоновую музыку")
 
         # В авторежиме сразу устанавливаем нужную скорость и запускаем игру
         if auto_mode:
@@ -907,9 +921,11 @@ def main() -> None:
             game_started = True  # Игра начинается сразу
             ball.vel_x = ball.get_speed()  # Направление вправо
             ball.vel_y = -ball.get_speed()
-            print(
-                f"Авторежим: Игра запущена автоматически. AI активен: {ai_player.is_active}"
-            )
+            # Не выводим в exe файле
+            if not getattr(sys, "frozen", False):
+                print(
+                    f"Авторежим: Игра запущена автоматически. AI активен: {ai_player.is_active}"
+                )
         else:
             ai_player.deactivate()  # Деактивируем в ручном режиме
 
@@ -995,12 +1011,17 @@ def main() -> None:
                 # Движение платформы
                 if auto_mode:
                     # В авторежиме используем адаптивную скорость платформы
-                    # AI система сама рассчитает оптимальную скорость
+                    # Минимальная скорость должна быть достаточной для успешного отбивания
+                    base_speed = max(PADDLE_SPEED, ball.get_speed() * 0.8)  # Минимум 9 или 80% от скорости мяча
+                    auto_paddle_speed = max(base_speed, PADDLE_SPEED * 1.5)  # Минимум 13.5 для авторежима
+                    # Используем AI систему для автоматического управления
                     movement = ai_player.move_paddle_towards(
-                        paddle.rect.centerx, PADDLE_SPEED
+                        paddle.rect.centerx, int(auto_paddle_speed)
                     )
-                    # Применяем движение с учетом адаптивной скорости
-                    paddle.rect.x += movement
+                    # Применяем движение с гарантированной минимальной скоростью для авторежима
+                    # Внутри move_paddle_towards уже применена адаптивная скорость, но мы гарантируем минимум
+                    actual_speed = max(int(auto_paddle_speed * 0.9), int(auto_paddle_speed))
+                    paddle.rect.x += movement * actual_speed
                     # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
                     paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
                     min_center_x = paddle_half_width

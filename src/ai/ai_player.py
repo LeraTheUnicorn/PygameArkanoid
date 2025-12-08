@@ -126,14 +126,20 @@ class AIPlayer:
         Активирует AIPlayer для управления игрой.
         """
         self.is_active = True
-        print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
 
     def deactivate(self) -> None:
         """
         Деактивирует AIPlayer.
         """
         self.is_active = False
-        print("[AI DEBUG] AIPlayer деактивирован.")
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print("[AI DEBUG] AIPlayer деактивирован.")
 
     # ==========================
     # Обновление состояния игры
@@ -311,7 +317,10 @@ class AIPlayer:
 
             self.targeting_system["visible_targets"] = visible_targets
         except Exception as e:
-            print(f"Ошибка при обновлении видимых целей: {e}")
+            # Не выводим в exe файле
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"Ошибка при обновлении видимых целей: {e}")
             self.targeting_system["visible_targets"] = []
 
     # ==========================
@@ -392,7 +401,10 @@ class AIPlayer:
                 return int(self._track_ball_position())
 
         except Exception as e:
-            print(f"Ошибка при расчете оптимальной позиции: {e}")
+            # Не выводим в exe файле
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"Ошибка при расчете оптимальной позиции: {e}")
             return int(self.current_game_state.paddle_position.x)
 
     # ==========================
@@ -1092,10 +1104,16 @@ class AIPlayer:
                 # Адаптивная скорость платформы
                 if self.current_game_state:
                     ball_speed = self.current_game_state.ball_speed
-                    adjusted_paddle_speed = self.calculate_adaptive_paddle_speed(
-                        current_x, optimal_x, ball_speed
+                    distance_to_target = distance_to_optimal
+                    speed_multiplier = self.learning_system.get_adaptive_paddle_speed(
+                        ball_speed, distance_to_target
                     )
-                    self._last_paddle_speed_multiplier = adjusted_paddle_speed / paddle_speed
+                    # Ограничиваем минимальный множитель скорости, чтобы платформа не двигалась слишком медленно
+                    speed_multiplier = max(0.8, min(3.0, speed_multiplier))  # Минимум 0.8x, максимум 3.0x
+                    adjusted_paddle_speed = int(paddle_speed * speed_multiplier)
+                    # Гарантируем минимальную скорость платформы
+                    adjusted_paddle_speed = max(int(paddle_speed * 0.8), adjusted_paddle_speed)
+                    self._last_paddle_speed_multiplier = speed_multiplier
                 else:
                     adjusted_paddle_speed = paddle_speed
 
@@ -1133,7 +1151,10 @@ class AIPlayer:
             return movement
 
         except Exception as e:
-            print(f"Ошибка при движении платформы: {e}")
+            # Не выводим в exe файле
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"Ошибка при движении платформы: {e}")
             return self._fallback_movement(current_x)
 
     def _fallback_movement(self, current_x: int) -> int:
@@ -1414,16 +1435,31 @@ class AIPlayer:
         )
 
         # Логирование окончания игры
-        game_duration = 0
-        if self.current_game_stats["start_time"] is not None:
-            game_duration = int(time.time() - self.current_game_stats["start_time"])
+        # Создаем минимальное состояние игры, если его нет
+        if self.current_game_state is None:
+            # Создаем пустое состояние для логирования
+            empty_state = GameState(
+                ball_position=Point(0, 0),
+                ball_velocity=Point(0, 0),
+                paddle_position=Point(0, 0),
+                paddle_width=self.paddle_width,
+                remaining_bricks=[],
+                game_score=final_score,
+                game_time=0,
+                ball_speed=0,
+            )
+            game_state = empty_state
+        else:
+            game_state = self.current_game_state
 
-        self.performance_logger.log_game_end(
-            self.current_game_state, success, final_score
-        )
+        self.performance_logger.log_game_end(game_state, success, final_score)
 
         # Сохраняем данные по сессии и подготавливаемся к новой игре
         self._save_session_metrics(success, final_score)
+        
+        # Выводим метрики оценки работы системы scikit-learn
+        self._print_ml_system_metrics(success, final_score)
+        
         self._reset_current_game_stats()
 
     def _reset_current_game_stats(self) -> None:
@@ -1436,6 +1472,196 @@ class AIPlayer:
             "optimal_moves": 0,
             "total_moves": 0,
         }
+
+    def _print_ml_system_metrics(self, success: bool, final_score: int) -> None:
+        """
+        Выводит метрики оценки работы системы scikit-learn в консоль.
+        
+        Args:
+            success: True, если игра выиграна.
+            final_score: Итоговый счёт игры.
+        """
+        # Не выводим метрики в exe файле, чтобы не открывать консоль
+        import sys
+        if getattr(sys, "frozen", False):
+            return  # Пропускаем вывод в скомпилированном exe
+        
+        try:
+            print("\n" + "=" * 70)
+            print("МЕТРИКИ ОЦЕНКИ РАБОТЫ СИСТЕМЫ AI (scikit-learn)")
+            print("=" * 70)
+            
+            # Базовые метрики игры
+            print(f"\n📊 Результаты игры:")
+            print(f"   Результат: {'✅ ПОБЕДА' if success else '❌ ПОРАЖЕНИЕ'}")
+            print(f"   Финальный счёт: {final_score}")
+            print(f"   Всего игр: {self.performance_metrics['games_played']}")
+            print(f"   Побед: {self.performance_metrics['games_won']}")
+            if self.performance_metrics['games_played'] > 0:
+                win_rate = (self.performance_metrics['games_won'] / 
+                           self.performance_metrics['games_played']) * 100
+                print(f"   Процент побед: {win_rate:.1f}%")
+            
+            # Метрики текущей игры
+            print(f"\n🎯 Метрики текущей игры:")
+            print(f"   Уничтожено кубиков: {self.current_game_stats['bricks_destroyed']}")
+            print(f"   Всего предсказаний: {self.current_game_stats['total_predictions']}")
+            if self.current_game_stats['total_predictions'] > 0:
+                prediction_accuracy = (
+                    self.current_game_stats['successful_predictions'] / 
+                    self.current_game_stats['total_predictions']
+                ) * 100
+                print(f"   Точность предсказаний: {prediction_accuracy:.1f}%")
+            print(f"   Всего ходов: {self.current_game_stats['total_moves']}")
+            if self.current_game_stats['total_moves'] > 0:
+                optimal_move_rate = (
+                    self.current_game_stats['optimal_moves'] / 
+                    self.current_game_stats['total_moves']
+                ) * 100
+                print(f"   Оптимальных ходов: {optimal_move_rate:.1f}%")
+            
+            # Метрики обучения и scikit-learn
+            learning_progress = self.learning_system.get_learning_progress()
+            
+            if isinstance(learning_progress, dict) and learning_progress.get("total_iterations", 0) > 0:
+                print(f"\n🤖 Система обучения (scikit-learn):")
+                print(f"   Всего итераций обучения: {learning_progress.get('total_iterations', 0)}")
+                print(f"   Успешность адаптаций: {learning_progress.get('success_rate', 0.0):.2%}")
+                print(f"   Средний прогресс: {learning_progress.get('average_improvement', 0.0):.2%}")
+                
+                # Кластеризация траекторий (KMeans)
+                print(f"\n📈 Кластеризация траекторий (KMeans):")
+                trajectory_clusters = self.learning_system.cluster_trajectories()
+                unique_clusters = learning_progress.get('trajectory_clusters_count', 0)
+                cluster_diversity = learning_progress.get('cluster_diversity', 0.0)
+                trajectory_patterns = learning_progress.get('trajectory_patterns', 0)
+                
+                print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
+                print(f"   Количество кластеров: {unique_clusters}")
+                print(f"   Разнообразие кластеров: {cluster_diversity:.3f}")
+                
+                if trajectory_clusters:
+                    # Анализ распределения по кластерам
+                    cluster_counts = {}
+                    for item in trajectory_clusters:
+                        cluster_id = item.get("cluster", -1)
+                        cluster_counts[cluster_id] = cluster_counts.get(cluster_id, 0) + 1
+                    
+                    print(f"   Распределение по кластерам:")
+                    for cluster_id, count in sorted(cluster_counts.items()):
+                        percentage = (count / len(trajectory_clusters)) * 100
+                        print(f"      Кластер {cluster_id}: {count} паттернов ({percentage:.1f}%)")
+                else:
+                    print(f"   ⚠️  Недостаточно данных для кластеризации")
+                
+                # Модель предсказания успеха (RandomForestClassifier)
+                print(f"\n🔮 Модель предсказания успеха (RandomForestClassifier):")
+                model = self.learning_system.learning_data.get("success_prediction_model")
+                model_metrics = self.learning_system.learning_data.get("model_metrics", {})
+                
+                if model is not None:
+                    print(f"   ✅ Модель обучена и готова к использованию")
+                    
+                    # Показываем метрики модели
+                    model_accuracy = model_metrics.get("last_accuracy")
+                    if model_accuracy is not None:
+                        print(f"   Точность модели (accuracy): {model_accuracy:.2%}")
+                    
+                    training_samples = model_metrics.get("training_samples", 0)
+                    test_samples = model_metrics.get("test_samples", 0)
+                    features_count = model_metrics.get("features_count", 0)
+                    
+                    if training_samples > 0:
+                        print(f"   Образцов для обучения: {training_samples}")
+                        print(f"   Образцов для тестирования: {test_samples}")
+                        print(f"   Количество признаков: {features_count}")
+                    
+                    # Получаем информацию о факторах успеха
+                    success_factors = self.learning_system.learning_data.get("success_factors", {})
+                    if success_factors:
+                        print(f"   Факторы успеха:")
+                        for factor_name, factor_data in success_factors.items():
+                            total = factor_data.get("total_cases", 0)
+                            successful = factor_data.get("successful_cases", 0)
+                            if total > 0:
+                                success_rate = (successful / total) * 100
+                                print(f"      {factor_name}: {successful}/{total} успешных ({success_rate:.1f}%)")
+                else:
+                    print(f"   ⚠️  Модель ещё не обучена (требуется минимум 100 итераций)")
+                    success_factors = self.learning_system.learning_data.get("success_factors", {})
+                    if success_factors:
+                        total_cases = sum(f.get("total_cases", 0) for f in success_factors.values())
+                        print(f"   Накоплено данных: {total_cases} случаев")
+                        iterations_needed = max(0, 100 - (learning_progress.get('total_iterations', 0) % 100))
+                        print(f"   До следующего обучения: {iterations_needed} итераций")
+                
+                # Веса стратегий
+                strategy_weights = learning_progress.get('strategy_weights', {})
+                if strategy_weights:
+                    print(f"\n⚖️  Веса стратегий:")
+                    for strategy, weight in strategy_weights.items():
+                        bar_length = int(weight * 20)
+                        bar = "█" * bar_length + "░" * (20 - bar_length)
+                        print(f"   {strategy:12s}: {bar} {weight:.3f}")
+                
+                # Предпочтения позиций
+                learned_positions = learning_progress.get('learned_positions', 0)
+                print(f"\n📍 Изученные позиции: {learned_positions}")
+                
+            else:
+                print(f"\n⚠️  Система обучения ещё не накопила достаточно данных")
+                print(f"   Продолжайте играть для активации кластеризации и предсказания")
+            
+            # Общая оценка системы
+            print(f"\n📊 Общая оценка системы:")
+            if isinstance(learning_progress, dict):
+                avg_accuracy = self.performance_metrics.get('average_accuracy', 0.0)
+                learning_prog = self.performance_metrics.get('learning_progress', 0.0)
+                
+                # Комплексная оценка
+                if learning_progress.get('total_iterations', 0) > 0:
+                    # Базовые компоненты оценки
+                    prediction_accuracy_weight = 0.3
+                    learning_progress_weight = 0.25
+                    success_rate_weight = 0.25
+                    model_accuracy_weight = 0.2
+                    
+                    system_score = (
+                        avg_accuracy * prediction_accuracy_weight +
+                        learning_prog * learning_progress_weight +
+                        (learning_progress.get('success_rate', 0.0)) * success_rate_weight
+                    ) * 100
+                    
+                    # Добавляем оценку модели предсказания, если она обучена
+                    model_accuracy = learning_progress.get('prediction_model_accuracy')
+                    if model_accuracy is not None:
+                        system_score += model_accuracy * model_accuracy_weight * 100
+                        print(f"   Точность ML модели: {model_accuracy:.2%}")
+                    else:
+                        # Если модель не обучена, перераспределяем веса
+                        adjusted_weight = prediction_accuracy_weight + learning_progress_weight + success_rate_weight
+                        system_score = system_score / (1 - model_accuracy_weight) * adjusted_weight
+                    
+                    print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
+                    print(f"   Прогресс обучения: {learning_prog:.2%}")
+                    print(f"   Успешность адаптаций: {learning_progress.get('success_rate', 0.0):.2%}")
+                    print(f"   Комплексная оценка системы: {system_score:.1f}/100")
+                    
+                    if system_score >= 80:
+                        print(f"   🟢 ОТЛИЧНО: Система работает эффективно")
+                    elif system_score >= 60:
+                        print(f"   🟡 ХОРОШО: Система работает стабильно")
+                    elif system_score >= 40:
+                        print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
+                    else:
+                        print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
+                else:
+                    print(f"   ⚠️  Недостаточно данных для комплексной оценки")
+            
+            print("=" * 70 + "\n")
+        except Exception as e:
+            # В случае ошибки выводим минимальную информацию
+            print(f"\n⚠️  Ошибка при выводе метрик: {e}\n")
 
     # ==========================
     # Сессии и анализ обучения
@@ -1480,12 +1706,15 @@ class AIPlayer:
             last_sessions
         )
 
-        print(
-            f"[AI] Последние {len(last_sessions)} игр: "
-            f"средний счёт={avg_score:.1f}, "
-            f"точность={avg_accuracy:.2f}, "
-            f"прогресс обучения={avg_learning:.2f}"
-        )
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print(
+                f"[AI] Последние {len(last_sessions)} игр: "
+                f"средний счёт={avg_score:.1f}, "
+                f"точность={avg_accuracy:.2f}, "
+                f"прогресс обучения={avg_learning:.2f}"
+            )
 
     # ==========================
     # Публичный сброс обучения
@@ -1551,10 +1780,14 @@ class AIPlayer:
                 
                 # Здесь можно добавить сохранение в файл, если нужно
                 # Пока просто логируем успешное сохранение
-                print(f"[AI DEBUG] Данные обучения сохранены. Сессий: {self.session_counter}")
+                import sys
+                if not getattr(sys, "frozen", False):
+                    print(f"[AI DEBUG] Данные обучения сохранены. Сессий: {self.session_counter}")
                 
         except Exception as e:
-            print(f"[AI DEBUG] Ошибка при сохранении данных обучения: {e}")
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"[AI DEBUG] Ошибка при сохранении данных обучения: {e}")
 
     def load_learning_data(self) -> None:
         """
@@ -1563,10 +1796,14 @@ class AIPlayer:
         try:
             if hasattr(self, 'learning_system') and self.learning_system:
                 # Здесь можно добавить загрузку из файла
-                print("[AI DEBUG] Данные обучения загружены")
+                import sys
+                if not getattr(sys, "frozen", False):
+                    print("[AI DEBUG] Данные обучения загружены")
                 
         except Exception as e:
-            print(f"[AI DEBUG] Ошибка при загрузке данных обучения: {e}")
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"[AI DEBUG] Ошибка при загрузке данных обучения: {e}")
 
     # ==========================
     # Отладочная визуализация

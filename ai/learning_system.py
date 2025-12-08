@@ -4,6 +4,7 @@
 
 import json
 import os
+import sys
 import logging
 from typing import Dict, List, Any, Optional
 import math
@@ -15,11 +16,55 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 
 
+def get_ai_directory():
+    """
+    Определяет каталог для AI файлов (логи и модели).
+    Для разработки: ai в корне проекта
+    Для exe: каталог установки Windows или директория exe файла
+    """
+    # Для разработки (запуск из IDE) всегда используем ai в корне проекта
+    if not getattr(sys, "frozen", False):
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ai_dir = os.path.join(current_dir, "ai")
+        return ai_dir
+
+    # Для exe файлов пытаемся использовать LOCALAPPDATA
+    try:
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if localappdata:
+            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+            ai_dir = os.path.join(game_dir, "ai")
+            # Создаем директории если их нет
+            try:
+                os.makedirs(ai_dir, exist_ok=True)
+            except (OSError, PermissionError):
+                pass
+            return ai_dir
+    except:
+        pass
+
+    # Fallback для exe: директория exe файла
+    exe_dir = os.path.dirname(sys.executable)
+    ai_dir = os.path.join(exe_dir, "ai")
+    try:
+        os.makedirs(ai_dir, exist_ok=True)
+    except (OSError, PermissionError):
+        pass
+    return ai_dir
+
+
 class LearningSystem:
     """Система обучения для AI"""
 
-    def __init__(self, model_path: str = "ai/models/ai_model.json"):
+    def __init__(self, model_path: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
+        
+        # Определяем путь к модели
+        if model_path is None:
+            ai_dir = get_ai_directory()
+            models_dir = os.path.join(ai_dir, "models")
+            model_path = os.path.join(models_dir, "ai_model.json")
+        
         self.model_path = model_path
         self.learning_data = {
             "strategy_weights": {
@@ -43,7 +88,14 @@ class LearningSystem:
         }
 
         # Создаем директорию для модели если её нет
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+        except (OSError, PermissionError) as e:
+            # Если не удается создать каталог, используем текущую директорию
+            print(f"Предупреждение: не удалось создать каталог модели {os.path.dirname(self.model_path)}: {e}")
+            # Fallback: используем текущую директорию
+            self.model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "ai_model.json")
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
 
         # Загружаем существующую модель если она есть
         self.load_model()

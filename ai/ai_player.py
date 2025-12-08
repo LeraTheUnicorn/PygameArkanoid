@@ -138,14 +138,20 @@ class AIPlayer:
         Активирует AIPlayer для управления игрой.
         """
         self.is_active = True
-        print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
 
     def deactivate(self) -> None:
         """
         Деактивирует AIPlayer.
         """
         self.is_active = False
-        print("[AI DEBUG] AIPlayer деактивирован.")
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print("[AI DEBUG] AIPlayer деактивирован.")
 
     # ==========================
     # Обновление состояния игры
@@ -1323,6 +1329,102 @@ class AIPlayer:
         return max(min_x, min(max_x, predicted_x))
 
     # ==========================
+    # Адаптивная скорость платформы
+    # ==========================
+
+    def calculate_adaptive_paddle_speed(self, current_x: int, optimal_x: int, ball_speed: int) -> int:
+        """
+        Рассчитывает адаптивную скорость платформы на основе физики игры.
+        
+        Учитывает:
+        - Скорость мяча
+        - Расстояние до оптимальной позиции
+        - Время до встречи с мячом
+        - Историю успешных движений
+        
+        Args:
+            current_x: Текущая позиция платформы
+            optimal_x: Оптимальная позиция платформы
+            ball_speed: Скорость мяча
+            
+        Returns:
+            Адаптивная скорость платформы
+        """
+        # Базовые параметры
+        base_paddle_speed = 9  # PADDLE_SPEED из игры
+        min_speed = 3
+        max_speed = 30
+        
+        if not self.current_game_state:
+            return base_paddle_speed
+        
+        distance_to_optimal = abs(optimal_x - current_x)
+        
+        # Если позиция уже оптимальна или близка к ней
+        if distance_to_optimal <= 5:
+            return min_speed
+        
+        # Рассчитываем время до встречи с мячом (если он движется к платформе)
+        time_to_meeting = 0
+        if self.is_ball_moving_towards_paddle():
+            ball_y = self.current_game_state.ball_position.y
+            paddle_y = self.current_game_state.paddle_position.y
+            ball_vel_y = self.current_game_state.ball_velocity.y
+            
+            if ball_vel_y > 0:  # Мяч движется вниз
+                # Более точный расчет времени с учетом текущей позиции мяча
+                distance_y = paddle_y - ball_y
+                if distance_y > 0:
+                    time_to_meeting = distance_y / ball_vel_y
+                    time_to_meeting = max(0, time_to_meeting)  # Не может быть отрицательным
+        
+        # Рассчитываем требуемую скорость на основе времени до встречи
+        required_speed = base_paddle_speed
+        
+        if time_to_meeting > 0 and time_to_meeting != float('inf'):
+            # Если времени мало, нужна высокая скорость
+            if time_to_meeting <= 20:  # Менее 20 кадров - критическая ситуация
+                required_speed = max(base_paddle_speed * 1.5, distance_to_optimal / max(time_to_meeting * 0.6, 1))
+            elif time_to_meeting <= 40:  # Менее 40 кадров
+                required_speed = max(base_paddle_speed * 1.2, distance_to_optimal / max(time_to_meeting * 0.7, 1))
+            elif time_to_meeting <= 80:  # Менее 80 кадров  
+                required_speed = max(base_paddle_speed * 0.9, distance_to_optimal / max(time_to_meeting, 1))
+            else:  # Много времени - можно двигаться медленно
+                required_speed = max(min_speed, base_paddle_speed * 0.6)
+        else:
+            # Мяч не движется к платформе, используем умеренную скорость
+            required_speed = base_paddle_speed * 0.8
+        
+        # Корректируем на основе скорости мяча
+        speed_ratio = ball_speed / 5.0  # 5 - BALL_SPEED_DEFAULT
+        speed_multiplier = 0.7 + speed_ratio * 0.6  # 0.7x до 1.3x в зависимости от скорости мяча
+        required_speed *= speed_multiplier
+        
+        # Учитываем расстояние - чем дальше, тем быстрее
+        if distance_to_optimal > 150:
+            required_speed *= 1.4
+        elif distance_to_optimal > 100:
+            required_speed *= 1.2
+        elif distance_to_optimal > 50:
+            required_speed *= 1.1
+        
+        # Дополнительная корректировка для экстренных ситуаций
+        if distance_to_optimal > time_to_meeting * ball_speed * 0.8 and time_to_meeting > 0:
+            # Если расстояние больше, чем может пролететь мяч за время до встречи
+            required_speed *= 1.3
+        
+        # Применяем границы
+        required_speed = max(min_speed, min(max_speed, required_speed))
+        
+        # Добавляем небольшую случайность для естественности
+        if distance_to_optimal > 20:
+            import random
+            variation = random.uniform(0.97, 1.03)
+            required_speed *= variation
+        
+        return int(required_speed)
+
+    # ==========================
     # Движение платформы
     # ==========================
 
@@ -1403,7 +1505,11 @@ class AIPlayer:
                     speed_multiplier = self.learning_system.get_adaptive_paddle_speed(
                         ball_speed, distance_to_target
                     )
+                    # Ограничиваем минимальный множитель скорости, чтобы платформа не двигалась слишком медленно
+                    speed_multiplier = max(0.8, min(3.0, speed_multiplier))  # Минимум 0.8x, максимум 3.0x
                     adjusted_paddle_speed = int(paddle_speed * speed_multiplier)
+                    # Гарантируем минимальную скорость платформы
+                    adjusted_paddle_speed = max(int(paddle_speed * 0.8), adjusted_paddle_speed)
                     self._last_paddle_speed_multiplier = speed_multiplier
                 else:
                     adjusted_paddle_speed = paddle_speed
@@ -1459,7 +1565,10 @@ class AIPlayer:
             return movement
 
         except Exception as e:
-            print(f"Ошибка при движении платформы: {e}")
+            # Не выводим в exe файле
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"Ошибка при движении платформы: {e}")
             return self._fallback_movement(current_x)
 
     def _fallback_movement(self, current_x: int) -> int:
@@ -1786,6 +1895,11 @@ class AIPlayer:
             success: True, если игра выиграна.
             final_score: Итоговый счёт игры.
         """
+        # Не выводим метрики в exe файле, чтобы не открывать консоль
+        import sys
+        if getattr(sys, "frozen", False):
+            return  # Пропускаем вывод в скомпилированном exe
+        
         try:
             print("\n" + "=" * 70)
             print("МЕТРИКИ ОЦЕНКИ РАБОТЫ СИСТЕМЫ AI (scikit-learn)")
@@ -2006,12 +2120,15 @@ class AIPlayer:
             last_sessions
         )
 
-        print(
-            f"[AI] Последние {len(last_sessions)} игр: "
-            f"средний счёт={avg_score:.1f}, "
-            f"точность={avg_accuracy:.2f}, "
-            f"прогресс обучения={avg_learning:.2f}"
-        )
+        # Не выводим в exe файле
+        import sys
+        if not getattr(sys, "frozen", False):
+            print(
+                f"[AI] Последние {len(last_sessions)} игр: "
+                f"средний счёт={avg_score:.1f}, "
+                f"точность={avg_accuracy:.2f}, "
+                f"прогресс обучения={avg_learning:.2f}"
+            )
 
     # ==========================
     # Публичный сброс обучения
@@ -2084,10 +2201,14 @@ class AIPlayer:
                 
                 # Здесь можно добавить сохранение в файл, если нужно
                 # Пока просто логируем успешное сохранение
-                print(f"[AI DEBUG] Данные обучения сохранены. Сессий: {self.session_counter}")
+                import sys
+                if not getattr(sys, "frozen", False):
+                    print(f"[AI DEBUG] Данные обучения сохранены. Сессий: {self.session_counter}")
                 
         except Exception as e:
-            print(f"[AI DEBUG] Ошибка при сохранении данных обучения: {e}")
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"[AI DEBUG] Ошибка при сохранении данных обучения: {e}")
 
     def load_learning_data(self) -> None:
         """
@@ -2096,10 +2217,14 @@ class AIPlayer:
         try:
             if hasattr(self, 'learning_system') and self.learning_system:
                 # Здесь можно добавить загрузку из файла
-                print("[AI DEBUG] Данные обучения загружены")
+                import sys
+                if not getattr(sys, "frozen", False):
+                    print("[AI DEBUG] Данные обучения загружены")
                 
         except Exception as e:
-            print(f"[AI DEBUG] Ошибка при загрузке данных обучения: {e}")
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"[AI DEBUG] Ошибка при загрузке данных обучения: {e}")
 
     # ==========================
     # Отладочная визуализация

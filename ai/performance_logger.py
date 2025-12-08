@@ -5,10 +5,48 @@
 import json
 import time
 import os
+import sys
 import pygame
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from .game_state import GameState, Point
+
+
+def get_ai_directory():
+    """
+    Определяет каталог для AI файлов (логи и модели).
+    Для разработки: ai в корне проекта
+    Для exe: каталог установки Windows или директория exe файла
+    """
+    # Для разработки (запуск из IDE) всегда используем ai в корне проекта
+    if not getattr(sys, "frozen", False):
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ai_dir = os.path.join(current_dir, "ai")
+        return ai_dir
+
+    # Для exe файлов пытаемся использовать LOCALAPPDATA
+    try:
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if localappdata:
+            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+            ai_dir = os.path.join(game_dir, "ai")
+            # Создаем директории если их нет
+            try:
+                os.makedirs(ai_dir, exist_ok=True)
+            except (OSError, PermissionError):
+                pass
+            return ai_dir
+    except:
+        pass
+
+    # Fallback для exe: директория exe файла
+    exe_dir = os.path.dirname(sys.executable)
+    ai_dir = os.path.join(exe_dir, "ai")
+    try:
+        os.makedirs(ai_dir, exist_ok=True)
+    except (OSError, PermissionError):
+        pass
+    return ai_dir
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -42,8 +80,15 @@ class PerformanceLogger:
         self.enable_session_logging = enable_session_logging
 
         # Создаем директорию для логов если её нет
-        self.logs_dir = "ai/logs"
-        os.makedirs(self.logs_dir, exist_ok=True)
+        ai_dir = get_ai_directory()
+        self.logs_dir = os.path.join(ai_dir, "logs")
+        try:
+            os.makedirs(self.logs_dir, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            # Если не удается создать каталог, используем текущую директорию
+            print(f"Предупреждение: не удалось создать каталог логов {self.logs_dir}: {e}")
+            self.logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+            os.makedirs(self.logs_dir, exist_ok=True)
 
         # Файл для сохранения логов сессии (только если включено)
         if self.enable_session_logging:
