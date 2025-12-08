@@ -686,5 +686,93 @@
     "final_bricks_remaining": 1,
     "game_duration": 51.75251507759094,
     "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 84.10977268218994,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 2149.256987810135,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 21.862534999847412,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 153.15180468559265,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": false,
+    "final_score": 48,
+    "final_bricks_remaining": 2,
+    "game_duration": 251.3051564693451,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 73.47875833511353,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 214.12651324272156,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 248.75807237625122,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 284.00182247161865,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": true,
+    "final_score": 50,
+    "final_bricks_remaining": 1,
+    "game_duration": 354.9022710323334,
+    "total_actions": 0
+  },
+  {
+    "type": "game_end",
+    "success": false,
+    "final_score": 49,
+    "final_bricks_remaining": 1,
+    "game_duration": 434.506632566452,
+    "total_actions": 0
   }
 ]

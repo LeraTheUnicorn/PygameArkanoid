@@ -129,10 +129,22 @@ class AIPlayer:
 
         # Последний множитель скорости платформы (для обучения)
         self._last_paddle_speed_multiplier = 1.0
+        # Последняя скорректированная скорость платформы
+        self._last_adjusted_paddle_speed = None
 
         # Метрики по сессиям (серии игр)
         self.session_metrics: List[Dict[str, Any]] = []
         self.session_counter: int = 0
+
+        # Параметры для обучения в режиме обучения
+        self.training_parameters: Dict[str, Any] = {
+            "ball_speed": 5,  # Текущая скорость мяча
+            "paddle_speed_multiplier": 1.0,  # Множитель скорости платформы
+            "total_bricks_destroyed": 0,  # Всего кубиков сбито за матч
+            "total_time": 0,  # Общее время матча
+            "lives_lost": 0,  # Потерянные жизни
+            "match_history": [],  # История матчей
+        }
 
     def activate(self) -> None:
         """
@@ -1648,6 +1660,25 @@ class AIPlayer:
             precision_tolerance = base_precision_tolerance + int(
                 self.smoothness_system["smoothness_penalty"] * 3
             )
+            
+            # Увеличиваем допуск, когда мяч движется вниз и траектория известна
+            if self.current_game_state:
+                ball_vel_y = (
+                    self.current_game_state.ball_velocity.y
+                    if hasattr(self.current_game_state, "ball_velocity")
+                    else 0
+                )
+                ball_y = self.current_game_state.ball_position.y
+                paddle_zone_start = self.screen_height - 60
+                
+                # Если мяч движется вниз и уже ниже кубиков - стабилизируем позицию
+                if ball_vel_y > 0 and ball_y > 250:  # Мяч движется вниз и ниже кубиков
+                    # Увеличиваем допуск для стабилизации - платформа должна приехать и не двигаться
+                    precision_tolerance = max(precision_tolerance, 20)  # Большой допуск для стабилизации
+                    # Если очень близко к цели - не двигаемся вообще (увеличиваем допуск еще больше)
+                    if abs(optimal_x - current_x) < 30:
+                        precision_tolerance = max(precision_tolerance, 50)  # Очень большой допуск
+            
             distance_to_optimal = abs(optimal_x - current_x)
 
             # Поощряем минимальные движения - если расстояние очень мало, не двигаемся
@@ -1663,14 +1694,20 @@ class AIPlayer:
                         self.smoothness_system["smoothness_penalty"] = max(
                             0.0, self.smoothness_system["smoothness_penalty"] - 0.1
                         )
+                    # Сохраняем базовую скорость, так как не двигаемся
+                    self._last_adjusted_paddle_speed = paddle_speed
                 else:
                     # Двигаемся только если действительно нужно
                     movement = self._calculate_smooth_movement(
                         current_x, optimal_x, distance_to_optimal
                     )
+                    # Сохраняем базовую скорость для этого случая
+                    self._last_adjusted_paddle_speed = paddle_speed
             elif distance_to_optimal <= precision_tolerance:
                 movement = 0
                 self.smoothness_system["consecutive_stops"] += 1
+                # Сохраняем базовую скорость, так как не двигаемся
+                self._last_adjusted_paddle_speed = paddle_speed
             else:
                 self.smoothness_system["consecutive_stops"] = 0
                 # Адаптивная скорость от системы обучения
@@ -1681,13 +1718,20 @@ class AIPlayer:
                         ball_speed, distance_to_target
                     )
                     # Ограничиваем минимальный множитель скорости, чтобы платформа не двигалась слишком медленно
-                    speed_multiplier = max(0.8, min(3.0, speed_multiplier))  # Минимум 0.8x, максимум 3.0x
+                    # В режиме обучения AI может увеличивать скорость до 5x для достижения цели
+                    max_multiplier = 5.0 if hasattr(self, 'training_parameters') else 3.0
+                    speed_multiplier = max(0.8, min(max_multiplier, speed_multiplier))
                     adjusted_paddle_speed = int(paddle_speed * speed_multiplier)
                     # Гарантируем минимальную скорость платформы
                     adjusted_paddle_speed = max(int(paddle_speed * 0.8), adjusted_paddle_speed)
                     self._last_paddle_speed_multiplier = speed_multiplier
+                    # Сохраняем для использования в PyGameBall.py
+                    self._last_adjusted_paddle_speed = adjusted_paddle_speed
                 else:
                     adjusted_paddle_speed = paddle_speed
+                
+                # Сохраняем для использования в PyGameBall.py
+                self._last_adjusted_paddle_speed = adjusted_paddle_speed
 
                 movement = self.position_optimizer.calculate_paddle_movement(
                     current_x, optimal_x, adjusted_paddle_speed
@@ -1973,22 +2017,26 @@ class AIPlayer:
             self.current_game_stats["successful_predictions"] += 1
 
         if "bricks_destroyed" in action_result:
-            self.current_game_stats["bricks_destroyed"] += len(
-                action_result["bricks_destroyed"]
-            )
+            bricks_value = action_result["bricks_destroyed"]
+            # bricks_destroyed может быть int (общее количество) или list (список кубиков)
+            if isinstance(bricks_value, int):
+                self.current_game_stats["bricks_destroyed"] += bricks_value
+            elif isinstance(bricks_value, list):
+                self.current_game_stats["bricks_destroyed"] += len(bricks_value)
 
         self.current_game_stats["total_predictions"] += 1
 
         if "final_score" in action_result:
             self.performance_metrics["total_score"] += action_result["final_score"]
 
-    def on_game_end(self, success: bool, final_score: int) -> None:
+    def on_game_end(self, success: bool, final_score: int, training_mode: bool = False) -> None:
         """
         Обрабатывает окончание игры.
 
         Args:
             success: True, если все кубики сбиты.
             final_score: Итоговый счёт.
+            training_mode: True, если это режим обучения.
 
         Raises:
             ValueError: Если final_score отрицательный.
@@ -2013,10 +2061,22 @@ class AIPlayer:
         # Прогресс обучения
         learning_progress = self.learning_system.get_learning_progress()
         if isinstance(learning_progress, dict):
-            # Если learning_progress - словарь, извлекаем числовое значение
-            learning_progress_value = learning_progress.get("progress", 0.0)
+            # Если learning_progress - словарь, вычисляем прогресс на основе метрик
+            if "message" in learning_progress:
+                # Обучение еще не начато
+                learning_progress_value = 0.0
+            else:
+                # Используем success_rate как основной показатель прогресса
+                success_rate = learning_progress.get("success_rate", 0.0)
+                # Учитываем также количество итераций и улучшения
+                total_iterations = learning_progress.get("total_iterations", 0)
+                avg_improvement = learning_progress.get("average_improvement", 0.0)
+                # Прогресс = успешность * (1 - exp(-итерации/10)) + улучшение
+                iteration_factor = 1.0 - (2.71828 ** (-total_iterations / 10.0))
+                learning_progress_value = success_rate * iteration_factor + min(avg_improvement, 0.3)
+                learning_progress_value = max(0.0, min(1.0, learning_progress_value))
         else:
-            learning_progress_value = learning_progress
+            learning_progress_value = float(learning_progress) if learning_progress else 0.0
 
         self.performance_metrics["learning_progress"] = (
             self.performance_metrics["learning_progress"] * 0.9
@@ -2043,11 +2103,19 @@ class AIPlayer:
 
         self.performance_logger.log_game_end(game_state, success, final_score)
 
+        # В режиме обучения обрабатываем результаты матча
+        if training_mode:
+            self._process_training_match(success, final_score)
+
         # Сохраняем данные по сессии и подготавливаемся к новой игре
         self._save_session_metrics(success, final_score)
         
         # Выводим метрики оценки работы системы scikit-learn
         self._print_ml_system_metrics(success, final_score)
+        
+        # В режиме обучения выводим средние значения параметров
+        if training_mode:
+            self._print_training_parameters()
         
         self._reset_current_game_stats()
 
@@ -2193,9 +2261,9 @@ class AIPlayer:
                         bar = "█" * bar_length + "░" * (20 - bar_length)
                         print(f"   {strategy:12s}: {bar} {weight:.3f}")
                 
-                # Предпочтения позиций
-                learned_positions = learning_progress.get('learned_positions', 0)
-                print(f"\n📍 Изученные позиции: {learned_positions}")
+                # Предпочтения позиций (убрано по запросу пользователя)
+                # learned_positions = learning_progress.get('learned_positions', 0)
+                # print(f"\n📍 Изученные позиции: {learned_positions}")
                 
             else:
                 print(f"\n⚠️  Система обучения ещё не накопила достаточно данных")
@@ -2417,21 +2485,11 @@ class AIPlayer:
             
             # Информация о состоянии AI
             info_lines = [
-                f"AI: {'ACTIVE' if self.is_active else 'INACTIVE'}",
                 f"Session: {self.session_counter}",
                 f"Accuracy: {self.performance_metrics['average_accuracy']:.2f}",
-                f"Learning: {self.performance_metrics['learning_progress']:.2f}",
+                f"Learning: {self.performance_metrics['learning_progress']:.2f} (прогресс обучения)",
                 f"Games: {self.performance_metrics['games_played']}",
             ]
-            
-            # Если есть текущая цель, показываем её
-            if self.targeting_system.get('target_brick'):
-                info_lines.append("Target: BRICK")
-                if 'optimal_offset' in self.targeting_system:
-                    offset = self.targeting_system['optimal_offset']
-                    info_lines.append(f"Offset: {offset:.2f}")
-            else:
-                info_lines.append("Target: None")
             
             # Отрисовка фона для текста
             font = pygame.font.SysFont("arial", 16)
@@ -2505,3 +2563,187 @@ class AIPlayer:
         except Exception as e:
             # Игнорируем ошибки отрисовки траектории
             pass
+
+    # ==========================
+    # Методы для режима обучения
+    # ==========================
+
+    def _process_training_match(self, success: bool, final_score: int) -> None:
+        """
+        Обрабатывает результаты матча в режиме обучения.
+        
+        Args:
+            success: True, если все кубики сбиты.
+            final_score: Итоговый счёт.
+        """
+        # Сохраняем параметры текущего матча
+        match_data = {
+            "success": success,
+            "score": final_score,
+            "ball_speed": self.training_parameters["ball_speed"],
+            "paddle_speed_multiplier": self.training_parameters["paddle_speed_multiplier"],
+            "bricks_destroyed": self.training_parameters["total_bricks_destroyed"],
+            "time": self.training_parameters["total_time"],
+            "lives_lost": self.training_parameters["lives_lost"],
+        }
+        self.training_parameters["match_history"].append(match_data)
+        
+        # Ограничиваем историю последними 10 матчами
+        if len(self.training_parameters["match_history"]) > 10:
+            self.training_parameters["match_history"].pop(0)
+        
+        # Обучаемся на основе результатов
+        self._learn_from_match_results(match_data)
+
+    def _learn_from_match_results(self, match_data: Dict[str, Any]) -> None:
+        """
+        Обучается на основе результатов матча.
+        
+        Args:
+            match_data: Данные о матче.
+        """
+        # Вычисляем эффективность: кубики за время с учетом потерянных жизней
+        bricks_destroyed = match_data["bricks_destroyed"]
+        time_taken = max(match_data["time"], 1)  # Избегаем деления на 0
+        lives_lost = match_data["lives_lost"]
+        
+        # Эффективность = кубики / (время * (1 + штраф за жизни))
+        # Штраф за жизни: каждая потерянная жизнь увеличивает время на 20%
+        time_penalty = 1.0 + (lives_lost * 0.2)
+        efficiency = bricks_destroyed / (time_taken * time_penalty)
+        
+        # Обновляем параметры на основе эффективности
+        current_ball_speed = self.training_parameters["ball_speed"]
+        current_paddle_mult = self.training_parameters["paddle_speed_multiplier"]
+        
+        # Если это первый матч или мало данных, используем более агрессивную адаптацию
+        if len(self.training_parameters["match_history"]) <= 2:
+            # Для первых матчей более агрессивно увеличиваем скорость
+            if bricks_destroyed >= 30 and lives_lost <= 1:  # Хороший результат
+                # Увеличиваем скорость мяча
+                if current_ball_speed < 15:
+                    self.training_parameters["ball_speed"] = min(15, current_ball_speed + 2)
+                # Увеличиваем скорость платформы
+                if current_paddle_mult < 2.0:
+                    self.training_parameters["paddle_speed_multiplier"] = min(2.0, current_paddle_mult + 0.2)
+            elif bricks_destroyed < 20 or lives_lost >= 2:  # Плохой результат
+                # Уменьшаем скорость мяча
+                if current_ball_speed > 5:
+                    self.training_parameters["ball_speed"] = max(5, current_ball_speed - 1)
+                # Уменьшаем скорость платформы
+                if current_paddle_mult > 0.8:
+                    self.training_parameters["paddle_speed_multiplier"] = max(0.8, current_paddle_mult - 0.1)
+        else:
+            # После накопления данных используем сравнение со средним
+            avg_efficiency = self._get_average_efficiency()
+            
+            if avg_efficiency > 0:
+                if efficiency > avg_efficiency * 1.1:  # На 10% лучше среднего
+                    # Увеличиваем скорость мяча (но не более 15)
+                    if current_ball_speed < 15:
+                        self.training_parameters["ball_speed"] = min(15, current_ball_speed + 1)
+                    # Увеличиваем скорость платформы (но не более 2.0)
+                    if current_paddle_mult < 2.0:
+                        self.training_parameters["paddle_speed_multiplier"] = min(2.0, current_paddle_mult + 0.1)
+                elif efficiency < avg_efficiency * 0.9:  # На 10% хуже среднего
+                    # Уменьшаем скорость мяча (но не менее 5)
+                    if current_ball_speed > 5:
+                        self.training_parameters["ball_speed"] = max(5, current_ball_speed - 1)
+                    # Уменьшаем скорость платформы (но не менее 0.8)
+                    if current_paddle_mult > 0.8:
+                        self.training_parameters["paddle_speed_multiplier"] = max(0.8, current_paddle_mult - 0.1)
+
+    def _get_average_efficiency(self) -> float:
+        """Вычисляет среднюю эффективность за последние матчи."""
+        if not self.training_parameters["match_history"]:
+            return 0.0
+        
+        total_efficiency = 0.0
+        for match in self.training_parameters["match_history"]:
+            bricks = match["bricks_destroyed"]
+            time_taken = max(match["time"], 1)
+            lives_lost = match["lives_lost"]
+            time_penalty = 1.0 + (lives_lost * 0.2)
+            efficiency = bricks / (time_taken * time_penalty)
+            total_efficiency += efficiency
+        
+        return total_efficiency / len(self.training_parameters["match_history"])
+
+    def get_optimal_ball_speed(self) -> int:
+        """
+        Возвращает оптимальную скорость мяча на основе обучения.
+        
+        Returns:
+            Оптимальная скорость мяча (3-15).
+        """
+        return int(self.training_parameters["ball_speed"])
+
+    def get_optimal_paddle_speed_multiplier(self) -> float:
+        """
+        Возвращает оптимальный множитель скорости платформы на основе обучения.
+        
+        Returns:
+            Множитель скорости платформы (0.5-2.0).
+        """
+        return self.training_parameters["paddle_speed_multiplier"]
+    
+    def get_adjusted_paddle_speed(self, base_speed: int) -> int:
+        """
+        Возвращает скорректированную скорость платформы с учетом адаптации AI.
+        
+        Args:
+            base_speed: Базовая скорость платформы.
+        
+        Returns:
+            Скорректированная скорость платформы.
+        """
+        if self._last_adjusted_paddle_speed is not None:
+            return self._last_adjusted_paddle_speed
+        return base_speed
+
+    def update_training_stats(self, bricks_destroyed: int, time_elapsed: float, lives_lost: int) -> None:
+        """
+        Обновляет статистику обучения во время игры.
+        
+        Args:
+            bricks_destroyed: Количество сбитых кубиков.
+            time_elapsed: Прошедшее время.
+            lives_lost: Потерянные жизни.
+        """
+        self.training_parameters["total_bricks_destroyed"] = bricks_destroyed
+        self.training_parameters["total_time"] = time_elapsed
+        self.training_parameters["lives_lost"] = lives_lost
+
+    def _print_training_parameters(self) -> None:
+        """Выводит средние значения параметров обучения в консоль."""
+        import sys
+        if getattr(sys, "frozen", False):
+            return  # Пропускаем вывод в скомпилированном exe
+        
+        if not self.training_parameters["match_history"]:
+            return
+        
+        print("\n" + "=" * 70)
+        print("ПАРАМЕТРЫ ОБУЧЕНИЯ ИИ")
+        print("=" * 70)
+        
+        # Вычисляем средние значения
+        avg_ball_speed = sum(m["ball_speed"] for m in self.training_parameters["match_history"]) / len(self.training_parameters["match_history"])
+        avg_paddle_mult = sum(m["paddle_speed_multiplier"] for m in self.training_parameters["match_history"]) / len(self.training_parameters["match_history"])
+        avg_bricks = sum(m["bricks_destroyed"] for m in self.training_parameters["match_history"]) / len(self.training_parameters["match_history"])
+        avg_time = sum(m["time"] for m in self.training_parameters["match_history"]) / len(self.training_parameters["match_history"])
+        avg_lives_lost = sum(m["lives_lost"] for m in self.training_parameters["match_history"]) / len(self.training_parameters["match_history"])
+        avg_efficiency = self._get_average_efficiency()
+        
+        print(f"\n📊 Средние значения за последние {len(self.training_parameters['match_history'])} матчей:")
+        print(f"   Скорость мяча: {avg_ball_speed:.1f}")
+        print(f"   Множитель скорости платформы: {avg_paddle_mult:.2f}")
+        print(f"   Кубиков за матч: {avg_bricks:.1f}")
+        print(f"   Время матча: {avg_time:.1f} сек")
+        print(f"   Потерянных жизней: {avg_lives_lost:.1f}")
+        print(f"   Эффективность: {avg_efficiency:.3f} (кубики/(время * штраф_за_жизни))")
+        
+        print(f"\n🎯 Текущие параметры:")
+        print(f"   Скорость мяча: {self.training_parameters['ball_speed']}")
+        print(f"   Множитель скорости платформы: {self.training_parameters['paddle_speed_multiplier']:.2f}")
+        print("=" * 70 + "\n")
