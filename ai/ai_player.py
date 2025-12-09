@@ -2659,9 +2659,9 @@ class AIPlayer:
                     distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
                     
                     # Пересчитываем если:
-                    # 1. Прошло 10+ кадров с момента установки позиции
-                    # 2. Мяч близко к платформе (менее 100 пикселей) - нужна точность
-                    if frames_since_set >= 10 or (distance_to_paddle > 0 and distance_to_paddle < 100):
+                    # 1. Прошло 5+ кадров с момента установки позиции
+                    # 2. Мяч близко к платформе (менее 150 пикселей) - нужна точность
+                    if frames_since_set >= 5 or (distance_to_paddle > 0 and distance_to_paddle < 150):
                         should_recalculate = True
                     
                     if should_recalculate:
