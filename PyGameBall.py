@@ -1457,6 +1457,25 @@ def main() -> None:
                     if just_bounced and frame_counter - bounce_frame > 3:
                         ball._just_bounced = False
                     
+                    # КРИТИЧНО: Защита от vel_y == 0 во время игры (кроме начального состояния)
+                    # Если мяч не двигается по вертикали и игра запущена - это ошибка
+                    if game_started and ball.vel_y == 0:
+                        # Мяч застрял с нулевой скоростью - принудительно запускаем его
+                        ball.vel_y = -ball.get_speed()
+                        # Логируем для диагностики
+                        if auto_mode or training_mode:
+                            ai_player.performance_logger.log_ball_paddle_positions(
+                                ball.rect.centerx,
+                                ball.rect.centery,
+                                ball.vel_x,
+                                ball.vel_y,
+                                paddle.rect.x,
+                                paddle.rect.y,
+                                paddle.rect.width,
+                                paddle.rect.height,
+                                "VEL_Y_ZERO_FIXED"
+                            )
+                    
                     # КРИТИЧНО: Логируем координаты мяча и платформы для диагностики
                     # Логируем каждый 10-й кадр для экономии, НО всегда логируем при обнаружении прилипания
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
@@ -1816,7 +1835,11 @@ def main() -> None:
                                 break
                         
                         # КРИТИЧНО: Убеждаемся, что мяч движется вверх с достаточной скоростью
-                        if ball.vel_y >= 0:
+                        # НИКОГДА не допускаем vel_y == 0 после отскока (кроме начального состояния)
+                        if ball.vel_y == 0:
+                            # КРИТИЧНО: Если vel_y == 0, это ошибка - устанавливаем скорость вверх
+                            ball.vel_y = -ball.get_speed()
+                        elif ball.vel_y >= 0:
                             ball.vel_y = -ball.get_speed()
                         # Дополнительная проверка: если скорость слишком мала, увеличиваем её
                         if abs(ball.vel_y) < ball.get_speed():
