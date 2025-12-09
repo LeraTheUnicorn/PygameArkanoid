@@ -1972,6 +1972,10 @@ def main() -> None:
                                 # КРИТИЧНО: Сбрасываем все трекеры после потери мяча
                                 ai_player._reset_game_state_trackers()
                         else:
+                            # КРИТИЧНО: Логируем окончание жизней
+                            if auto_mode or training_mode:
+                                if not getattr(sys, "frozen", False):
+                                    print(f"[GAME END] Все жизни потрачены (ball.rect.bottom > paddle.rect.top)! lives_left={lives_left}, training_mode={training_mode}")
                             game_over = True
                         continue  # Пропускаем остальную обработку кадра
 
@@ -2112,12 +2116,16 @@ def main() -> None:
                                 continue  # Пропускаем остальную обработку кадра
 
                     if ball.rect.bottom >= SCREEN_HEIGHT:
+                        # КРИТИЧНО: Логируем потерю мяча (мяч за границей экрана)
+                        if auto_mode or training_mode:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LIFE LOSS] Мяч за границей экрана (ball.rect.bottom={ball.rect.bottom} >= SCREEN_HEIGHT={SCREEN_HEIGHT})! lives_left={lives_left}")
                         # Уменьшаем жизни (в режиме обучения тоже)
                         lives_left -= 1
                         # КРИТИЧНО: Логируем потерю жизни для диагностики
                         if auto_mode or training_mode:
                             if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Мяч потерян! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
+                                print(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
                         
                         # КРИТИЧНО: Проверяем, не закончились ли жизни
                         if lives_left <= 0:
