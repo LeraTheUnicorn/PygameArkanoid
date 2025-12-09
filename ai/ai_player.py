@@ -2736,10 +2736,16 @@ class AIPlayer:
                     self.separation_zone_tracker["paddle_reached_target"] = True
                     return 0
                 
-                # КРИТИЧНО: В зоне разделения просто останавливаемся, если близко к цели
-                # Не проверяем скорость приближения мяча - это вызывает дергание
-                if distance_to_target <= 30:
+                # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
+                # Уменьшено с 30 до 5 пикселей, чтобы платформа могла двигаться к цели
+                if distance_to_target <= 5:
                     self.separation_zone_tracker["paddle_reached_target"] = True
+                    # КРИТИЧНО: Логируем для диагностики
+                    import sys
+                    import random
+                    if random.random() < 0.2:  # 20% кадров
+                        if not getattr(sys, "frozen", False):
+                            print(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
                     return 0
                 
                 movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
