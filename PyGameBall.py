@@ -588,7 +588,12 @@ class Ball:
                 self._wall_bounce_count = 0  # Сбрасываем счетчик
 
     def bounce_vertical(self) -> None:
-        self.vel_y *= -1
+        # КРИТИЧНО: Если vel_y == 0, устанавливаем скорость вверх
+        # Это предотвращает ситуацию, когда мяч "застревает" с нулевой скоростью
+        if self.vel_y == 0:
+            self.vel_y = -self.current_speed
+        else:
+            self.vel_y *= -1
 
     def reset(self, paddle_rect: pygame.Rect) -> None:
         """Сброс мяча на платформу с текущей скоростью"""
