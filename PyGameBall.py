@@ -1452,10 +1452,21 @@ def main() -> None:
                     if just_bounced and frame_counter - bounce_frame > 3:
                         ball._just_bounced = False
                     
-                    # КРИТИЧНО: Логируем координаты мяча и платформы для диагностики (каждый 10-й кадр для экономии)
+                    # КРИТИЧНО: Логируем координаты мяча и платформы для диагностики
+                    # Логируем каждый 10-й кадр для экономии, НО всегда логируем при обнаружении прилипания
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
                         print(f"[AI DEBUG] Проверяем логирование координат...")
-                    if (auto_mode or training_mode) and frame_counter % 10 == 0:
+                    should_log = False
+                    if (auto_mode or training_mode):
+                        # Логируем каждый 10-й кадр или при обнаружении прилипания
+                        if frame_counter % 10 == 0:
+                            should_log = True
+                        # Также проверяем возможное прилипание каждый кадр (для детекции)
+                        elif ball.rect.colliderect(paddle.rect) and abs(ball.vel_y) < 0.1:
+                            # Возможное прилипание - логируем для анализа
+                            should_log = True
+                    
+                    if should_log:
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] Вызываем log_ball_paddle_positions...")
                         try:
