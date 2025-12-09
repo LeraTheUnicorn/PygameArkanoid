@@ -706,6 +706,13 @@ class AIPlayer:
                         
                         optimal_position = self._force_target_brick_from_coordinates(landing_x)
                         if optimal_position is not None:
+                            # КРИТИЧНО: Обеспечиваем безопасную позицию (не слишком близко к краям)
+                            safe_margin = 30  # Безопасный отступ от края
+                            paddle_half_width = self.paddle_width / 2
+                            min_position = paddle_half_width + safe_margin
+                            max_position = self.screen_width - paddle_half_width - safe_margin
+                            optimal_position = max(min_position, min(max_position, optimal_position))
+                            
                             # КРИТИЧНО: Если мяч в зоне разделения, сохраняем целевую позицию один раз
                             if in_separation_zone and not self.separation_zone_tracker["target_position_set"]:
                                 self.separation_zone_tracker["target_position"] = int(optimal_position)
@@ -721,7 +728,13 @@ class AIPlayer:
                             return int(optimal_position)
                     
                     # Нет явной цели — просто ловим мяч
-                    base_position = int(landing_x)
+                    # КРИТИЧНО: Обеспечиваем безопасную позицию (не слишком близко к краям)
+                    safe_margin = 30  # Безопасный отступ от края
+                    paddle_half_width = self.paddle_width / 2
+                    min_position = paddle_half_width + safe_margin
+                    max_position = self.screen_width - paddle_half_width - safe_margin
+                    base_position = max(min_position, min(max_position, int(landing_x)))
+                    
                     # Логируем даже простое движение для полного анализа
                     self._log_paddle_movement(
                         self.current_game_state.paddle_position.x,
@@ -739,7 +752,8 @@ class AIPlayer:
                         # Ищем ближайшую позицию с высокой предпочтительностью
                         for offset in range(-40, 41, 10):
                             test_x = base_position + offset
-                            if 0 <= test_x <= self.screen_width:
+                            # КРИТИЧНО: Учитываем безопасные границы при поиске альтернативной позиции
+                            if min_position <= test_x <= max_position:
                                 pref = self.learning_system.get_optimal_position_preference(
                                     test_x
                                 )
