@@ -2820,17 +2820,16 @@ class AIPlayer:
                 separation_zone_start = self.separation_zone_tracker.get("separation_zone_start", 226)
                 in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
-                # Если мяч движется вниз и уже ниже кубиков - стабилизируем позицию
+                # КРИТИЧНО: НЕ увеличиваем допуск слишком сильно, иначе платформа не будет двигаться
+                # Если мяч движется вниз и уже ниже кубиков - используем умеренный допуск
                 if ball_vel_y > 0 and ball_y > 250:  # Мяч движется вниз и ниже кубиков
-                    # Увеличиваем допуск для стабилизации - платформа должна приехать и не двигаться
-                    precision_tolerance = max(
-                        precision_tolerance, 20
-                    )  # Большой допуск для стабилизации
-                    # Если очень близко к цели - не двигаемся вообще (увеличиваем допуск еще больше)
-                    if abs(optimal_x - current_x) < 30:
-                        precision_tolerance = max(
-                            precision_tolerance, 50
-                        )  # Очень большой допуск
+                    # Используем умеренный допуск (5-10 пикселей), чтобы платформа могла двигаться
+                    # Только если платформа УЖЕ очень близко к цели (менее 5 пикселей) - не двигаемся
+                    if abs(optimal_x - current_x) < 5:
+                        precision_tolerance = max(precision_tolerance, 5)  # Очень близко - не двигаемся
+                    else:
+                        # Платформа еще не достигла цели - используем минимальный допуск для движения
+                        precision_tolerance = max(precision_tolerance, 2)  # Минимальный допуск
 
             distance_to_optimal = abs(optimal_x - current_x)
 
