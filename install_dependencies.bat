@@ -37,36 +37,51 @@ if !ERRORLEVEL! NEQ 0 (
 )
 
 echo.
-echo [ШАГ 2] Установка pygame...
-python -m pip install pygame==2.5.2 --no-cache-dir --force-reinstall
-if !ERRORLEVEL! NEQ 0 (
-    echo ❌ Ошибка установки pygame! Пробую альтернативный способ...
-    python -m pip install pygame --pre --no-cache-dir --force-reinstall
-    if !ERRORLEVEL! NEQ 0 (
-        echo ❌ Все способы установки pygame не удались!
-        goto error_exit
-    )
+echo [ШАГ 2] Проверка и установка pygame...
+python -c "import pygame; print('pygame', pygame.version.ver)" >nul 2>&1
+if !ERRORLEVEL! EQU 0 (
+    python -c "import pygame; print('✅ pygame уже установлен, версия:', pygame.version.ver)"
 ) else (
+    echo Установка pygame...
+    python -m pip install pygame==2.5.2 --no-cache-dir
+    if !ERRORLEVEL! NEQ 0 (
+        echo ⚠️ Не удалось установить pygame==2.5.2, пробую последнюю версию...
+        python -m pip install pygame --no-cache-dir
+        if !ERRORLEVEL! NEQ 0 (
+            echo ❌ Все способы установки pygame не удались!
+            goto error_exit
+        )
+    )
     echo ✅ pygame успешно установлен!
 )
 
 echo.
-echo [ШАГ 3] Установка numpy...
-python -m pip install numpy --no-cache-dir --force-reinstall
-if !ERRORLEVEL! NEQ 0 (
-    echo ❌ Ошибка установки numpy!
-    goto error_exit
+echo [ШАГ 3] Проверка и установка numpy...
+python -c "import numpy; print('numpy', numpy.__version__)" >nul 2>&1
+if !ERRORLEVEL! EQU 0 (
+    python -c "import numpy; print('✅ numpy уже установлен, версия:', numpy.__version__)"
 ) else (
+    echo Установка numpy...
+    python -m pip install numpy --no-cache-dir
+    if !ERRORLEVEL! NEQ 0 (
+        echo ❌ Ошибка установки numpy!
+        goto error_exit
+    )
     echo ✅ numpy успешно установлен!
 )
 
 echo.
-echo [ШАГ 4] Установка scikit-learn...
-python -m pip install scikit-learn --no-cache-dir --force-reinstall
-if !ERRORLEVEL! NEQ 0 (
-    echo ❌ Ошибка установки scikit-learn!
-    goto error_exit
+echo [ШАГ 4] Проверка и установка scikit-learn...
+python -c "import sklearn; print('scikit-learn', sklearn.__version__)" >nul 2>&1
+if !ERRORLEVEL! EQU 0 (
+    python -c "import sklearn; print('✅ scikit-learn уже установлен, версия:', sklearn.__version__)"
 ) else (
+    echo Установка scikit-learn...
+    python -m pip install scikit-learn --no-cache-dir
+    if !ERRORLEVEL! NEQ 0 (
+        echo ❌ Ошибка установки scikit-learn!
+        goto error_exit
+    )
     echo ✅ scikit-learn успешно установлен!
 )
 

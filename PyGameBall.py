@@ -587,8 +587,21 @@ class Ball:
         settings_manager: SettingsManager = None,
         auto_mode: bool = False,
     ) -> None:
-        """Устанавливает скорость мяча и обновляет настройки"""
-        max_speed = 30 if auto_mode else 10
+        """
+        Устанавливает скорость мяча и обновляет настройки.
+        
+        Ограничения скорости основаны на:
+        1. Ограничении времени расчета: FPS = 60 (16.67 мс на кадр)
+        2. Времени движения платформы в зоне разделения:
+           - Зона разделения: 314 пикселей (от 226 до 540)
+           - Платформа: скорость 9 пикселей/кадр, максимум 22.5 при 2.5x (1 кубик)
+           - Время движения платформы на 800 пикселей: 800 / 22.5 = 35.6 кадров
+           - Минимальное время пролета мяча: 314 / ball_speed >= 35.6
+           - Максимальная скорость мяча: 314 / 35.6 = 8.8 пикселей/кадр
+           - С запасом: 8 пикселей/кадр
+        """
+        # КРИТИЧНО: Максимальная скорость ограничена временем движения платформы
+        max_speed = 8 if auto_mode else 10
         if 1 <= speed <= max_speed:
             old_speed = self.current_speed
             self.current_speed = speed
@@ -606,7 +619,7 @@ class Ball:
         self, settings_manager: SettingsManager = None, auto_mode: bool = False
     ) -> None:
         """Увеличивает скорость на 1 (максимум зависит от режима)"""
-        max_speed = 30 if auto_mode else 10
+        max_speed = 25 if auto_mode else 10
         if self.current_speed < max_speed:
             self.set_speed(self.current_speed + 1, settings_manager, auto_mode)
 
@@ -1220,6 +1233,18 @@ def main() -> None:
                         base_speed = max(
                             base_speed, PADDLE_SPEED * 1.5
                         )  # Минимум 13.5 для авторежима
+                    
+                    # КРИТИЧНО: При малом количестве блоков увеличиваем скорость платформы
+                    bricks_remaining = len(bricks) if 'bricks' in locals() else 50
+                    if bricks_remaining <= 5:
+                        # Увеличиваем скорость в критических ситуациях
+                        base_speed = int(base_speed * 1.5)  # Увеличиваем на 50%
+                    if bricks_remaining == 1:
+                        # При 1 кубике максимальная скорость для гарантированного попадания
+                        base_speed = int(base_speed * 2.5)  # Увеличиваем в 2.5 раза
+                        # Также увеличиваем скорость пропорционально скорости мяча
+                        if ball.get_speed() > 20:
+                            base_speed = int(base_speed * (ball.get_speed() / 20.0))
 
                     # Используем AI систему для автоматического управления
                     movement = ai_player.move_paddle_towards(
@@ -1253,10 +1278,119 @@ def main() -> None:
                         paddle.move(1)
 
                 if game_started:
+                    # КРИТИЧНО: Проверяем отскок от потолка БЕЗ попадания в кубики ПЕРЕД обновлением мяча
+                    # Это позволяет отследить отбитие в пустоту
+                    ball_was_at_top = ball.rect.top <= 0 and ball.vel_y < 0
+                    
                     # Обычное обновление мяча (непрерывная проверка столкновений встроена в update)
                     ball.update()
+                    
+                    # КРИТИЧНО: Проверяем потерю мяча - если мяч ниже верхней границы платформы, он потерян
+                    if ball.rect.bottom > paddle.rect.top:
+                        # Мяч ниже верхней границы платформы - он потерян
+                        lives_left -= 1
+                        if lives_left > 0:
+                            ball.reset(paddle.rect)
+                            ball.vel_y = 0
+                            # Логируем потерю мяча для AI
+                            if auto_mode or training_mode:
+                                ai_result = {
+                                    "action_type": "ball_lost",
+                                    "success": False,
+                                    "confidence": 0.0,
+                                    "ball_speed": ball.get_speed(),
+                                    "remaining_bricks": len(bricks),
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player._log_paddle_movement(
+                                    paddle.rect.centerx,
+                                    paddle.rect.centerx,
+                                    f"ПОТЕРЯ МЯЧА: мяч ниже платформы. Мяч Y={ball.rect.bottom}, Платформа top={paddle.rect.top}",
+                                    0.0
+                                )
+                                # КРИТИЧНО: Сбрасываем все трекеры после потери мяча
+                                ai_player._reset_game_state_trackers()
+                        else:
+                            game_over = True
+                        continue  # Пропускаем остальную обработку кадра
+                    
+                    # КРИТИЧНО: После обновления проверяем, отскочил ли мяч от потолка
+                    # Если мяч был у потолка и теперь движется вниз - это отскок от потолка
+                    if ball_was_at_top and ball.vel_y > 0:
+                        # Мяч отскочил от потолка - проверяем, попадет ли он в кубики
+                        # Если в следующем кадре не будет попадания в кубик - это отбитие в пустоту
+                        if auto_mode or training_mode:
+                            # Увеличиваем счетчик отскоков от потолка
+                            ai_player.empty_bounce_tracker["ceiling_bounces"] += 1
+                            # Будем проверять попадание в кубики ниже
 
-                    if ball.rect.colliderect(paddle.rect) and ball.vel_y > 0:
+                    # КРИТИЧНО: Проверяем столкновение ТОЛЬКО с верхней поверхностью платформы
+                    # Мяч может быть отбит только верхней поверхностью платформы
+                    # Если мяч попадает на боковую сторону - это потеря мяча
+                    
+                    # КРИТИЧНО: Проверяем столкновение ТОЛЬКО с верхней поверхностью платформы
+                    # Верхняя поверхность: мяч должен быть по горизонтали в пределах платформы
+                    # и нижняя часть мяча должна касаться верхней части платформы
+                    # Боковое столкновение: мяч касается боковой стороны платформы (левой или правой)
+                    
+                    # Проверяем, попадает ли мяч в верхнюю поверхность платформы
+                    # Условия для верхней поверхности:
+                    # 1. Мяч движется вниз
+                    # 2. Центр мяча по горизонтали в пределах платформы (с небольшим запасом)
+                    # 3. Нижняя часть мяча касается верхней части платформы
+                    ball_hits_paddle_top = (
+                        ball.rect.colliderect(paddle.rect) 
+                        and ball.vel_y > 0  # Мяч движется вниз
+                        and paddle.rect.left - 5 <= ball.rect.centerx <= paddle.rect.right + 5  # Мяч по горизонтали в пределах платформы (с запасом 5px)
+                        and ball.rect.bottom >= paddle.rect.top  # Нижняя часть мяча касается или ниже верхней части платформы
+                        and ball.rect.bottom <= paddle.rect.top + 15  # Мяч в пределах 15 пикселей от верха платформы
+                    )
+                    
+                    # Проверяем боковое столкновение - это потеря мяча
+                    # Боковое столкновение: мяч касается платформы, но НЕ попадает в верхнюю поверхность
+                    # Это происходит, когда мяч касается левой или правой стороны платформы
+                    ball_hits_paddle_side = (
+                        ball.rect.colliderect(paddle.rect)
+                        and ball.vel_y > 0
+                        and not ball_hits_paddle_top  # Не верхняя поверхность
+                        and (
+                            # Мяч касается левой стороны платформы
+                            (ball.rect.right >= paddle.rect.left and ball.rect.right <= paddle.rect.left + 10 and ball.rect.centerx < paddle.rect.left)
+                            or
+                            # Мяч касается правой стороны платформы
+                            (ball.rect.left <= paddle.rect.right and ball.rect.left >= paddle.rect.right - 10 and ball.rect.centerx > paddle.rect.right)
+                            or
+                            # Мяч полностью сбоку от платформы (не попадает в верхнюю поверхность)
+                            (ball.rect.bottom < paddle.rect.top and (ball.rect.centerx < paddle.rect.left or ball.rect.centerx > paddle.rect.right))
+                        )
+                    )
+                    
+                    if ball_hits_paddle_side:
+                        # Мяч попал на боковую сторону платформы - это потеря мяча
+                        lives_left -= 1
+                        if lives_left > 0:
+                            ball.reset(paddle.rect)
+                            ball.vel_y = 0
+                        else:
+                            game_over = True
+                        # Логируем потерю мяча из-за бокового удара
+                        if auto_mode or training_mode:
+                            ai_result = {
+                                "action_type": "paddle_side_hit",
+                                "success": False,
+                                "confidence": 0.0,
+                                "ball_speed": ball.get_speed(),
+                                "remaining_bricks": len(bricks),
+                            }
+                            ai_player.learn_from_result(ai_result)
+                            ai_player._log_paddle_movement(
+                                paddle.rect.centerx,
+                                paddle.rect.centerx,
+                                f"ПОТЕРЯ МЯЧА: боковой удар о платформу. Мяч X={ball.rect.centerx}, Платформа X={paddle.rect.centerx}, Платформа left={paddle.rect.left}, right={paddle.rect.right}",
+                                0.0
+                            )
+                    
+                    if ball_hits_paddle_top:
                         # Вычисляем точное смещение от центра платформы
                         paddle_center = paddle.rect.centerx
                         ball_center = ball.rect.centerx
@@ -1307,7 +1441,7 @@ def main() -> None:
                             paddle_bounce_sound.play()
 
                         # Обучаем AI на результате отскока
-                        if auto_mode:
+                        if auto_mode or training_mode:
                             ai_result = {
                                 "action_type": "paddle_bounce",
                                 "success": True,  # Отскок от платформы всегда успешен
@@ -1317,12 +1451,19 @@ def main() -> None:
                                 "remaining_bricks": len(bricks),
                             }
                             ai_player.learn_from_result(ai_result)
+                            # КРИТИЧНО: Сбрасываем отслеживание зоны разделения после отскока
+                            ai_player._reevaluate_after_bounce()
 
                     hit_index = ball.rect.collidelist(bricks)
                     if hit_index != -1:
                         ball.bounce_vertical()
                         destroyed_brick = bricks.pop(hit_index)
                         score += 1
+
+                        # КРИТИЧНО: При попадании в кубик сбрасываем счетчик отбитий в пустоту
+                        if auto_mode or training_mode:
+                            ai_player.empty_bounce_tracker["consecutive_empty_bounces"] = 0
+                            ai_player.empty_bounce_tracker["ceiling_bounces"] = 0
 
                         # Обучаем AI на результате попадания в кубик
                         if auto_mode:
@@ -1343,6 +1484,81 @@ def main() -> None:
                             brick_hit_sounds[
                                 random.randint(0, len(brick_hit_sounds) - 1)
                             ].play()
+                    else:
+                        # КРИТИЧНО: Мяч не попал в кубики - проверяем, был ли отскок от потолка
+                        # Если был отскок от потолка и мяч не попал в кубики - это отбитие в пустоту
+                        if (auto_mode or training_mode) and ai_player.empty_bounce_tracker.get("ceiling_bounces", 0) > 0:
+                            # Мяч отскочил от потолка и не попал в кубики - увеличиваем счетчик
+                            ai_player.empty_bounce_tracker["consecutive_empty_bounces"] += 1
+                            ai_player.empty_bounce_tracker["last_bounce_position"] = paddle.rect.centerx
+                            ai_player.empty_bounce_tracker["last_bounce_time"] = time.time()
+                            # Логируем отбитие в пустоту
+                            brick_coords_count = len(ai_player.targeting_system.get('brick_coordinates', []))
+                            ai_player._log_paddle_movement(
+                                paddle.rect.centerx,
+                                paddle.rect.centerx,
+                                f"ОТБИТИЕ В ПУСТОТУ #{ai_player.empty_bounce_tracker['consecutive_empty_bounces']} (отскок от потолка без попадания). Координаты кубиков: {brick_coords_count}",
+                                0.5
+                            )
+                            # Сбрасываем счетчик отскоков от потолка для следующей проверки
+                            ai_player.empty_bounce_tracker["ceiling_bounces"] = 0
+                        
+                        # КРИТИЧНО: Проверяем победу (все кубики сбиты) и перезапускаем в режиме обучения
+                        if not bricks:
+                            game_over = True
+                            game_time_seconds = int(time.time() - game_start_time)
+                            
+                            # Обучаем AI на результате игры (победа)
+                            if auto_mode or training_mode:
+                                ai_result = {
+                                    "action_type": "game_end",
+                                    "success": True,  # Игра выиграна
+                                    "final_score": score,
+                                    "game_duration": game_time_seconds,
+                                    "bricks_remaining": 0,
+                                    "bricks_destroyed": BRICK_ROWS * BRICK_COLS,
+                                    "lives_lost": MAX_LIVES - lives_left,
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player.on_game_end(
+                                    True, score, training_mode=training_mode
+                                )
+                            
+                            # В режиме обучения не показываем экран результатов, сразу перезапускаем
+                            if training_mode:
+                                # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
+                                ai_player._reset_game_state_trackers()
+                                
+                                # Автоматически перезапускаем игру в режиме обучения
+                                paddle = Paddle()
+                                ball = Ball()
+                                optimal_ball_speed = ai_player.get_optimal_ball_speed()
+                                if optimal_ball_speed > 10:
+                                    ball.current_speed = optimal_ball_speed
+                                else:
+                                    ball.set_speed(
+                                        optimal_ball_speed,
+                                        settings_manager,
+                                        auto_mode=False,
+                                    )
+                                ball.reset(paddle.rect)
+                                ball.vel_y = 0
+                                bricks = build_bricks()
+                                score = 0
+                                lives_left = MAX_LIVES  # Восстанавливаем жизни для нового матча
+                                game_over = False
+                                game_started = True  # Автоматически запускаем
+                                ball.vel_x = ball.get_speed()
+                                ball.vel_y = -ball.get_speed()
+                                game_start_time = time.time()
+                                
+                                # КРИТИЧНО: Сразу обновляем состояние игры для AI после перезапуска
+                                # Это гарантирует, что current_game_state будет установлен до первого вызова move_paddle_towards
+                                ai_player.update_game_state(
+                                    ball, paddle, bricks, score, int(game_start_time)
+                                )
+                                
+                                continue  # Пропускаем остальную обработку кадра
 
                     if ball.rect.bottom >= SCREEN_HEIGHT:
                         # Уменьшаем жизни (в режиме обучения тоже)
@@ -1383,6 +1599,9 @@ def main() -> None:
 
                             # В режиме обучения не показываем экран результатов, сразу перезапускаем
                             if training_mode:
+                                # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
+                                ai_player._reset_game_state_trackers()
+                                
                                 # Автоматически перезапускаем игру в режиме обучения
                                 paddle = Paddle()
                                 ball = Ball()
@@ -1407,6 +1626,12 @@ def main() -> None:
                                 ball.vel_x = ball.get_speed()
                                 ball.vel_y = -ball.get_speed()
                                 game_start_time = time.time()
+                                
+                                # КРИТИЧНО: Сразу обновляем состояние игры для AI после перезапуска
+                                # Это гарантирует, что current_game_state будет установлен до первого вызова move_paddle_towards
+                                ai_player.update_game_state(
+                                    ball, paddle, bricks, score, int(game_start_time)
+                                )
                             else:
                                 # В обычном режиме показываем экран результатов
                                 sound_enabled, restart_game, exit_game = (
@@ -1714,6 +1939,15 @@ def main() -> None:
     # Сохраняем данные обучения AI при выходе из игры
     if auto_mode and not training_mode:
         ai_player.save_learning_data()
+    
+    # КРИТИЧНО: Финальная обработка логов при выходе
+    # Запускаем анализатор, сохраняем результат и удаляем ненужные логи
+    if ai_player and hasattr(ai_player, 'performance_logger'):
+        try:
+            ai_player.performance_logger.finalize_and_analyze()
+        except Exception as e:
+            if not getattr(sys, "frozen", False):
+                print(f"[AI] Предупреждение: не удалось обработать логи при выходе: {e}")
 
     pygame.quit()
 

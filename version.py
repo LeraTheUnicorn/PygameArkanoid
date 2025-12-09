@@ -22,7 +22,7 @@ _VERSION_FILE = Path(__file__)
 # Начальные значения (будут обновлены при загрузке)
 VERSION_MAJOR = 2
 VERSION_MINOR = 3
-VERSION_BUILD = 20
+VERSION_BUILD = 46
 VERSION = "2.3.0017"
 VERSION_FULL = VERSION
 VERSION_BUILD_STRING = "2.3.0017"

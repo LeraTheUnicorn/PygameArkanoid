@@ -281,6 +281,56 @@ class PerformanceLogger:
         except Exception as e:
             print(f"Ошибка при сохранении лога сессии: {e}")
 
+    def finalize_and_analyze(self):
+        """
+        Финальная обработка логов при выходе из программы:
+        1. Сохраняет финальный лог сессии
+        2. Запускает анализатор логов
+        3. Сохраняет результат анализа
+        4. Удаляет ненужные логи (оставляет только анализ)
+        """
+        if not self.enable_session_logging:
+            return
+        
+        # Сохраняем финальный лог сессии
+        self.save_session_log()
+        
+        # Запускаем анализатор логов
+        try:
+            from .log_analyzer import LogAnalyzer
+            
+            analyzer = LogAnalyzer()
+            analyzer.load_logs(self.logs_dir)
+            analysis_result = analyzer.analyze_movement_patterns()
+            
+            # Сохраняем результат анализа
+            analysis_file = os.path.join(self.logs_dir, f"analysis_{self.session_id}.json")
+            with open(analysis_file, "w", encoding="utf-8") as f:
+                json.dump(analysis_result, f, ensure_ascii=False, indent=2)
+            
+            # Удаляем ненужные логи (оставляем только анализ и общий файл результатов)
+            if self.session_log_file and os.path.exists(self.session_log_file):
+                try:
+                    os.remove(self.session_log_file)
+                except Exception as e:
+                    print(f"Не удалось удалить лог сессии {self.session_log_file}: {e}")
+            
+            # Удаляем другие сессионные логи (кроме текущей сессии, если она еще не удалена)
+            try:
+                for file in os.listdir(self.logs_dir):
+                    if file.startswith("session_") and file.endswith(".json"):
+                        file_path = os.path.join(self.logs_dir, file)
+                        if file_path != self.session_log_file:
+                            try:
+                                os.remove(file_path)
+                            except Exception as e:
+                                print(f"Не удалось удалить лог {file_path}: {e}")
+            except Exception as e:
+                print(f"Ошибка при очистке логов: {e}")
+                
+        except Exception as e:
+            print(f"Ошибка при анализе логов: {e}")
+
     def save_game_result(self, game_result: Dict[str, Any]):
         """Сохраняет результат игры в общий файл"""
         results_file = os.path.join(self.logs_dir, "all_game_results.json")
