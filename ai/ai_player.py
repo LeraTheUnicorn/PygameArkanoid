@@ -2565,19 +2565,11 @@ class AIPlayer:
                     optimal_x = self.get_optimal_paddle_position()
                     print(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
             
-            # ПРАВИЛО 1: Если мяч летит вверх - платформа НЕ двигается
-            # КРИТИЧНО: Но только если мяч действительно летит вверх (vel_y < 0)
-            # Если vel_y == 0, это может быть ошибка состояния - используем fallback
-            if ball_vel_y < 0:
-                # КРИТИЧНО: Логируем для диагностики (периодически)
-                import random
-                if random.random() < 0.05:  # 5% кадров
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] ПРАВИЛО 1: Мяч летит вверх (vel_y={ball_vel_y}), платформа не двигается. ball_y={ball_y:.1f}")
-                self._log_paddle_movement(current_x, current_x, "ball_flying_up", 1.0)
-                return 0
-            elif ball_vel_y == 0:
+            # КРИТИЧНО: УБРАНО ПРАВИЛО 1 - платформа ДОЛЖНА двигаться к точке падения мяча
+            # даже когда мяч летит вверх, чтобы успеть к моменту падения
+            # Продолжаем расчет оптимальной позиции независимо от направления мяча
+            
+            if ball_vel_y == 0:
                 # КРИТИЧНО: Если vel_y == 0, это ошибка состояния (должно быть исправлено в PyGameBall.py)
                 # Но на всякий случай продолжаем движение к оптимальной позиции, а не используем fallback
                 # Это предотвращает ситуацию, когда платформа перестает двигаться из-за временного vel_y=0
@@ -2637,16 +2629,18 @@ class AIPlayer:
                 # 3. Мяч потерян (ниже верхней границы платформы)
                 should_reset = False
                 
-                # Проверка 1: Мяч изменил направление (летит вверх)
-                if ball_vel_y <= 0:
-                    should_reset = True
+                # КРИТИЧНО: УБРАНО - не сбрасываем целевую позицию когда мяч летит вверх
+                # Платформа должна продолжать двигаться к точке падения даже когда мяч летит вверх
+                # Это позволяет платформе успеть к моменту падения мяча
+                # if ball_vel_y <= 0:
+                #     should_reset = True
                 
                 # Проверка 2: Мяч ушел далеко вверх (выше зоны кубиков)
-                elif ball_y < separation_zone_start - 50:  # Далеко выше зоны разделения
+                if ball_y < separation_zone_start - 50:  # Далеко выше зоны разделения
                     should_reset = True
                 
                 # Проверка 3: Мяч потерян (ниже верхней границы платформы)
-                elif ball_lost:
+                if ball_lost:
                     should_reset = True
                 
                 # Если нужно сбросить - сбрасываем
@@ -2663,9 +2657,11 @@ class AIPlayer:
                     if target_pos is not None:
                         distance_to_target = abs(current_x - target_pos)
                         
-                        # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели (≤5 пикселей) - НЕ двигаемся
-                        # КРИТИЧНО: Уменьшено с 30 до 5 пикселей, чтобы платформа могла двигаться
-                        if distance_to_target <= 5:
+                        # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели - НЕ двигаемся
+                        # КРИТИЧНО: Используем гистерезис для предотвращения дрожания
+                        # Если уже достигли цели, увеличиваем допуск до 10 пикселей
+                        tolerance = 10 if self.separation_zone_tracker.get("paddle_reached_target", False) else 5
+                        if distance_to_target <= tolerance:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
                                 self.separation_zone_tracker["paddle_reached_target"] = True
@@ -2674,7 +2670,7 @@ class AIPlayer:
                                 import random
                                 if random.random() < 0.2:  # 20% кадров
                                     if not getattr(sys, "frozen", False):
-                                        print(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
+                                        print(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
                                 self._log_paddle_movement(current_x, current_x, "paddle_reached_target", 1.0)
                             return 0
                         
@@ -2756,8 +2752,8 @@ class AIPlayer:
                     return 0
                 
                 # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
-                # Уменьшено с 30 до 5 пикселей, чтобы платформа могла двигаться к цели
-                if distance_to_target <= 5:
+                # Увеличено до 10 пикселей для предотвращения дрожания
+                if distance_to_target <= 10:
                     self.separation_zone_tracker["paddle_reached_target"] = True
                     # КРИТИЧНО: Логируем для диагностики
                     import sys
@@ -3641,31 +3637,22 @@ class AIPlayer:
                     )
                     print(f"   Комплексная оценка системы: {system_score:.1f}/100")
                     
-                    emoji_excellent = "🟢" if use_emoji else "[ОТЛИЧНО]"
-                    emoji_good = "🟡" if use_emoji else "[ХОРОШО]"
-                    emoji_satisfactory = "🟠" if use_emoji else "[УДОВЛЕТВОРИТЕЛЬНО]"
-                    emoji_poor = "🔴" if use_emoji else "[ТРЕБУЕТ УЛУЧШЕНИЯ]"
-                    emoji_warning = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
-                    
                     if system_score >= 80:
-                        print(f"   {emoji_excellent} ОТЛИЧНО: Система работает эффективно")
+                        print(f"   [ОТЛИЧНО] ОТЛИЧНО: Система работает эффективно")
                     elif system_score >= 60:
-                        print(f"   {emoji_good} ХОРОШО: Система работает стабильно")
+                        print(f"   [ХОРОШО] ХОРОШО: Система работает стабильно")
                     elif system_score >= 40:
-                        print(f"   {emoji_satisfactory} УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
+                        print(f"   [УДОВЛЕТВОРИТЕЛЬНО] УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
                     else:
-                        print(f"   {emoji_poor} ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
+                        print(f"   [ТРЕБУЕТ УЛУЧШЕНИЯ] ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
                 else:
-                    emoji_warning = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
-                    print(f"   {emoji_warning}  Недостаточно данных для комплексной оценки")
+                    print(f"   [ВНИМАНИЕ]  Недостаточно данных для комплексной оценки")
             
             print("=" * 70 + "\n")
         except Exception as e:
             # В случае ошибки выводим минимальную информацию
             # КРИТИЧНО: Не используем эмодзи в сообщении об ошибке, чтобы избежать UnicodeError
             try:
-                print(f"\n⚠️  Ошибка при выводе метрик: {e}\n")
-            except (UnicodeEncodeError, UnicodeError):
                 print(f"\n[ОШИБКА] Ошибка при выводе метрик: {e}\n")
             except Exception as e2:
                 # Если даже это не работает, выводим без форматирования
