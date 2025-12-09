@@ -1626,8 +1626,8 @@ def main() -> None:
                             if ball.rect.colliderect(paddle.rect):
                                 # Если мяч все еще внутри платформы, перемещаем его еще выше
                                 ball.rect.centery = paddle.rect.top - ball_radius - 15
-                            # Устанавливаем vel_y = 0 для ожидания запуска
-                            ball.vel_y = 0
+                            # КРИТИЧНО: После бокового удара мяч потерян, но не устанавливаем vel_y = 0
+                            # Вместо этого мяч будет обработан в логике потери жизни ниже
                             # КРИТИЧНО: Сбрасываем все трекеры после бокового удара
                             if auto_mode or training_mode:
                                 ai_player._reset_game_state_trackers()
