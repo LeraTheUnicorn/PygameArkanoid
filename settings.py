@@ -84,7 +84,7 @@ class SettingsManager:
 
     def set_ball_speed(self, speed: int, auto_mode: bool = False) -> None:
         """Устанавливает скорость мяча с учетом режима игры"""
-        max_speed = 30 if auto_mode else 10
+        max_speed = 50 if auto_mode else 10  # Увеличено до 50 для режима обучения
         if 1 <= speed <= max_speed:
             self.settings["ball_speed"] = speed
             self.save_settings()

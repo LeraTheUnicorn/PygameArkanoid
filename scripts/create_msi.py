@@ -35,7 +35,7 @@ def get_current_version():
         return get_version_string()
     except Exception as e:
         print(f"Ошибка чтения версии из version.py: {e}")
-        return "2.2.0001"
+        return "2.3.0000"
 
 
 def create_wix_files():

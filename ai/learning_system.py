@@ -627,16 +627,16 @@ class LearningSystem:
             )
             # Корректируем на основе расстояния (чем больше расстояние, тем выше скорость)
             distance_factor = min(
-                3.0, distance_to_target / 200.0
-            )  # Макс 3x для расстояния > 600px
-            return max(0.5, min(5.0, avg_multiplier * distance_factor))
+                10.0, distance_to_target / 100.0
+            )  # Макс 10x для расстояния > 1000px
+            return max(0.5, min(10.0, avg_multiplier * distance_factor))
 
         # Базовый расчет: скорость платформы пропорциональна скорости мяча
         base_multiplier = max(
             1.0, ball_speed / 10.0
         )  # Минимум 1x, растет с скоростью мяча
-        distance_factor = min(3.0, distance_to_target / 200.0)
-        return max(0.5, min(5.0, base_multiplier * distance_factor))
+        distance_factor = min(10.0, distance_to_target / 100.0)  # Увеличено до 10x
+        return max(0.5, min(10.0, base_multiplier * distance_factor))
 
     def update_paddle_speed_feedback(
         self, ball_speed: int, speed_multiplier: float, success: bool

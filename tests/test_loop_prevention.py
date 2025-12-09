@@ -13,7 +13,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ai.ai_player import AIPlayer
 from ai.game_state import GameState, Point
 import pygame
-import pygame.math
+from dataclasses import dataclass
+
+
+# Создаем мок объекты для тестирования
+@dataclass
+class MockPaddle:
+    rect = pygame.Rect(400, 550, 120, 15)
+
+
+@dataclass
+class MockBall:
+    rect = pygame.Rect(400, 300, 16, 16)
+    vel_x = 3
+    vel_y = 3
+
+    def get_speed(self):
+        return 5
 
 
 def test_loop_detection():
@@ -24,11 +40,8 @@ def test_loop_detection():
     ai = AIPlayer(screen_width=800, screen_height=600, debug_mode=True)
 
     # Создаем mock состояние игры
-    ball = pygame.math.Vector2()
-    ball.update(400, 300)  # Центр экрана
-
-    paddle = pygame.math.Vector2()
-    paddle.update(400, 550)  # Низ экрана
+    ball = MockBall()
+    paddle = MockPaddle()
 
     bricks = []
     for i in range(5):
@@ -66,11 +79,8 @@ def test_alternative_strategies():
     ai.activate()
 
     # Создаем mock состояние
-    ball = pygame.math.Vector2()
-    ball.update(400, 300)
-
-    paddle = pygame.math.Vector2()
-    paddle.update(400, 550)
+    ball = MockBall()
+    paddle = MockPaddle()
 
     bricks = []
     for i in range(3):
@@ -139,11 +149,8 @@ def test_reevaluation_after_bounce():
     ai.activate()
 
     # Создаем состояние игры
-    ball = pygame.math.Vector2()
-    ball.update(400, 300)
-
-    paddle = pygame.math.Vector2()
-    paddle.update(400, 550)
+    ball = MockBall()
+    paddle = MockPaddle()
 
     bricks = []
     for i in range(3):

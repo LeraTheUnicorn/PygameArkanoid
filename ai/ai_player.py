@@ -69,6 +69,7 @@ class AIPlayer:
             "total_score": 0,
             "average_accuracy": 0.0,
             "learning_progress": 0.0,
+            "best_time_50_bricks": None,  # Лучшее время для матча с 50 блоками (в секундах)
         }
 
         # Статистика текущей игры
@@ -138,8 +139,8 @@ class AIPlayer:
 
         # Параметры для обучения в режиме обучения
         self.training_parameters: Dict[str, Any] = {
-            "ball_speed": 5,  # Текущая скорость мяча
-            "paddle_speed_multiplier": 1.0,  # Множитель скорости платформы
+            "ball_speed": 30,  # Текущая скорость мяча (высокая начальная скорость для игры за 5 секунд)
+            "paddle_speed_multiplier": 2.0,  # Множитель скорости платформы (высокий для быстрой игры)
             "total_bricks_destroyed": 0,  # Всего кубиков сбито за матч
             "total_time": 0,  # Общее время матча
             "lives_lost": 0,  # Потерянные жизни
@@ -414,6 +415,12 @@ class AIPlayer:
                 landing_x = self._predict_exact_landing_position()
                 bricks_count = len(self.current_game_state.remaining_bricks) if self.current_game_state else 0
                 
+                # Для малого количества блоков (1-10) используем точное прицеливание
+                if bricks_count <= 10:
+                    optimal_position = self._calculate_precise_position_for_few_bricks(landing_x)
+                    if optimal_position is not None:
+                        return int(optimal_position)
+                
                 # На поздних этапах используем стратегию максимизации разрушений
                 if bricks_count <= 15:
                     optimal_position = self._calculate_position_for_max_destruction(landing_x)
@@ -629,6 +636,191 @@ class AIPlayer:
                 self.targeting_system["recent_target_positions"] = self.targeting_system["recent_target_positions"][-5:]
 
         return best_brick
+
+    def _calculate_precise_position_for_few_bricks(self, landing_x: float) -> Optional[float]:
+        """
+        Вычисляет точную позицию платформы для попадания в оставшиеся блоки (1-5 блоков).
+        Использует точное прицеливание в каждый блок для избежания отбивания в пустоту.
+        
+        Args:
+            landing_x: X-координата приземления мяча.
+            
+        Returns:
+            Оптимальная X-координата центра платформы или None.
+        """
+        if not self.current_game_state or not self.current_game_state.remaining_bricks:
+            return None
+        
+        bricks = self.current_game_state.remaining_bricks
+        bricks_count = len(bricks)
+        
+        if bricks_count > 10:
+            return None  # Этот метод только для малого количества блоков (до 10)
+        
+        paddle_y = self.current_game_state.paddle_position.y
+        paddle_half_width = self.paddle_width / 2
+        
+        # Получаем точку пересечения с платформой
+        intersection_point = self.trajectory_predictor.predict_paddle_intersection(
+            self.current_game_state, paddle_y
+        )
+        
+        if intersection_point is None:
+            return None
+        
+        best_position = None
+        best_score = -float('inf')
+        
+        # Для каждого блока рассчитываем точную позицию платформы для попадания
+        for brick in bricks:
+            brick_x = getattr(brick, "x", 0)
+            brick_y = getattr(brick, "y", 0)
+            brick_width = getattr(brick, "width", 60)
+            brick_height = getattr(brick, "height", 20)
+            brick_center_x = brick_x + brick_width / 2
+            brick_center_y = brick_y + brick_height / 2
+            
+            # Рассчитываем необходимый угол отскока для попадания в центр блока
+            # Расстояние от платформы до блока
+            dx = brick_center_x - intersection_point.x
+            dy = brick_center_y - paddle_y
+            
+            if dy <= 0:
+                continue  # Блок выше платформы или на уровне
+            
+            # Рассчитываем необходимую горизонтальную скорость после отскока
+            # Используем физику: угол отскока зависит от позиции на платформе
+            # Чем дальше от центра платформы, тем больше горизонтальная скорость
+            
+            # Целевой угол (в радианах) для попадания в блок
+            target_angle = math.atan2(dx, dy)
+            
+            # Рассчитываем необходимое смещение на платформе для получения этого угла
+            # Максимальный угол отскока зависит от позиции на платформе
+            # Используем более точную формулу
+            max_angle = math.atan2(paddle_half_width, 50)  # Максимальный угол отскока
+            
+            # Нормализуем целевой угол
+            normalized_angle = max(-max_angle, min(max_angle, target_angle))
+            
+            # Рассчитываем смещение на платформе
+            required_offset = normalized_angle / max_angle if max_angle > 0 else 0
+            
+            # Вычисляем позицию платформы
+            bounce_x = intersection_point.x - (required_offset * paddle_half_width)
+            paddle_position = bounce_x
+            
+            # Ограничиваем границами
+            min_position = paddle_half_width
+            max_position = self.screen_width - paddle_half_width
+            paddle_position = max(min_position, min(max_position, paddle_position))
+            
+            # Проверяем, действительно ли эта позиция приведет к попаданию
+            # Симулируем траекторию после отскока
+            after_bounce_trajectory = (
+                self.trajectory_predictor.predict_after_bounce_trajectory(
+                    self.current_game_state, intersection_point, bounce_x
+                )
+            )
+            
+            # Проверяем, попадет ли мяч в этот блок
+            will_hit = False
+            for point in after_bounce_trajectory:
+                if not hasattr(point, 'x') or not hasattr(point, 'y'):
+                    continue
+                
+                # Проверяем попадание в блок
+                if (brick_x <= point.x <= brick_x + brick_width and
+                    brick_y <= point.y <= brick_y + brick_height):
+                    will_hit = True
+                    break
+            
+            if will_hit:
+                # Оцениваем качество этой позиции
+                # Приоритет: ближайшие блоки, нижние блоки
+                distance_to_paddle = paddle_y - brick_y
+                score = 10000.0 / max(distance_to_paddle, 1)  # Ближе = лучше
+                
+                # Бонус за нижние блоки
+                if brick_y > 200:
+                    score += 5000.0
+                
+                # Бонус за центральные блоки (более предсказуемо)
+                center_distance = abs(brick_center_x - self.screen_width // 2)
+                score -= center_distance * 0.1
+                
+                if score > best_score:
+                    best_score = score
+                    best_position = paddle_position
+        
+        # Если не нашли точное попадание, используем более агрессивный расчет
+        if best_position is None and bricks:
+            # Пробуем более широкий диапазон смещений для каждого блока
+            for brick in bricks:
+                brick_x = getattr(brick, "x", 0)
+                brick_y = getattr(brick, "y", 0)
+                brick_width = getattr(brick, "width", 60)
+                brick_height = getattr(brick, "height", 20)
+                brick_center_x = brick_x + brick_width / 2
+                
+                # Пробуем разные смещения на платформе для попадания в блок
+                for test_offset in [-1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+                    test_bounce_x = intersection_point.x - (test_offset * paddle_half_width)
+                    test_paddle_position = test_bounce_x
+                    
+                    # Ограничиваем границами
+                    min_position = paddle_half_width
+                    max_position = self.screen_width - paddle_half_width
+                    test_paddle_position = max(min_position, min(max_position, test_paddle_position))
+                    
+                    # Симулируем траекторию
+                    test_trajectory = (
+                        self.trajectory_predictor.predict_after_bounce_trajectory(
+                            self.current_game_state, intersection_point, test_bounce_x
+                        )
+                    )
+                    
+                    # Проверяем попадание
+                    for point in test_trajectory:
+                        if not hasattr(point, 'x') or not hasattr(point, 'y'):
+                            continue
+                        
+                        # Расширенная проверка попадания (с учетом радиуса мяча)
+                        ball_radius = 8
+                        if (brick_x - ball_radius <= point.x <= brick_x + brick_width + ball_radius and
+                            brick_y - ball_radius <= point.y <= brick_y + brick_height + ball_radius):
+                            # Нашли попадание - используем эту позицию
+                            best_position = test_paddle_position
+                            break
+                    
+                    if best_position is not None:
+                        break
+                
+                if best_position is not None:
+                    break
+            
+            # Если все еще не нашли, используем упрощенный расчет
+            if best_position is None:
+                # Берем ближайший нижний блок
+                closest_brick = min(bricks, key=lambda b: (
+                    paddle_y - getattr(b, "y", 0),
+                    abs((getattr(b, "x", 0) + getattr(b, "width", 60) / 2) - landing_x)
+                ))
+                
+                brick_center_x = getattr(closest_brick, "x", 0) + getattr(closest_brick, "width", 60) / 2
+                
+                # Простое прицеливание: ставим платформу так, чтобы мяч отскочил в направлении блока
+                dx = brick_center_x - landing_x
+                # Рассчитываем необходимое смещение
+                required_offset = max(-1.0, min(1.0, dx / (paddle_half_width * 2)))
+                best_position = landing_x - (required_offset * paddle_half_width)
+                
+                # Ограничиваем границами
+                min_position = paddle_half_width
+                max_position = self.screen_width - paddle_half_width
+                best_position = max(min_position, min(max_position, best_position))
+        
+        return best_position
 
     def _calculate_position_for_max_destruction(self, landing_x: float) -> Optional[float]:
         """
@@ -1714,12 +1906,38 @@ class AIPlayer:
                 if self.current_game_state:
                     ball_speed = self.current_game_state.ball_speed
                     distance_to_target = distance_to_optimal
+                    
+                    # Рассчитываем время до встречи с мячом для более агрессивного увеличения скорости
+                    time_to_meeting = float('inf')
+                    ball_vel_y = (
+                        self.current_game_state.ball_velocity.y
+                        if hasattr(self.current_game_state, "ball_velocity")
+                        else 0
+                    )
+                    if ball_vel_y > 0:  # Мяч движется вниз
+                        ball_y = self.current_game_state.ball_position.y
+                        paddle_y = self.current_game_state.paddle_position.y
+                        distance_y = paddle_y - ball_y
+                        if distance_y > 0:
+                            time_to_meeting = distance_y / ball_vel_y
+                    
                     speed_multiplier = self.learning_system.get_adaptive_paddle_speed(
                         ball_speed, distance_to_target
                     )
+                    
+                    # Если мяч быстро приближается, агрессивно увеличиваем скорость
+                    if time_to_meeting != float('inf') and time_to_meeting > 0:
+                        # Чем меньше времени до встречи, тем выше должна быть скорость
+                        if time_to_meeting < 30:  # Менее 30 кадров (0.5 сек при 60 FPS)
+                            urgency_factor = 30.0 / max(time_to_meeting, 1)
+                            speed_multiplier *= min(urgency_factor, 3.0)  # До 3x дополнительного ускорения
+                        elif time_to_meeting < 60:  # Менее 60 кадров (1 сек)
+                            urgency_factor = 60.0 / max(time_to_meeting, 1)
+                            speed_multiplier *= min(urgency_factor, 2.0)  # До 2x дополнительного ускорения
+                    
                     # Ограничиваем минимальный множитель скорости, чтобы платформа не двигалась слишком медленно
-                    # В режиме обучения AI может увеличивать скорость до 5x для достижения цели
-                    max_multiplier = 5.0 if hasattr(self, 'training_parameters') else 3.0
+                    # AI может увеличивать скорость до 10x для достижения цели
+                    max_multiplier = 10.0  # Увеличено с 5x до 10x
                     speed_multiplier = max(0.8, min(max_multiplier, speed_multiplier))
                     adjusted_paddle_speed = int(paddle_speed * speed_multiplier)
                     # Гарантируем минимальную скорость платформы
@@ -2491,6 +2709,13 @@ class AIPlayer:
                 f"Games: {self.performance_metrics['games_played']}",
             ]
             
+            # Добавляем лучшее время для матча с 50 блоками
+            best_time = self.performance_metrics.get('best_time_50_bricks')
+            if best_time is not None:
+                info_lines.append(f"Best: {best_time:.1f}s (50 blocks)")
+            else:
+                info_lines.append(f"Best: -- (50 blocks)")
+            
             # Отрисовка фона для текста
             font = pygame.font.SysFont("arial", 16)
             line_height = 20
@@ -2588,6 +2813,13 @@ class AIPlayer:
         }
         self.training_parameters["match_history"].append(match_data)
         
+        # Обновляем лучшее время для матча с 50 блоками
+        if success and self.training_parameters["total_bricks_destroyed"] == 50:
+            match_time = self.training_parameters["total_time"]
+            best_time = self.performance_metrics.get("best_time_50_bricks")
+            if best_time is None or match_time < best_time:
+                self.performance_metrics["best_time_50_bricks"] = match_time
+        
         # Ограничиваем историю последними 10 матчами
         if len(self.training_parameters["match_history"]) > 10:
             self.training_parameters["match_history"].pop(0)
@@ -2616,42 +2848,58 @@ class AIPlayer:
         current_ball_speed = self.training_parameters["ball_speed"]
         current_paddle_mult = self.training_parameters["paddle_speed_multiplier"]
         
+        # Целевое время матча: 5 секунд
+        target_time = 5.0
+        time_ratio = time_taken / target_time if target_time > 0 else 1.0
+        
         # Если это первый матч или мало данных, используем более агрессивную адаптацию
         if len(self.training_parameters["match_history"]) <= 2:
             # Для первых матчей более агрессивно увеличиваем скорость
-            if bricks_destroyed >= 30 and lives_lost <= 1:  # Хороший результат
-                # Увеличиваем скорость мяча
-                if current_ball_speed < 15:
-                    self.training_parameters["ball_speed"] = min(15, current_ball_speed + 2)
+            if bricks_destroyed >= 45 and lives_lost <= 1:  # Хороший результат (почти все блоки)
+                # Увеличиваем скорость мяча до максимума для быстрой игры
+                if current_ball_speed < 50:
+                    self.training_parameters["ball_speed"] = min(50, current_ball_speed + 3)
                 # Увеличиваем скорость платформы
-                if current_paddle_mult < 2.0:
-                    self.training_parameters["paddle_speed_multiplier"] = min(2.0, current_paddle_mult + 0.2)
-            elif bricks_destroyed < 20 or lives_lost >= 2:  # Плохой результат
-                # Уменьшаем скорость мяча
-                if current_ball_speed > 5:
-                    self.training_parameters["ball_speed"] = max(5, current_ball_speed - 1)
+                if current_paddle_mult < 3.0:
+                    self.training_parameters["paddle_speed_multiplier"] = min(3.0, current_paddle_mult + 0.3)
+            elif time_ratio > 1.5:  # Время больше целевого в 1.5 раза - нужно ускориться
+                # Агрессивно увеличиваем скорость для достижения целевого времени
+                if current_ball_speed < 50:
+                    self.training_parameters["ball_speed"] = min(50, current_ball_speed + 2)
+                if current_paddle_mult < 3.0:
+                    self.training_parameters["paddle_speed_multiplier"] = min(3.0, current_paddle_mult + 0.2)
+            elif bricks_destroyed < 30 or lives_lost >= 2:  # Плохой результат
+                # Уменьшаем скорость мяча (но не слишком сильно)
+                if current_ball_speed > 20:
+                    self.training_parameters["ball_speed"] = max(20, current_ball_speed - 2)
                 # Уменьшаем скорость платформы
-                if current_paddle_mult > 0.8:
-                    self.training_parameters["paddle_speed_multiplier"] = max(0.8, current_paddle_mult - 0.1)
+                if current_paddle_mult > 1.0:
+                    self.training_parameters["paddle_speed_multiplier"] = max(1.0, current_paddle_mult - 0.2)
         else:
-            # После накопления данных используем сравнение со средним
+            # После накопления данных используем сравнение со средним и целевым временем
             avg_efficiency = self._get_average_efficiency()
             
             if avg_efficiency > 0:
-                if efficiency > avg_efficiency * 1.1:  # На 10% лучше среднего
-                    # Увеличиваем скорость мяча (но не более 15)
-                    if current_ball_speed < 15:
-                        self.training_parameters["ball_speed"] = min(15, current_ball_speed + 1)
-                    # Увеличиваем скорость платформы (но не более 2.0)
-                    if current_paddle_mult < 2.0:
-                        self.training_parameters["paddle_speed_multiplier"] = min(2.0, current_paddle_mult + 0.1)
+                # Если время больше целевого, агрессивно увеличиваем скорость
+                if time_ratio > 1.2:  # Время на 20% больше целевого
+                    if current_ball_speed < 50:
+                        self.training_parameters["ball_speed"] = min(50, current_ball_speed + 2)
+                    if current_paddle_mult < 3.0:
+                        self.training_parameters["paddle_speed_multiplier"] = min(3.0, current_paddle_mult + 0.2)
+                elif efficiency > avg_efficiency * 1.1:  # На 10% лучше среднего
+                    # Увеличиваем скорость мяча (до 50)
+                    if current_ball_speed < 50:
+                        self.training_parameters["ball_speed"] = min(50, current_ball_speed + 1)
+                    # Увеличиваем скорость платформы (до 3.0)
+                    if current_paddle_mult < 3.0:
+                        self.training_parameters["paddle_speed_multiplier"] = min(3.0, current_paddle_mult + 0.1)
                 elif efficiency < avg_efficiency * 0.9:  # На 10% хуже среднего
-                    # Уменьшаем скорость мяча (но не менее 5)
-                    if current_ball_speed > 5:
-                        self.training_parameters["ball_speed"] = max(5, current_ball_speed - 1)
-                    # Уменьшаем скорость платформы (но не менее 0.8)
-                    if current_paddle_mult > 0.8:
-                        self.training_parameters["paddle_speed_multiplier"] = max(0.8, current_paddle_mult - 0.1)
+                    # Уменьшаем скорость мяча (но не менее 20)
+                    if current_ball_speed > 20:
+                        self.training_parameters["ball_speed"] = max(20, current_ball_speed - 1)
+                    # Уменьшаем скорость платформы (но не менее 1.0)
+                    if current_paddle_mult > 1.0:
+                        self.training_parameters["paddle_speed_multiplier"] = max(1.0, current_paddle_mult - 0.1)
 
     def _get_average_efficiency(self) -> float:
         """Вычисляет среднюю эффективность за последние матчи."""
@@ -2674,7 +2922,7 @@ class AIPlayer:
         Возвращает оптимальную скорость мяча на основе обучения.
         
         Returns:
-            Оптимальная скорость мяча (3-15).
+            Оптимальная скорость мяча (20-50 для режима обучения).
         """
         return int(self.training_parameters["ball_speed"])
 

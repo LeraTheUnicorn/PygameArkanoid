@@ -1196,6 +1196,7 @@ def main() -> None:
                         paddle.move(1)
 
                 if game_started:
+                    # Обычное обновление мяча (непрерывная проверка столкновений встроена в update)
                     ball.update()
 
                     if ball.rect.colliderect(paddle.rect) and ball.vel_y > 0:
