@@ -467,13 +467,14 @@ class AIPlayer:
             if separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y <= 0:
                 return int(self.current_game_state.paddle_position.x)
 
-            # КРИТИЧНО: Если целевая позиция уже установлена, ВСЕГДА возвращаем её
-            # Это предотвращает дрожание платформы - она движется к цели один раз
-            # НЕ пересчитываем позицию, даже если мяч временно вышел из зоны разделения
+            # КРИТИЧНО: Если целевая позиция уже установлена, пересчитываем её периодически
+            # Это позволяет платформе адаптироваться к изменению траектории мяча
+            # Пересчет происходит в move_paddle_towards, здесь просто возвращаем текущую позицию
+            # если она установлена (для обратной совместимости)
             if self.separation_zone_tracker.get("target_position_set", False):
                 target_pos = self.separation_zone_tracker.get("target_position")
                 if target_pos is not None:
-                    # ВСЕГДА возвращаем сохраненную позицию, не пересчитываем
+                    # Возвращаем сохраненную позицию, но она будет пересчитана в move_paddle_towards
                     return int(target_pos)
             
             # КРИТИЧНО: Проверяем, вошел ли мяч в зону разделения
@@ -2767,6 +2768,7 @@ class AIPlayer:
                 self.separation_zone_tracker["target_position_set"] = True
                 self.separation_zone_tracker["paddle_moved_after_set"] = False
                 self.separation_zone_tracker["paddle_reached_target"] = False
+                self.separation_zone_tracker["frames_since_target_set"] = 0
                 self._log_paddle_movement(current_x, optimal_x, "target_position_set", 1.0)
                 # Продолжаем обработку с установленной позицией
                 target_pos = int(optimal_x)
@@ -2779,8 +2781,8 @@ class AIPlayer:
                     return 0
                 
                 # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
-                # Уменьшено до 3 пикселей для более точного позиционирования
-                if distance_to_target <= 3:
+                # Уменьшено до 2 пикселей для более точного позиционирования
+                if distance_to_target <= 2:
                     self.separation_zone_tracker["paddle_reached_target"] = True
                     # КРИТИЧНО: Логируем для диагностики
                     import sys
