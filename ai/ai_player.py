@@ -632,12 +632,31 @@ class AIPlayer:
                     paddle_half_width = self.paddle_width / 2
                     optimal_position = landing_x - (optimal_offset * paddle_half_width)
 
-                    # Границы по центру платформы
-                    min_position = paddle_half_width
-                    max_position = self.screen_width - paddle_half_width
-                    optimal_position = max(
-                        min_position, min(max_position, optimal_position)
-                    )
+                    # КРИТИЧНО: Границы по центру платформы с безопасным отступом от краев
+                    # Минимум 30 пикселей от края экрана, чтобы избежать боковых ударов
+                    safe_margin = 30  # Безопасный отступ от края
+                    min_position = paddle_half_width + safe_margin
+                    max_position = self.screen_width - paddle_half_width - safe_margin
+                    
+                    # Если рассчитанная позиция слишком близко к краю, смещаем к центру
+                    if optimal_position < min_position:
+                        # Слишком близко к левому краю - смещаем вправо
+                        optimal_position = min_position
+                    elif optimal_position > max_position:
+                        # Слишком близко к правому краю - смещаем влево
+                        optimal_position = max_position
+                    
+                    # Дополнительная проверка: если позиция все еще слишком близко к краю
+                    # (менее 20 пикселей от края платформы), смещаем еще больше к центру
+                    paddle_left_edge = optimal_position - paddle_half_width
+                    paddle_right_edge = optimal_position + paddle_half_width
+                    
+                    if paddle_left_edge < safe_margin:
+                        # Платформа слишком близко к левому краю
+                        optimal_position = safe_margin + paddle_half_width
+                    elif paddle_right_edge > self.screen_width - safe_margin:
+                        # Платформа слишком близко к правому краю
+                        optimal_position = self.screen_width - safe_margin - paddle_half_width
 
                     # Учитываем предпочтения позиций из learning_system
                     position_preference = (

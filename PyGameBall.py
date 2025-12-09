@@ -1633,6 +1633,73 @@ def main() -> None:
                                 ai_player._reset_game_state_trackers()
                         else:
                             game_over = True
+                            # КРИТИЧНО: В режиме обучения перезапускаем игру после потери всех жизней
+                            if training_mode and lives_left <= 0:
+                                # Рассчитываем время игры и сохраняем результат
+                                game_time_seconds = int(time.time() - game_start_time)
+                                
+                                # В режиме обучения считаем кубики за весь матч
+                                total_bricks_destroyed = (
+                                    BRICK_ROWS * BRICK_COLS
+                                ) - len(bricks)
+                                
+                                # Обновляем финальную статистику обучения
+                                ai_player.update_training_stats(
+                                    total_bricks_destroyed,
+                                    game_time_seconds,
+                                    MAX_LIVES,  # Все жизни потрачены
+                                )
+                                
+                                ai_result = {
+                                    "action_type": "game_end",
+                                    "success": False,  # Игра проиграна
+                                    "final_score": score,
+                                    "game_duration": game_time_seconds,
+                                    "bricks_remaining": len(bricks),
+                                    "bricks_destroyed": total_bricks_destroyed,
+                                    "lives_lost": MAX_LIVES,  # Все жизни потрачены
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player.on_game_end(
+                                    False, score, training_mode=training_mode
+                                )
+                                
+                                # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
+                                ai_player._reset_game_state_trackers()
+                                
+                                # Автоматически перезапускаем игру в режиме обучения
+                                paddle = Paddle()
+                                ball = Ball()
+                                optimal_ball_speed = ai_player.get_optimal_ball_speed()
+                                if optimal_ball_speed > 10:
+                                    ball.current_speed = optimal_ball_speed
+                                else:
+                                    ball.set_speed(
+                                        optimal_ball_speed,
+                                        settings_manager,
+                                        auto_mode=False,
+                                    )
+                                ball.reset(paddle.rect)
+                                ball.vel_y = 0
+                                bricks = build_bricks()
+                                score = 0
+                                lives_left = MAX_LIVES  # Восстанавливаем жизни для нового матча
+                                game_over = False
+                                game_started = True  # Автоматически запускаем
+                                ball.vel_x = ball.get_speed()
+                                ball.vel_y = -ball.get_speed()
+                                game_start_time = time.time()
+                                
+                                # КРИТИЧНО: Сразу обновляем состояние игры для AI после перезапуска
+                                ai_player.update_game_state(
+                                    ball, paddle, bricks, score, int(game_start_time)
+                                )
+                                
+                                if frame_counter <= 3 and not getattr(sys, "frozen", False):
+                                    print(f"[AI DEBUG] Игра перезапущена после бокового удара, lives_left={lives_left}")
+                                
+                                continue  # Пропускаем остальную обработку кадра
+                        
                         # Логируем потерю мяча из-за бокового удара
                         if auto_mode or training_mode:
                             ai_result = {
