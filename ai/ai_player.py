@@ -2706,6 +2706,12 @@ class AIPlayer:
             # - после установки используем её без пересчета
             # КРИТИЧНО: Проверяем, что мяч НЕ потерян перед установкой целевой позиции
             if in_separation_zone and not self.separation_zone_tracker.get("target_position_set", False) and not ball_lost:
+                # КРИТИЧНО: Логируем установку целевой позиции
+                import sys
+                import random
+                if random.random() < 0.2:  # 20% кадров для диагностики
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
                 # Устанавливаем целевую позицию один раз
                 optimal_x = self.get_optimal_paddle_position()
                 
