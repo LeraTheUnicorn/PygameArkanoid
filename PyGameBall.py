@@ -969,6 +969,10 @@ def _print_training_summary(ai_player, training_rounds: int) -> None:
 
 
 def main() -> None:
+    startup_start_time = time.time()
+    if not getattr(sys, "frozen", False):
+        print(f"[STARTUP] Начало инициализации игры...")
+    
     pygame.init()
     pygame.mixer.init()  # Инициализация аудио микшера
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -976,6 +980,10 @@ def main() -> None:
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("arial", 20)
     big_font = pygame.font.SysFont("arial", 42, bold=True)
+    
+    if not getattr(sys, "frozen", False):
+        pygame_init_time = time.time() - startup_start_time
+        print(f"[STARTUP] pygame инициализирован за {pygame_init_time:.3f} сек")
 
     # Инициализация менеджеров
     highscore_manager = HighScoreManager()

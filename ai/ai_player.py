@@ -2541,6 +2541,7 @@ class AIPlayer:
         """
         if not self.current_game_state or not self.is_active:
             # КРИТИЧНО: Логируем, почему платформа не двигается
+            import sys
             if not getattr(sys, "frozen", False):
                 print(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
             return self._fallback_movement(current_x)
@@ -2558,6 +2559,7 @@ class AIPlayer:
             
             # КРИТИЧНО: Логируем состояние мяча для диагностики (только периодически, чтобы не засорять логи)
             import random
+            import sys
             if random.random() < 0.01:  # 1% кадров
                 if not getattr(sys, "frozen", False):
                     optimal_x = self.get_optimal_paddle_position()
@@ -2591,6 +2593,12 @@ class AIPlayer:
             
             if ball_lost:
                 # Мяч потерян - платформа НЕ двигается
+                # КРИТИЧНО: Логируем для диагностики (периодически)
+                import random
+                if random.random() < 0.05:  # 5% кадров
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle", 1.0)
                 return 0
             
@@ -2598,6 +2606,13 @@ class AIPlayer:
             # КРИТИЧНО: Мяч должен быть выше верхней границы платформы и в разрешенной зоне
             # Зона разделения: от separation_zone_start до верхней границы платформы
             in_separation_zone = separation_zone_start <= ball_y < paddle_y and ball_vel_y > 0
+            
+            # КРИТИЧНО: Логируем состояние зоны разделения для диагностики
+            import random
+            if random.random() < 0.02:  # 2% кадров
+                import sys
+                if not getattr(sys, "frozen", False):
+                    print(f"[PADDLE DEBUG] Зона разделения: ball_y={ball_y:.1f}, separation_zone_start={separation_zone_start}, paddle_y={paddle_y:.1f}, in_separation_zone={in_separation_zone}, ball_vel_y={ball_vel_y}")
             
             # ПРАВИЛО 3: Если целевая позиция установлена - используем её БЕЗ пересчета
             # КРИТИЧНО: Проверяем, что мяч все еще движется вниз и в зоне разделения
