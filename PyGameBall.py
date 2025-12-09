@@ -1985,6 +1985,98 @@ def main() -> None:
                                 if not getattr(sys, "frozen", False):
                                     print(f"[GAME END] Все жизни потрачены (ball.rect.bottom > paddle.rect.top)! lives_left={lives_left}, training_mode={training_mode}")
                             game_over = True
+                            # Рассчитываем время игры и сохраняем результат
+                            game_time_seconds = int(time.time() - game_start_time)
+
+                            # Обучаем AI на результате игры (проигрыш)
+                            if auto_mode or training_mode:
+                                # В режиме обучения считаем кубики за весь матч (пока не потратятся все жизни)
+                                total_bricks_destroyed = (
+                                    BRICK_ROWS * BRICK_COLS
+                                ) - len(bricks)
+
+                                # Обновляем финальную статистику обучения
+                                if training_mode:
+                                    ai_player.update_training_stats(
+                                        total_bricks_destroyed,
+                                        game_time_seconds,
+                                        MAX_LIVES,  # Все жизни потрачены
+                                    )
+
+                                ai_result = {
+                                    "action_type": "game_end",
+                                    "success": False,  # Игра проиграна
+                                    "final_score": score,
+                                    "game_duration": game_time_seconds,
+                                    "bricks_remaining": len(bricks),
+                                    "bricks_destroyed": total_bricks_destroyed,
+                                    "lives_lost": MAX_LIVES,  # Все жизни потрачены
+                                }
+                                ai_player.learn_from_result(ai_result)
+                                ai_player.on_game_end(
+                                    False, score, training_mode=training_mode
+                                )
+
+                            # В режиме обучения не показываем экран результатов, сразу перезапускаем
+                            if training_mode:
+                                # КРИТИЧНО: Логируем начало перезапуска
+                                if not getattr(sys, "frozen", False):
+                                    print(f"[GAME RESTART] Начинаем перезапуск игры в режиме обучения после потери всех жизней...")
+                                
+                                # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
+                                ai_player._reset_game_state_trackers()
+                                
+                                # Автоматически перезапускаем игру в режиме обучения
+                                paddle = Paddle()
+                                ball = Ball()
+                                optimal_ball_speed = ai_player.get_optimal_ball_speed()
+                                if optimal_ball_speed > 10:
+                                    ball.current_speed = optimal_ball_speed
+                                else:
+                                    ball.set_speed(
+                                        optimal_ball_speed,
+                                        settings_manager,
+                                        auto_mode=False,
+                                    )
+                                ball.reset(paddle.rect)
+                                ball.vel_y = 0
+                                bricks = build_bricks()
+                                score = 0
+                                lives_left = (
+                                    MAX_LIVES  # Восстанавливаем жизни для нового матча
+                                )
+                                game_over = False
+                                game_started = True  # Автоматически запускаем
+                                ball.vel_x = ball.get_speed()
+                                ball.vel_y = -ball.get_speed()
+                                game_start_time = time.time()
+                                
+                                # КРИТИЧНО: Сразу обновляем состояние игры для AI после перезапуска
+                                # Это гарантирует, что current_game_state будет установлен до первого вызова move_paddle_towards
+                                ai_player.update_game_state(
+                                    ball, paddle, bricks, score, int(game_start_time)
+                                )
+                                
+                                # КРИТИЧНО: Логируем перезапуск игры для диагностики
+                                if auto_mode or training_mode:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART] Игра перезапущена после потери всех жизней!")
+                                        print(f"[GAME RESTART] lives_left={lives_left}, game_over={game_over}, game_started={game_started}")
+                                        print(f"[GAME RESTART] ball.vel_x={ball.vel_x}, ball.vel_y={ball.vel_y}, paddle.x={paddle.rect.x}, bricks={len(bricks)}")
+                                    ai_player.performance_logger.log_ball_paddle_positions(
+                                        ball.rect.centerx,
+                                        ball.rect.centery,
+                                        ball.vel_x,
+                                        ball.vel_y,
+                                        paddle.rect.x,
+                                        paddle.rect.y,
+                                        paddle.rect.width,
+                                        paddle.rect.height,
+                                        "GAME_RESTART_AFTER_LOSS"
+                                    )
+                                    # Логируем начало новой игры
+                                    if ai_player.current_game_state:
+                                        ai_player.performance_logger.log_game_start(ai_player.current_game_state)
                         continue  # Пропускаем остальную обработку кадра
 
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
