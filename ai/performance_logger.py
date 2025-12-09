@@ -237,6 +237,7 @@ class PerformanceLogger:
     ):
         """
         Логирует координаты мяча и платформы для диагностики
+        Включает автоматическую детекцию прилипания мяча к платформе
         
         Args:
             ball_x, ball_y: Координаты центра мяча
@@ -245,6 +246,32 @@ class PerformanceLogger:
             paddle_width, paddle_height: Размеры платформы
             event_type: Тип события (frame_update, collision, etc.)
         """
+        paddle_centerx = paddle_x + paddle_width / 2
+        paddle_centery = paddle_y + paddle_height / 2
+        
+        # КРИТИЧНО: Детекция прилипания мяча к платформе
+        # Признаки прилипания:
+        # 1. Горизонтальные координаты мяча синхронизируются с платформой (разница < 5px)
+        # 2. Мяч не двигается по вертикали (vel_y == 0 или очень мал)
+        # 3. Мяч находится внутри или очень близко к платформе
+        horizontal_sync = abs(ball_x - paddle_centerx) < 5  # Мяч по горизонтали синхронизирован с платформой
+        vertical_stationary = abs(ball_vel_y) < 0.1  # Мяч не двигается по вертикали
+        ball_inside_paddle = (
+            paddle_x <= ball_x <= paddle_x + paddle_width and
+            paddle_y <= ball_y <= paddle_y + paddle_height
+        )
+        ball_very_close = (
+            abs(ball_x - paddle_centerx) < paddle_width / 2 + 10 and
+            abs(ball_y - paddle_y) < 20  # Мяч очень близко к верхней части платформы
+        )
+        
+        # Детектируем прилипание
+        sticking_detected = (
+            (horizontal_sync or ball_inside_paddle or ball_very_close) and
+            vertical_stationary and
+            event_type != "BALL_STUCK_FIXED"  # Не детектируем, если уже исправлено
+        )
+        
         position_data = {
             "type": "ball_paddle_positions",
             "event_type": event_type,
@@ -257,8 +284,8 @@ class PerformanceLogger:
             "paddle": {
                 "x": paddle_x,
                 "y": paddle_y,
-                "centerx": paddle_x + paddle_width / 2,
-                "centery": paddle_y + paddle_height / 2,
+                "centerx": paddle_centerx,
+                "centery": paddle_centery,
                 "width": paddle_width,
                 "height": paddle_height,
                 "top": paddle_y,
@@ -270,8 +297,23 @@ class PerformanceLogger:
                 "ball_to_paddle_top": ball_y - paddle_y if ball_y > paddle_y else paddle_y - ball_y,
                 "ball_above_paddle": ball_y < paddle_y,
                 "ball_below_paddle": ball_y > paddle_y + paddle_height,
+                "horizontal_distance": abs(ball_x - paddle_centerx),
+                "vertical_distance": abs(ball_y - paddle_y),
+            },
+            "sticking_detection": {
+                "sticking_detected": sticking_detected,
+                "horizontal_sync": horizontal_sync,
+                "vertical_stationary": vertical_stationary,
+                "ball_inside_paddle": ball_inside_paddle,
+                "ball_very_close": ball_very_close,
+                "horizontal_diff": ball_x - paddle_centerx,
+                "vertical_diff": ball_y - paddle_y,
             }
         }
+        
+        # Если детектировано прилипание, меняем тип события для лучшей видимости в логах
+        if sticking_detected and event_type == "frame_update":
+            position_data["event_type"] = "BALL_STICKING_DETECTED"
         
         self.log_action(position_data)
 
