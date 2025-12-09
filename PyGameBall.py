@@ -1497,14 +1497,21 @@ def main() -> None:
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
                         print(f"[AI DEBUG] Вычисляем ball_hits_paddle_top...")
                     try:
-                        ball_hits_paddle_top = (
-                            ball.rect.colliderect(paddle.rect) 
-                            and ball.vel_y > 0  # Мяч движется вниз
-                            and paddle.rect.left - 5 <= ball.rect.centerx <= paddle.rect.right + 5  # Мяч по горизонтали в пределах платформы (с запасом 5px)
-                            and ball.rect.bottom >= paddle.rect.top  # Нижняя часть мяча касается или ниже верхней части платформы
-                            and ball.rect.bottom <= paddle.rect.top + 15  # Мяч в пределах 15 пикселей от верха платформы
-                            and ball.rect.top < paddle.rect.top + 10  # КРИТИЧНО: Мяч не слишком глубоко внутри платформы (верхняя часть мяча не ниже 10px от верха платформы)
-                        )
+                        # КРИТИЧНО: Проверяем, не отскочил ли мяч только что (предотвращаем повторную обработку)
+                        just_bounced = getattr(ball, '_just_bounced', False)
+                        bounce_frame = getattr(ball, '_bounce_frame', -1)
+                        # Если мяч отскочил в текущем или предыдущем кадре, не обрабатываем столкновение
+                        if just_bounced and (bounce_frame == frame_counter or bounce_frame == frame_counter - 1):
+                            ball_hits_paddle_top = False
+                        else:
+                            ball_hits_paddle_top = (
+                                ball.rect.colliderect(paddle.rect) 
+                                and ball.vel_y > 0  # Мяч движется вниз
+                                and paddle.rect.left - 5 <= ball.rect.centerx <= paddle.rect.right + 5  # Мяч по горизонтали в пределах платформы (с запасом 5px)
+                                and ball.rect.bottom >= paddle.rect.top  # Нижняя часть мяча касается или ниже верхней части платформы
+                                and ball.rect.bottom <= paddle.rect.top + 15  # Мяч в пределах 15 пикселей от верха платформы
+                                and ball.rect.top < paddle.rect.top + 10  # КРИТИЧНО: Мяч не слишком глубоко внутри платформы (верхняя часть мяча не ниже 10px от верха платформы)
+                            )
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] ball_hits_paddle_top={ball_hits_paddle_top}")
                     except Exception as e:
