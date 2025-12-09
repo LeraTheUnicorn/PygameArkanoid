@@ -2569,6 +2569,12 @@ class AIPlayer:
             # КРИТИЧНО: Но только если мяч действительно летит вверх (vel_y < 0)
             # Если vel_y == 0, это может быть ошибка состояния - используем fallback
             if ball_vel_y < 0:
+                # КРИТИЧНО: Логируем для диагностики (периодически)
+                import random
+                if random.random() < 0.05:  # 5% кадров
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 1: Мяч летит вверх (vel_y={ball_vel_y}), платформа не двигается. ball_y={ball_y:.1f}")
                 self._log_paddle_movement(current_x, current_x, "ball_flying_up", 1.0)
                 return 0
             elif ball_vel_y == 0:
@@ -2583,6 +2589,12 @@ class AIPlayer:
             # КРИТИЧНО: Но только если мяч действительно в зоне кубиков
             # Если мяч уже ниже зоны кубиков, но еще не в зоне разделения - все равно двигаемся
             if ball_y < separation_zone_start:
+                # КРИТИЧНО: Логируем для диагностики (периодически)
+                import random
+                if random.random() < 0.05:  # 5% кадров
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_in_bricks_zone", 1.0)
                 return 0
             
