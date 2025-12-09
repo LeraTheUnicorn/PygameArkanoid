@@ -1715,18 +1715,27 @@ def main() -> None:
                         # ТЕПЕРЬ корректируем позицию мяча, чтобы он был выше платформы
                         # Используем centery для согласованности с методом update()
                         ball_radius = BALL_SIZE // 2
-                        # КРИТИЧНО: Устанавливаем мяч выше платформы, но не слишком далеко
-                        # Достаточно 5-10 пикселей, так как скорость уже установлена вверх
-                        ball.rect.centery = paddle.rect.top - ball_radius - 5
+                        # КРИТИЧНО: Устанавливаем мяч достаточно далеко от платформы
+                        # Расстояние должно быть больше скорости мяча, чтобы в следующем кадре мяч не попал обратно
+                        # Минимум: скорость мяча + запас 10 пикселей
+                        min_distance = abs(ball.vel_y) + 10  # Скорость + запас
+                        ball.rect.centery = paddle.rect.top - ball_radius - min_distance
                         
                         # КРИТИЧНО: Убеждаемся, что мяч не находится внутри платформы
                         if ball.rect.colliderect(paddle.rect):
                             # Если мяч все еще внутри платформы, перемещаем его еще выше
-                            ball.rect.centery = paddle.rect.top - ball_radius - 10
+                            ball.rect.centery = paddle.rect.top - ball_radius - (min_distance + 10)
                         
                         # КРИТИЧНО: Убеждаемся, что нижняя часть мяча выше верхней части платформы
                         if ball.rect.bottom >= paddle.rect.top:
-                            ball.rect.centery = paddle.rect.top - ball_radius - 8
+                            ball.rect.centery = paddle.rect.top - ball_radius - (min_distance + 5)
+                        
+                        # КРИТИЧНО: Устанавливаем флаг, что мяч только что отскочил
+                        # Это предотвратит повторную обработку столкновения в следующем кадре
+                        ball._just_bounced = True
+                        if not hasattr(ball, '_bounce_frame'):
+                            ball._bounce_frame = 0
+                        ball._bounce_frame = frame_counter
 
                         # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Предотвращение зацикливания
                         # Если offset слишком мал, принудительно устанавливаем значительное горизонтальное движение
@@ -1777,6 +1786,9 @@ def main() -> None:
                         # Дополнительная проверка: если скорость слишком мала, увеличиваем её
                         if abs(ball.vel_y) < ball.get_speed():
                             ball.vel_y = -ball.get_speed()
+                        
+                        # КРИТИЧНО: Сбрасываем флаг отскока через несколько кадров
+                        # Это позволит обрабатывать новые столкновения, но предотвратит повторную обработку сразу после отскока
 
                         # Play paddle bounce sound if sound is enabled
                         if sound_enabled and paddle_bounce_sound:
