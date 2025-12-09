@@ -27,7 +27,7 @@ def test_ball_class():
 
     # Создаем SettingsManager для методов изменения скорости
     settings = SettingsManager()
-    
+
     # Тестируем увеличение скорости
     ball.increase_speed(settings, auto_mode=False)
     print(f"OK: Speed increased: {ball.get_speed()}")
@@ -89,6 +89,7 @@ def test_reset_game():
     ball = Ball()
     ball.set_speed(6)
     from PyGameBall import build_bricks
+
     bricks = build_bricks()
     score = 10
     lives_left = 2

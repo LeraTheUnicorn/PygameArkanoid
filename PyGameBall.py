@@ -3,6 +3,10 @@
 from version import VERSION, get_version
 
 import os
+import warnings
+
+# Подавляем предупреждения о pkg_resources от pygame
+warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
@@ -117,7 +121,13 @@ def get_player_name(
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return "", sound_enabled, exit_game, False, False  # Выход из игры по крестику
+                return (
+                    "",
+                    sound_enabled,
+                    exit_game,
+                    False,
+                    False,
+                )  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Имя обязательно для ввода!
@@ -654,7 +664,11 @@ def draw_hud(
     else:
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑ ↓ - скорость"
 
-    surf = font.render(text, True, (255, 255, 255) if not (auto_mode or training_mode) else (255, 255, 0))
+    surf = font.render(
+        text,
+        True,
+        (255, 255, 255) if not (auto_mode or training_mode) else (255, 255, 0),
+    )
     screen.blit(surf, (SCREEN_WIDTH - surf.get_width() - 20, 20))
 
 
@@ -669,7 +683,7 @@ def render_colored_hint(
     """Отображает подсказку с выделенными ключевыми словами цветом"""
     words = text.split()
     x, y = pos
-    key_words = ["Enter", "H", "M", "ESC", "↑", "↓", "0"]
+    key_words = ["Enter", "H", "M", "ESC", "↑", "↓", "0", "8"]
 
     for word in words:
         # Убираем знаки препинания для сравнения
@@ -822,67 +836,85 @@ def show_settings_window(
 def _print_training_summary(ai_player, training_rounds: int) -> None:
     """
     Выводит итоговую статистику обучения в консоль.
-    
+
     Args:
         ai_player: Экземпляр AIPlayer с данными обучения
         training_rounds: Количество сыгранных раундов в режиме обучения
     """
     # Не выводим в exe файле, чтобы не открывать консоль
     import sys
+
     if getattr(sys, "frozen", False):
         return  # Пропускаем вывод в скомпилированном exe
-    
+
     try:
         print("\n" + "=" * 70)
         print("ИТОГИ РЕЖИМА ОБУЧЕНИЯ ИИ")
         print("=" * 70)
-        
+
         # Основная статистика
         print(f"\n📊 Общая статистика:")
         print(f"   Сыграно раундов: {training_rounds}")
-        print(f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}")
+        print(
+            f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}"
+        )
         print(f"   Побед: {ai_player.performance_metrics.get('games_won', 0)}")
-        
-        if ai_player.performance_metrics.get('games_played', 0) > 0:
-            win_rate = (ai_player.performance_metrics.get('games_won', 0) / 
-                       ai_player.performance_metrics.get('games_played', 0)) * 100
+
+        if ai_player.performance_metrics.get("games_played", 0) > 0:
+            win_rate = (
+                ai_player.performance_metrics.get("games_won", 0)
+                / ai_player.performance_metrics.get("games_played", 0)
+            ) * 100
             print(f"   Процент побед: {win_rate:.1f}%")
-        
-        total_score = ai_player.performance_metrics.get('total_score', 0)
+
+        total_score = ai_player.performance_metrics.get("total_score", 0)
         if training_rounds > 0:
             avg_score = total_score / training_rounds
             print(f"   Средний счёт за раунд: {avg_score:.1f}")
-        
+
         # Метрики обучения
         print(f"\n🤖 Прогресс обучения:")
-        avg_accuracy = ai_player.performance_metrics.get('average_accuracy', 0.0)
-        learning_progress = ai_player.performance_metrics.get('learning_progress', 0.0)
+        avg_accuracy = ai_player.performance_metrics.get("average_accuracy", 0.0)
+        learning_progress = ai_player.performance_metrics.get("learning_progress", 0.0)
         print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
         print(f"   Прогресс обучения: {learning_progress:.2%}")
-        
+
         # Статистика системы обучения
         learning_data = ai_player.learning_system.get_learning_progress()
-        if isinstance(learning_data, dict) and learning_data.get("total_iterations", 0) > 0:
+        if (
+            isinstance(learning_data, dict)
+            and learning_data.get("total_iterations", 0) > 0
+        ):
             print(f"\n📈 Детальная статистика обучения:")
-            print(f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}")
-            print(f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}")
-            print(f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}")
-            
+            print(
+                f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}"
+            )
+            print(
+                f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}"
+            )
+            print(
+                f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}"
+            )
+
             # Информация о модели
-            model = ai_player.learning_system.learning_data.get("success_prediction_model")
+            model = ai_player.learning_system.learning_data.get(
+                "success_prediction_model"
+            )
             if model is not None:
-                model_metrics = ai_player.learning_system.learning_data.get("model_metrics", {})
+                model_metrics = ai_player.learning_system.learning_data.get(
+                    "model_metrics", {}
+                )
                 model_accuracy = model_metrics.get("last_accuracy")
                 if model_accuracy is not None:
                     print(f"   Точность ML модели: {model_accuracy:.2%}")
-            
+
             # Кластеризация
-            trajectory_patterns = learning_data.get('trajectory_patterns', 0)
-            unique_clusters = learning_data.get('trajectory_clusters_count', 0)
+            trajectory_patterns = learning_data.get("trajectory_patterns", 0)
+            unique_clusters = learning_data.get("trajectory_clusters_count", 0)
             if trajectory_patterns > 0:
                 print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
                 print(f"   Количество кластеров: {unique_clusters}")
-        
+
         # Оценка эффективности
         print(f"\n📊 Оценка эффективности:")
         if learning_progress > 0.8:
@@ -893,9 +925,9 @@ def _print_training_summary(ai_player, training_rounds: int) -> None:
             print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система накапливает опыт")
         else:
             print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных для оценки")
-        
+
         print("=" * 70 + "\n")
-        
+
     except Exception as e:
         print(f"\n⚠️  Ошибка при выводе статистики обучения: {e}\n")
 
@@ -927,14 +959,17 @@ def main() -> None:
             generate_tone_sound(659.25, 0.2),  # E5 - ~659 Гц
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
+        music_loaded = False
         try:
-            pygame.mixer.music.load(resource_path("resources/audio/Night_Prowler.ogg"))
-            pygame.mixer.music.set_volume(0.3)
-            # Музыка будет запущена после ввода имени игрока
-        except pygame.error:
-            # Не выводим в exe файле
-            if not getattr(sys, "frozen", False):
-                print("Фоновая музыка не загружена")
+            music_path = resource_path("resources/audio/Night_Prowler.ogg")
+            if os.path.exists(music_path):
+                pygame.mixer.music.load(music_path)
+                pygame.mixer.music.set_volume(0.3)
+                music_loaded = True
+                # Музыка будет запущена после ввода имени игрока
+        except (pygame.error, FileNotFoundError, OSError):
+            # Музыка не загружена - это нормально, если файл отсутствует
+            music_loaded = False
     except pygame.error as e:
         # Не выводим в exe файле
         if not getattr(sys, "frozen", False):
@@ -982,8 +1017,8 @@ def main() -> None:
             print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
 
         # Ввод имени игрока
-        player_name, sound_enabled, exit_game, auto_mode, training_mode = get_player_name(
-            screen, font, big_font, highscore_manager
+        player_name, sound_enabled, exit_game, auto_mode, training_mode = (
+            get_player_name(screen, font, big_font, highscore_manager)
         )
         if exit_game:
             pygame.quit()
@@ -1005,7 +1040,7 @@ def main() -> None:
         # В авторежиме и режиме обучения активируем AI систему
         if auto_mode or training_mode:
             ai_player.activate()  # ВАЖНО: активируем AI систему
-            
+
             if training_mode:
                 # В режиме обучения используем оптимальную скорость из обучения
                 optimal_speed = ai_player.get_optimal_ball_speed()
@@ -1032,7 +1067,7 @@ def main() -> None:
                     print(
                         f"Авторежим: Игра запущена автоматически. AI активен: {ai_player.is_active}"
                     )
-            
+
             game_started = True  # Игра начинается сразу
             ball.vel_x = ball.get_speed()  # Направление вправо
             ball.vel_y = -ball.get_speed()
@@ -1041,7 +1076,7 @@ def main() -> None:
 
         # Отсчет времени игры
         game_start_time = time.time()
-        
+
         # Счетчик кадров для обновления скорости в режиме обучения
         frame_counter = 0
 
@@ -1129,15 +1164,17 @@ def main() -> None:
                     ai_player.update_game_state(
                         ball, paddle, bricks, score, int(game_start_time)
                     )
-                    
+
                     # В режиме обучения обновляем статистику и управляем скоростью мяча
                     if training_mode:
                         # Обновляем статистику обучения
                         total_bricks = (BRICK_ROWS * BRICK_COLS) - len(bricks)
                         time_elapsed = time.time() - game_start_time
                         lives_lost = MAX_LIVES - lives_left
-                        ai_player.update_training_stats(total_bricks, time_elapsed, lives_lost)
-                        
+                        ai_player.update_training_stats(
+                            total_bricks, time_elapsed, lives_lost
+                        )
+
                         # ИИ управляет скоростью мяча во время игры (проверяем каждые 60 кадров = 1 секунда)
                         if frame_counter % FPS == 0:  # Каждую секунду (60 кадров)
                             optimal_ball_speed = ai_player.get_optimal_ball_speed()
@@ -1148,30 +1185,50 @@ def main() -> None:
                                     ball.current_speed = optimal_ball_speed
                                     # Обновляем скорости движения с сохранением направления
                                     if ball.vel_x != 0:
-                                        ball.vel_x = int(ball.vel_x * optimal_ball_speed / max(current_ball_speed, 1))
+                                        ball.vel_x = int(
+                                            ball.vel_x
+                                            * optimal_ball_speed
+                                            / max(current_ball_speed, 1)
+                                        )
                                     if ball.vel_y != 0:
-                                        ball.vel_y = int(abs(ball.vel_y) * optimal_ball_speed / max(current_ball_speed, 1)) * (1 if ball.vel_y > 0 else -1)
+                                        ball.vel_y = int(
+                                            abs(ball.vel_y)
+                                            * optimal_ball_speed
+                                            / max(current_ball_speed, 1)
+                                        ) * (1 if ball.vel_y > 0 else -1)
                                 else:
-                                    ball.set_speed(optimal_ball_speed, settings_manager, auto_mode=False)
+                                    ball.set_speed(
+                                        optimal_ball_speed,
+                                        settings_manager,
+                                        auto_mode=False,
+                                    )
 
                 # Движение платформы
                 if auto_mode or training_mode:
                     # В авторежиме и режиме обучения используем адаптивную скорость платформы
                     if training_mode:
                         # В режиме обучения ИИ управляет скоростью платформы
-                        paddle_speed_multiplier = ai_player.get_optimal_paddle_speed_multiplier()
+                        paddle_speed_multiplier = (
+                            ai_player.get_optimal_paddle_speed_multiplier()
+                        )
                         base_speed = PADDLE_SPEED * paddle_speed_multiplier
                     else:
                         # В авторежиме используем стандартную логику
-                        base_speed = max(PADDLE_SPEED, ball.get_speed() * 0.8)  # Минимум 9 или 80% от скорости мяча
-                        base_speed = max(base_speed, PADDLE_SPEED * 1.5)  # Минимум 13.5 для авторежима
-                    
+                        base_speed = max(
+                            PADDLE_SPEED, ball.get_speed() * 0.8
+                        )  # Минимум 9 или 80% от скорости мяча
+                        base_speed = max(
+                            base_speed, PADDLE_SPEED * 1.5
+                        )  # Минимум 13.5 для авторежима
+
                     # Используем AI систему для автоматического управления
                     movement = ai_player.move_paddle_towards(
                         paddle.rect.centerx, int(base_speed)
                     )
                     # Получаем скорректированную скорость от AI (с учетом адаптации)
-                    adjusted_speed = ai_player.get_adjusted_paddle_speed(int(base_speed))
+                    adjusted_speed = ai_player.get_adjusted_paddle_speed(
+                        int(base_speed)
+                    )
                     # Применяем движение с правильной скоростью
                     paddle.rect.x += movement * adjusted_speed
                     # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
@@ -1298,16 +1355,18 @@ def main() -> None:
                             # Обучаем AI на результате игры (проигрыш)
                             if auto_mode or training_mode:
                                 # В режиме обучения считаем кубики за весь матч (пока не потратятся все жизни)
-                                total_bricks_destroyed = (BRICK_ROWS * BRICK_COLS) - len(bricks)
-                                
+                                total_bricks_destroyed = (
+                                    BRICK_ROWS * BRICK_COLS
+                                ) - len(bricks)
+
                                 # Обновляем финальную статистику обучения
                                 if training_mode:
                                     ai_player.update_training_stats(
-                                        total_bricks_destroyed, 
-                                        game_time_seconds, 
-                                        MAX_LIVES  # Все жизни потрачены
+                                        total_bricks_destroyed,
+                                        game_time_seconds,
+                                        MAX_LIVES,  # Все жизни потрачены
                                     )
-                                
+
                                 ai_result = {
                                     "action_type": "game_end",
                                     "success": False,  # Игра проиграна
@@ -1318,7 +1377,9 @@ def main() -> None:
                                     "lives_lost": MAX_LIVES,  # Все жизни потрачены
                                 }
                                 ai_player.learn_from_result(ai_result)
-                                ai_player.on_game_end(False, score, training_mode=training_mode)
+                                ai_player.on_game_end(
+                                    False, score, training_mode=training_mode
+                                )
 
                             # В режиме обучения не показываем экран результатов, сразу перезапускаем
                             if training_mode:
@@ -1329,12 +1390,18 @@ def main() -> None:
                                 if optimal_ball_speed > 10:
                                     ball.current_speed = optimal_ball_speed
                                 else:
-                                    ball.set_speed(optimal_ball_speed, settings_manager, auto_mode=False)
+                                    ball.set_speed(
+                                        optimal_ball_speed,
+                                        settings_manager,
+                                        auto_mode=False,
+                                    )
                                 ball.reset(paddle.rect)
                                 ball.vel_y = 0
                                 bricks = build_bricks()
                                 score = 0
-                                lives_left = MAX_LIVES  # Восстанавливаем жизни для нового матча
+                                lives_left = (
+                                    MAX_LIVES  # Восстанавливаем жизни для нового матча
+                                )
                                 game_over = False
                                 game_started = True  # Автоматически запускаем
                                 ball.vel_x = ball.get_speed()
@@ -1342,17 +1409,19 @@ def main() -> None:
                                 game_start_time = time.time()
                             else:
                                 # В обычном режиме показываем экран результатов
-                                sound_enabled, restart_game, exit_game = show_game_results(
-                                    screen,
-                                    font,
-                                    big_font,
-                                    score,
-                                    player_name,
-                                    game_time_seconds,
-                                    highscore_manager,
-                                    settings_manager,
-                                    ball,
-                                    auto_mode,
+                                sound_enabled, restart_game, exit_game = (
+                                    show_game_results(
+                                        screen,
+                                        font,
+                                        big_font,
+                                        score,
+                                        player_name,
+                                        game_time_seconds,
+                                        highscore_manager,
+                                        settings_manager,
+                                        ball,
+                                        auto_mode,
+                                    )
                                 )
 
                                 # Если игрок хочет выйти из игры
@@ -1385,7 +1454,9 @@ def main() -> None:
                                         game_started = False
                                         # Пересоздаем AI для новой игры
                                         ai_player = AIPlayer(
-                                            SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
+                                            SCREEN_WIDTH,
+                                            SCREEN_HEIGHT,
+                                            debug_mode=False,
                                         )
                                         ai_player.activate()
                                         # Перезапускаем отсчет времени игры
@@ -1400,7 +1471,7 @@ def main() -> None:
                                 game_started = True
                                 ball.vel_x = ball.get_speed()
                                 ball.vel_y = -ball.get_speed()
-                            
+
                             # В режиме обучения также автоматически запускаем игру заново (если есть жизни)
                             if training_mode and lives_left > 0:
                                 game_started = True
@@ -1414,14 +1485,12 @@ def main() -> None:
                             game_time_seconds = int(time.time() - game_start_time)
                             total_bricks_destroyed = BRICK_ROWS * BRICK_COLS
                             lives_lost = MAX_LIVES - lives_left
-                            
+
                             # Обновляем финальную статистику обучения
                             ai_player.update_training_stats(
-                                total_bricks_destroyed, 
-                                game_time_seconds, 
-                                lives_lost
+                                total_bricks_destroyed, game_time_seconds, lives_lost
                             )
-                            
+
                             ai_result = {
                                 "action_type": "game_end",
                                 "success": True,  # Игра выиграна
@@ -1432,14 +1501,16 @@ def main() -> None:
                                 "lives_lost": lives_lost,  # Сколько жизней потрачено
                             }
                             ai_player.learn_from_result(ai_result)
-                            ai_player.on_game_end(True, score, training_mode=training_mode)
-                            
+                            ai_player.on_game_end(
+                                True, score, training_mode=training_mode
+                            )
+
                             # Увеличиваем счетчик раундов
                             training_rounds += 1
-                            
+
                             # ИСПРАВЛЕНИЕ: Используем оптимальную скорость из обучения
                             optimal_ball_speed = ai_player.get_optimal_ball_speed()
-                            
+
                             # Автоматически перезапускаем игру
                             paddle = Paddle()
                             ball = Ball()
@@ -1450,7 +1521,11 @@ def main() -> None:
                                 ball.current_speed = optimal_ball_speed
                                 # Не обновляем настройки, так как они имеют ограничение max_speed=10
                             else:
-                                ball.set_speed(optimal_ball_speed, settings_manager, auto_mode=False)
+                                ball.set_speed(
+                                    optimal_ball_speed,
+                                    settings_manager,
+                                    auto_mode=False,
+                                )
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
                             bricks = build_bricks()
@@ -1564,13 +1639,24 @@ def main() -> None:
             if auto_mode or training_mode:
                 ai_player.visualize_debug_info(screen)
 
-            draw_hud(screen, score, lives_left, font, ball, auto_mode, training_mode, ai_player)
+            draw_hud(
+                screen,
+                score,
+                lives_left,
+                font,
+                ball,
+                auto_mode,
+                training_mode,
+                ai_player,
+            )
 
             if not game_started:
                 if training_mode:
                     # В режиме обучения показываем специальную подсказку
                     training_hint = big_font.render(
-                        f"РЕЖИМ ОБУЧЕНИЯ | Раунд: {training_rounds + 1}", True, (0, 255, 255)
+                        f"РЕЖИМ ОБУЧЕНИЯ | Раунд: {training_rounds + 1}",
+                        True,
+                        (0, 255, 255),
                     )
                     training_rect = training_hint.get_rect(
                         center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
@@ -1614,10 +1700,12 @@ def main() -> None:
     if training_mode:
         # Сохраняем данные обучения
         try:
-            if ai_player and ai_player.performance_metrics.get('games_played', 0) > 0:
+            if ai_player and ai_player.performance_metrics.get("games_played", 0) > 0:
                 ai_player.save_learning_data()
                 if not getattr(sys, "frozen", False):
-                    print(f"[AI] Режим обучения завершен. Сыграно матчей: {training_rounds}")
+                    print(
+                        f"[AI] Режим обучения завершен. Сыграно матчей: {training_rounds}"
+                    )
                     print("[AI] Данные обучения сохранены.")
         except Exception as e:
             if not getattr(sys, "frozen", False):
@@ -1632,4 +1720,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

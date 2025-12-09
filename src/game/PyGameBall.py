@@ -7,7 +7,9 @@ import os
 # Это единственный путь, который нужен - он позволяет импортировать:
 # - version.py из корня
 # - highscores, settings, ai модули из корня
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -124,7 +126,13 @@ def get_player_name(
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game = True
-                return "", sound_enabled, exit_game, False, False  # Выход из игры по крестику
+                return (
+                    "",
+                    sound_enabled,
+                    exit_game,
+                    False,
+                    False,
+                )  # Выход из игры по крестику
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Имя обязательно для ввода!
@@ -652,13 +660,17 @@ def draw_hud(
     font: pygame.font.Font,
     ball: Ball,
     auto_mode: bool = False,
-    ai_player = None,
+    ai_player=None,
 ) -> None:
     # Добавляем индикатор авторежима
     if auto_mode:
         # Показываем адаптивную скорость платформы в авторежиме
         adaptive_speed_text = ""
-        if ai_player and hasattr(ai_player, 'current_game_state') and ai_player.current_game_state:
+        if (
+            ai_player
+            and hasattr(ai_player, "current_game_state")
+            and ai_player.current_game_state
+        ):
             try:
                 optimal_x = ai_player.get_optimal_paddle_position()
                 paddle_x = ai_player.current_game_state.paddle_position.x
@@ -668,7 +680,7 @@ def draw_hud(
                 adaptive_speed_text = f" | Платформа: {adaptive_speed}"
             except (AttributeError, Exception):
                 pass
-        
+
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость мяча: {ball.get_speed()}{adaptive_speed_text} | АВТОРЕЖИМ"
     else:
         text = f"Очки: {score} | Жизни: {lives_left} | Скорость: {ball.get_speed()} | ↑ ↓ - скорость"
@@ -841,67 +853,85 @@ def show_settings_window(
 def _print_training_summary(ai_player, training_rounds: int) -> None:
     """
     Выводит итоговую статистику обучения в консоль.
-    
+
     Args:
         ai_player: Экземпляр AIPlayer с данными обучения
         training_rounds: Количество сыгранных раундов в режиме обучения
     """
     # Не выводим в exe файле, чтобы не открывать консоль
     import sys
+
     if getattr(sys, "frozen", False):
         return  # Пропускаем вывод в скомпилированном exe
-    
+
     try:
         print("\n" + "=" * 70)
         print("ИТОГИ РЕЖИМА ОБУЧЕНИЯ ИИ")
         print("=" * 70)
-        
+
         # Основная статистика
         print(f"\n📊 Общая статистика:")
         print(f"   Сыграно раундов: {training_rounds}")
-        print(f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}")
+        print(
+            f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}"
+        )
         print(f"   Побед: {ai_player.performance_metrics.get('games_won', 0)}")
-        
-        if ai_player.performance_metrics.get('games_played', 0) > 0:
-            win_rate = (ai_player.performance_metrics.get('games_won', 0) / 
-                       ai_player.performance_metrics.get('games_played', 0)) * 100
+
+        if ai_player.performance_metrics.get("games_played", 0) > 0:
+            win_rate = (
+                ai_player.performance_metrics.get("games_won", 0)
+                / ai_player.performance_metrics.get("games_played", 0)
+            ) * 100
             print(f"   Процент побед: {win_rate:.1f}%")
-        
-        total_score = ai_player.performance_metrics.get('total_score', 0)
+
+        total_score = ai_player.performance_metrics.get("total_score", 0)
         if training_rounds > 0:
             avg_score = total_score / training_rounds
             print(f"   Средний счёт за раунд: {avg_score:.1f}")
-        
+
         # Метрики обучения
         print(f"\n🤖 Прогресс обучения:")
-        avg_accuracy = ai_player.performance_metrics.get('average_accuracy', 0.0)
-        learning_progress = ai_player.performance_metrics.get('learning_progress', 0.0)
+        avg_accuracy = ai_player.performance_metrics.get("average_accuracy", 0.0)
+        learning_progress = ai_player.performance_metrics.get("learning_progress", 0.0)
         print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
         print(f"   Прогресс обучения: {learning_progress:.2%}")
-        
+
         # Статистика системы обучения
         learning_data = ai_player.learning_system.get_learning_progress()
-        if isinstance(learning_data, dict) and learning_data.get("total_iterations", 0) > 0:
+        if (
+            isinstance(learning_data, dict)
+            and learning_data.get("total_iterations", 0) > 0
+        ):
             print(f"\n📈 Детальная статистика обучения:")
-            print(f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}")
-            print(f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}")
-            print(f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}")
-            
+            print(
+                f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}"
+            )
+            print(
+                f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}"
+            )
+            print(
+                f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}"
+            )
+
             # Информация о модели
-            model = ai_player.learning_system.learning_data.get("success_prediction_model")
+            model = ai_player.learning_system.learning_data.get(
+                "success_prediction_model"
+            )
             if model is not None:
-                model_metrics = ai_player.learning_system.learning_data.get("model_metrics", {})
+                model_metrics = ai_player.learning_system.learning_data.get(
+                    "model_metrics", {}
+                )
                 model_accuracy = model_metrics.get("last_accuracy")
                 if model_accuracy is not None:
                     print(f"   Точность ML модели: {model_accuracy:.2%}")
-            
+
             # Кластеризация
-            trajectory_patterns = learning_data.get('trajectory_patterns', 0)
-            unique_clusters = learning_data.get('trajectory_clusters_count', 0)
+            trajectory_patterns = learning_data.get("trajectory_patterns", 0)
+            unique_clusters = learning_data.get("trajectory_clusters_count", 0)
             if trajectory_patterns > 0:
                 print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
                 print(f"   Количество кластеров: {unique_clusters}")
-        
+
         # Оценка эффективности
         print(f"\n📊 Оценка эффективности:")
         if learning_progress > 0.8:
@@ -912,9 +942,9 @@ def _print_training_summary(ai_player, training_rounds: int) -> None:
             print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система накапливает опыт")
         else:
             print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных для оценки")
-        
+
         print("=" * 70 + "\n")
-        
+
     except Exception as e:
         print(f"\n⚠️  Ошибка при выводе статистики обучения: {e}\n")
 
@@ -1116,15 +1146,21 @@ def main() -> None:
                 if auto_mode:
                     # В авторежиме используем адаптивную скорость платформы
                     # Минимальная скорость должна быть достаточной для успешного отбивания
-                    base_speed = max(PADDLE_SPEED, ball.get_speed() * 0.8)  # Минимум 9 или 80% от скорости мяча
-                    auto_paddle_speed = max(base_speed, PADDLE_SPEED * 1.5)  # Минимум 13.5 для авторежима
+                    base_speed = max(
+                        PADDLE_SPEED, ball.get_speed() * 0.8
+                    )  # Минимум 9 или 80% от скорости мяча
+                    auto_paddle_speed = max(
+                        base_speed, PADDLE_SPEED * 1.5
+                    )  # Минимум 13.5 для авторежима
                     # Используем AI систему для автоматического управления
                     movement = ai_player.move_paddle_towards(
                         paddle.rect.centerx, int(auto_paddle_speed)
                     )
                     # Применяем движение с гарантированной минимальной скоростью для авторежима
                     # Внутри move_paddle_towards уже применена адаптивная скорость, но мы гарантируем минимум
-                    actual_speed = max(int(auto_paddle_speed * 0.9), int(auto_paddle_speed))
+                    actual_speed = max(
+                        int(auto_paddle_speed * 0.9), int(auto_paddle_speed)
+                    )
                     paddle.rect.x += movement * actual_speed
                     # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
                     paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей

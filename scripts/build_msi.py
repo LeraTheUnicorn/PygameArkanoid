@@ -18,6 +18,7 @@ def get_current_version():
     try:
         sys.path.insert(0, project_root)
         from version import get_version_string
+
         return get_version_string()
     except Exception as e:
         print(f"Ошибка чтения версии из version.py: {e}")

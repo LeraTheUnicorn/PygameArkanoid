@@ -22,63 +22,55 @@ _VERSION_FILE = Path(__file__)
 # Начальные значения (будут обновлены при загрузке)
 VERSION_MAJOR = 2
 VERSION_MINOR = 3
-VERSION_BUILD = 10
-VERSION = "2.3.0001"
+VERSION_BUILD = 20
+VERSION = "2.3.0017"
 VERSION_FULL = VERSION
-VERSION_BUILD_STRING = "2.3.0001"
+VERSION_BUILD_STRING = "2.3.0017"
 
 
 def _load_version_from_file():
     """Загружает версию из файла и увеличивает BUILD номер"""
     global VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD, VERSION, VERSION_FULL, VERSION_BUILD_STRING
-    
+
     try:
         # Читаем текущий файл
-        with open(_VERSION_FILE, 'r', encoding='utf-8') as f:
+        with open(_VERSION_FILE, "r", encoding="utf-8") as f:
             content = f.read()
-        
+
         # Извлекаем текущие значения версии
-        major_match = re.search(r'VERSION_MAJOR\s*=\s*(\d+)', content)
-        minor_match = re.search(r'VERSION_MINOR\s*=\s*(\d+)', content)
-        build_match = re.search(r'VERSION_BUILD\s*=\s*(\d+)', content)
-        
+        major_match = re.search(r"VERSION_MAJOR\s*=\s*(\d+)", content)
+        minor_match = re.search(r"VERSION_MINOR\s*=\s*(\d+)", content)
+        build_match = re.search(r"VERSION_BUILD\s*=\s*(\d+)", content)
+
         if major_match and minor_match and build_match:
             VERSION_MAJOR = int(major_match.group(1))
             VERSION_MINOR = int(minor_match.group(1))
             VERSION_BUILD = int(build_match.group(1))
-            
+
             # Увеличиваем BUILD номер
             VERSION_BUILD += 1
-            
+
             # Обновляем VERSION и VERSION_BUILD_STRING
             VERSION = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_BUILD:04d}"
             VERSION_BUILD_STRING = VERSION
             VERSION_FULL = VERSION
-            
+
             # Обновляем файл с новой версией
             content = re.sub(
-                r'VERSION_BUILD\s*=\s*\d+',
-                f'VERSION_BUILD = {VERSION_BUILD}',
-                content
+                r"VERSION_BUILD\s*=\s*\d+", f"VERSION_BUILD = {VERSION_BUILD}", content
             )
-            content = re.sub(
-                r'VERSION\s*=\s*"[^"]+"',
-                f'VERSION = "2.3.0001"',
-                content
-            )
+            content = re.sub(r'VERSION\s*=\s*"[^"]+"', f'VERSION = "2.3.0017"', content)
             content = re.sub(
                 r'VERSION_BUILD_STRING\s*=\s*"[^"]+"',
-                f'VERSION_BUILD_STRING = "2.3.0001"',
-                content
+                f'VERSION_BUILD_STRING = "2.3.0017"',
+                content,
             )
             content = re.sub(
-                r'VERSION_FULL\s*=\s*"[^"]+"',
-                f'VERSION_FULL = "2.3.0001"',
-                content
+                r'VERSION_FULL\s*=\s*"[^"]+"', f'VERSION_FULL = "2.3.0017"', content
             )
-            
+
             # Сохраняем обновленный файл
-            with open(_VERSION_FILE, 'w', encoding='utf-8') as f:
+            with open(_VERSION_FILE, "w", encoding="utf-8") as f:
                 f.write(content)
         else:
             # Если не удалось распарсить, используем значения по умолчанию
@@ -86,7 +78,7 @@ def _load_version_from_file():
             VERSION = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_BUILD:04d}"
             VERSION_BUILD_STRING = VERSION
             VERSION_FULL = VERSION
-            
+
     except Exception as e:
         # В случае ошибки используем значения по умолчанию и увеличиваем BUILD
         VERSION_BUILD += 1
@@ -95,7 +87,8 @@ def _load_version_from_file():
         VERSION_FULL = VERSION
         # Не прерываем выполнение, просто логируем ошибку
         import sys
-        if not getattr(sys, 'frozen', False):  # Не выводим в exe
+
+        if not getattr(sys, "frozen", False):  # Не выводим в exe
             print(f"[WARNING] Не удалось обновить версию в файле: {e}")
 
 
@@ -121,4 +114,3 @@ def get_version_string():
 def get_version_for_poetry():
     """Возвращает версию в формате Poetry (X.Y.Z, где Z = BUILD)"""
     return f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_BUILD}"
-

@@ -46,7 +46,9 @@ def test_auto_mode_fix():
     # Read source code and check for required logic
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -80,7 +82,9 @@ def test_auto_mode_fix():
 
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -114,7 +118,9 @@ def test_auto_mode_fix():
 
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 

@@ -58,13 +58,13 @@ class LearningSystem:
 
     def __init__(self, model_path: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
-        
+
         # Определяем путь к модели
         if model_path is None:
             ai_dir = get_ai_directory()
             models_dir = os.path.join(ai_dir, "models")
             model_path = os.path.join(models_dir, "ai_model.json")
-        
+
         self.model_path = model_path
         self.learning_data = {
             "strategy_weights": {
@@ -92,9 +92,13 @@ class LearningSystem:
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
         except (OSError, PermissionError) as e:
             # Если не удается создать каталог, используем текущую директорию
-            print(f"Предупреждение: не удалось создать каталог модели {os.path.dirname(self.model_path)}: {e}")
+            print(
+                f"Предупреждение: не удалось создать каталог модели {os.path.dirname(self.model_path)}: {e}"
+            )
             # Fallback: используем текущую директорию
-            self.model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "ai_model.json")
+            self.model_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "models", "ai_model.json"
+            )
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
 
         # Загружаем существующую модель если она есть

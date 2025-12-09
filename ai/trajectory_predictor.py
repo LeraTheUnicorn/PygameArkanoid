@@ -251,35 +251,45 @@ class TrajectoryPredictor:
         ball_radius = 8  # Радиус мяча
 
         for point in trajectory:
-            if not hasattr(point, 'x') or not hasattr(point, 'y'):
+            if not hasattr(point, "x") or not hasattr(point, "y"):
                 continue
-                
+
             # Проверяем пересечение с каждым кубиком
             for brick in bricks:
                 brick_id = id(brick)
                 if brick_id in hit_bricks:
                     continue
-                
+
                 # Точные границы кубика
-                brick_left = getattr(brick, "left", brick.x if hasattr(brick, "x") else 0)
-                brick_right = getattr(brick, "right", brick_left + getattr(brick, "width", 60))
+                brick_left = getattr(
+                    brick, "left", brick.x if hasattr(brick, "x") else 0
+                )
+                brick_right = getattr(
+                    brick, "right", brick_left + getattr(brick, "width", 60)
+                )
                 brick_top = getattr(brick, "top", brick.y if hasattr(brick, "y") else 0)
-                brick_bottom = getattr(brick, "bottom", brick_top + getattr(brick, "height", 20))
-                
+                brick_bottom = getattr(
+                    brick, "bottom", brick_top + getattr(brick, "height", 20)
+                )
+
                 # Точная проверка пересечения мяча (с учетом радиуса) с границами кубика
-                if (brick_left - ball_radius <= point.x <= brick_right + ball_radius and
-                    brick_top - ball_radius <= point.y <= brick_bottom + ball_radius):
+                if (
+                    brick_left - ball_radius <= point.x <= brick_right + ball_radius
+                    and brick_top - ball_radius <= point.y <= brick_bottom + ball_radius
+                ):
                     # Дополнительная проверка: мяч действительно попадает в кубик
-                    center_in_brick = (brick_left <= point.x <= brick_right and
-                                      brick_top <= point.y <= brick_bottom)
-                    
+                    center_in_brick = (
+                        brick_left <= point.x <= brick_right
+                        and brick_top <= point.y <= brick_bottom
+                    )
+
                     # Проверяем расстояние от центра мяча до ближайшей точки кубика
                     closest_x = max(brick_left, min(point.x, brick_right))
                     closest_y = max(brick_top, min(point.y, brick_bottom))
                     distance_to_brick = math.sqrt(
                         (point.x - closest_x) ** 2 + (point.y - closest_y) ** 2
                     )
-                    
+
                     if center_in_brick or distance_to_brick <= ball_radius:
                         hit_count += 1
                         hit_bricks.add(brick_id)

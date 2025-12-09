@@ -86,8 +86,12 @@ class PerformanceLogger:
             os.makedirs(self.logs_dir, exist_ok=True)
         except (OSError, PermissionError) as e:
             # Если не удается создать каталог, используем текущую директорию
-            print(f"Предупреждение: не удалось создать каталог логов {self.logs_dir}: {e}")
-            self.logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+            print(
+                f"Предупреждение: не удалось создать каталог логов {self.logs_dir}: {e}"
+            )
+            self.logs_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "logs"
+            )
             os.makedirs(self.logs_dir, exist_ok=True)
 
         # Файл для сохранения логов сессии (только если включено)

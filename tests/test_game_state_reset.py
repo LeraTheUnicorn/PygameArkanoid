@@ -21,7 +21,9 @@ def test_game_state_reset():
     print("1. Checking game state initialization in main loop...")
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -59,7 +61,9 @@ def test_game_state_reset():
     print("2. Checking for duplicate state initialization...")
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -90,7 +94,9 @@ def test_game_state_reset():
     print("3. Checking game flow logic...")
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -123,7 +129,9 @@ def test_game_state_reset():
     print("4. Checking auto mode handling...")
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py")
+        pygameball_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+        )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content = f.read()
 
