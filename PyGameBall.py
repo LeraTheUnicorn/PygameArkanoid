@@ -889,7 +889,7 @@ def _print_training_summary(ai_player, training_rounds: int) -> None:
         print("=" * 70)
 
         # Основная статистика
-        print(f"\n📊 Общая статистика:")
+        print(f"\n[СТАТИСТИКА] Общая статистика:")
         print(f"   Сыграно раундов: {training_rounds}")
         print(
             f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}"
@@ -952,7 +952,7 @@ def _print_training_summary(ai_player, training_rounds: int) -> None:
                 print(f"   Количество кластеров: {unique_clusters}")
 
         # Оценка эффективности
-        print(f"\n📊 Оценка эффективности:")
+        print(f"\n[ОЦЕНКА] Оценка эффективности:")
         if learning_progress > 0.8:
             print(f"   🟢 ОТЛИЧНО: Система показывает высокий прогресс обучения")
         elif learning_progress > 0.6:
@@ -1215,30 +1215,20 @@ def main() -> None:
             if frame_counter <= 3 and not getattr(sys, "frozen", False):
                 print(f"[AI DEBUG] Кадр {frame_counter}, running={running}, game_started={game_started}")
             
-            for event in pygame.event.get():
+            # КРИТИЧНО: Обработка событий должна быть первой и всегда выполняться
+            events = pygame.event.get()
+            for event in events:
                 if event.type == pygame.QUIT:
-                    # В режиме обучения QUIT завершает обучение и выводит статистику
-                    if training_mode:
-                        running = False
-                        break
-                    # В ручном режиме QUIT немедленно закрывает приложение
+                    # QUIT всегда закрывает приложение немедленно
+                    running = False
                     pygame.quit()
-                    return
+                    sys.exit(0)
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        # Выход из игры
-                        if training_mode:
-                            # В режиме обучения ESC завершает обучение и выводит статистику
-                            running = False
-                            break
-                        elif auto_mode:
-                            # В авторежиме ESC полностью закрывает приложение
-                            pygame.quit()
-                            return
-                        else:
-                            # В ручном режиме ESC полностью закрывает приложение
-                            pygame.quit()
-                            return
+                        # ESC всегда закрывает приложение немедленно
+                        running = False
+                        pygame.quit()
+                        sys.exit(0)
                     elif event.key == pygame.K_m:
                         # Переключение всех звуков
                         if sound_enabled:

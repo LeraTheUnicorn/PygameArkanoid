@@ -2797,9 +2797,9 @@ class AIPlayer:
                 self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle_rule5", 1.0)
                 return 0
             
-            if ball_vel_y <= 0:
-                self._log_paddle_movement(current_x, current_x, "ball_flying_up_rule5", 1.0)
-                return 0
+            # КРИТИЧНО: УБРАНО правило "не двигаться когда мяч летит вверх"
+            # Платформа ДОЛЖНА двигаться к точке падения мяча даже когда мяч летит вверх,
+            # чтобы успеть к моменту падения. Продолжаем расчет оптимальной позиции.
             
             # КРИТИЧНО: Если мяч в разрешенной зоне (ниже кубиков, но выше платформы) и движется вниз
             # - платформа ДОЛЖНА двигаться к точке падения мяча
@@ -3431,27 +3431,13 @@ class AIPlayer:
             return  # Пропускаем вывод в скомпилированном exe
         
         try:
-            # КРИТИЧНО: Проверяем, поддерживает ли консоль эмодзи (Windows может не поддерживать)
-            import sys
-            use_emoji = True
-            try:
-                # Пробуем вывести эмодзи для проверки поддержки
-                test_str = "📊"
-                # Просто проверяем, можем ли мы закодировать строку
-                test_str.encode('utf-8')
-            except (UnicodeEncodeError, UnicodeError):
-                use_emoji = False
-            
             print("\n" + "=" * 70)
             print("МЕТРИКИ ОЦЕНКИ РАБОТЫ СИСТЕМЫ AI (scikit-learn)")
             print("=" * 70)
             
             # Базовые метрики игры
-            emoji_results = "📊" if use_emoji else "[РЕЗУЛЬТАТЫ]"
-            emoji_win = "✅" if use_emoji else "[+]"
-            emoji_lose = "❌" if use_emoji else "[-]"
-            print(f"\n{emoji_results} Результаты игры:")
-            result_text = f"{emoji_win} ПОБЕДА" if success else f"{emoji_lose} ПОРАЖЕНИЕ"
+            print(f"\n[РЕЗУЛЬТАТЫ] Результаты игры:")
+            result_text = "[+] ПОБЕДА" if success else "[-] ПОРАЖЕНИЕ"
             print(f"   Результат: {result_text}")
             print(f"   Финальный счёт: {final_score}")
             print(f"   Всего игр: {self.performance_metrics['games_played']}")
@@ -3464,8 +3450,7 @@ class AIPlayer:
                 print(f"   Процент побед: {win_rate:.1f}%")
             
             # Метрики текущей игры
-            emoji_metrics = "🎯" if use_emoji else "[МЕТРИКИ]"
-            print(f"\n{emoji_metrics} Метрики текущей игры:")
+            print(f"\n[МЕТРИКИ] Метрики текущей игры:")
             print(
                 f"   Уничтожено кубиков: {self.current_game_stats['bricks_destroyed']}"
             )
@@ -3489,15 +3474,11 @@ class AIPlayer:
             # Метрики обучения и scikit-learn
             learning_progress = self.learning_system.get_learning_progress()
             
-            # КРИТИЧНО: Определяем emoji_warning_local для использования в разных местах
-            emoji_warning_local = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
-            
             if (
                 isinstance(learning_progress, dict)
                 and learning_progress.get("total_iterations", 0) > 0
             ):
-                emoji_robot = "🤖" if use_emoji else "[ОБУЧЕНИЕ]"
-                print(f"\n{emoji_robot} Система обучения (scikit-learn):")
+                print(f"\n[ОБУЧЕНИЕ] Система обучения (scikit-learn):")
                 print(
                     f"   Всего итераций обучения: {learning_progress.get('total_iterations', 0)}"
                 )
@@ -3509,8 +3490,7 @@ class AIPlayer:
                 )
                 
                 # Кластеризация траекторий (KMeans)
-                emoji_chart = "📈" if use_emoji else "[КЛАСТЕРИЗАЦИЯ]"
-                print(f"\n{emoji_chart} Кластеризация траекторий (KMeans):")
+                print(f"\n[КЛАСТЕРИЗАЦИЯ] Кластеризация траекторий (KMeans):")
                 trajectory_clusters = self.learning_system.cluster_trajectories()
                 unique_clusters = learning_progress.get("trajectory_clusters_count", 0)
                 cluster_diversity = learning_progress.get("cluster_diversity", 0.0)
@@ -3536,12 +3516,10 @@ class AIPlayer:
                             f"      Кластер {cluster_id}: {count} паттернов ({percentage:.1f}%)"
                         )
                 else:
-                    emoji_warning_local = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
-                    print(f"   {emoji_warning_local}  Недостаточно данных для кластеризации")
+                    print(f"   [ВНИМАНИЕ]  Недостаточно данных для кластеризации")
                 
                 # Модель предсказания успеха (RandomForestClassifier)
-                emoji_crystal = "🔮" if use_emoji else "[МОДЕЛЬ]"
-                print(f"\n{emoji_crystal} Модель предсказания успеха (RandomForestClassifier):")
+                print(f"\n[МОДЕЛЬ] Модель предсказания успеха (RandomForestClassifier):")
                 model = self.learning_system.learning_data.get(
                     "success_prediction_model"
                 )
@@ -3550,8 +3528,7 @@ class AIPlayer:
                 )
                 
                 if model is not None:
-                    emoji_check = "✅" if use_emoji else "[+]"
-                    print(f"   {emoji_check} Модель обучена и готова к использованию")
+                    print(f"   [+] Модель обучена и готова к использованию")
                     
                     # Показываем метрики модели
                     model_accuracy = model_metrics.get("last_accuracy")
@@ -3583,7 +3560,7 @@ class AIPlayer:
                                 )
                 else:
                     print(
-                        f"   {emoji_warning_local}  Модель ещё не обучена (требуется минимум 100 итераций)"
+                        f"   [ВНИМАНИЕ]  Модель ещё не обучена (требуется минимум 100 итераций)"
                     )
                     success_factors = self.learning_system.learning_data.get(
                         "success_factors", {}
@@ -3604,8 +3581,7 @@ class AIPlayer:
                 # Веса стратегий
                 strategy_weights = learning_progress.get("strategy_weights", {})
                 if strategy_weights:
-                    emoji_scale = "⚖️" if use_emoji else "[ВЕСА]"
-                    print(f"\n{emoji_scale}  Веса стратегий:")
+                    print(f"\n[ВЕСА]  Веса стратегий:")
                     for strategy, weight in strategy_weights.items():
                         bar_length = int(weight * 20)
                         bar = "█" * bar_length + "░" * (20 - bar_length)
@@ -3616,15 +3592,13 @@ class AIPlayer:
                 # print(f"\n📍 Изученные позиции: {learned_positions}")
                 
             else:
-                emoji_warning_local = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
-                print(f"\n{emoji_warning_local}  Система обучения ещё не накопила достаточно данных")
+                print(f"\n[ВНИМАНИЕ]  Система обучения ещё не накопила достаточно данных")
                 print(
                     f"   Продолжайте играть для активации кластеризации и предсказания"
                 )
             
             # Общая оценка системы
-            emoji_chart2 = "📊" if use_emoji else "[ОЦЕНКА]"
-            print(f"\n{emoji_chart2} Общая оценка системы:")
+            print(f"\n[ОЦЕНКА] Общая оценка системы:")
             if isinstance(learning_progress, dict):
                 avg_accuracy = self.performance_metrics.get("average_accuracy", 0.0)
                 learning_prog = self.performance_metrics.get("learning_progress", 0.0)
