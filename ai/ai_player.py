@@ -2652,15 +2652,42 @@ class AIPlayer:
                     self._log_paddle_movement(current_x, current_x, "target_reset_ball_left_zone", 1.0)
                     # Продолжаем обработку с обычной логикой - НЕ возвращаем 0!
                 else:
-                    # Мяч все еще в допустимой зоне и движется вниз - используем сохраненную позицию
-                    target_pos = self.separation_zone_tracker.get("target_position")
-                    if target_pos is not None:
+                    # КРИТИЧНО: Пересчитываем позицию периодически для точности
+                    # Пересчитываем каждые 10 кадров или когда мяч близко к платформе (менее 100 пикселей)
+                    should_recalculate = False
+                    frames_since_set = self.separation_zone_tracker.get("frames_since_target_set", 0)
+                    distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+                    
+                    # Пересчитываем если:
+                    # 1. Прошло 10+ кадров с момента установки позиции
+                    # 2. Мяч близко к платформе (менее 100 пикселей) - нужна точность
+                    if frames_since_set >= 10 or (distance_to_paddle > 0 and distance_to_paddle < 100):
+                        should_recalculate = True
+                    
+                    if should_recalculate:
+                        # Пересчитываем оптимальную позицию
+                        optimal_x = self.get_optimal_paddle_position()
+                        if optimal_x is not None:
+                            # Обновляем целевую позицию
+                            self.separation_zone_tracker["target_position"] = int(optimal_x)
+                            self.separation_zone_tracker["frames_since_target_set"] = 0
+                            self.separation_zone_tracker["paddle_reached_target"] = False
+                        else:
+                            # Если не удалось пересчитать, используем старую позицию
+                            optimal_x = self.separation_zone_tracker.get("target_position")
+                    else:
+                        # Используем сохраненную позицию
+                        optimal_x = self.separation_zone_tracker.get("target_position")
+                        self.separation_zone_tracker["frames_since_target_set"] = frames_since_set + 1
+                    
+                    if optimal_x is not None:
+                        target_pos = int(optimal_x)
                         distance_to_target = abs(current_x - target_pos)
                         
                         # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели - НЕ двигаемся
-                        # КРИТИЧНО: Используем гистерезис для предотвращения дрожания
-                        # Если уже достигли цели, увеличиваем допуск до 10 пикселей
-                        tolerance = 10 if self.separation_zone_tracker.get("paddle_reached_target", False) else 5
+                        # КРИТИЧНО: Уменьшено до 2 пикселей для более точного позиционирования
+                        # Используем гистерезис: если уже достигли цели, увеличиваем до 4 пикселей
+                        tolerance = 4 if self.separation_zone_tracker.get("paddle_reached_target", False) else 2
                         if distance_to_target <= tolerance:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
@@ -2752,8 +2779,8 @@ class AIPlayer:
                     return 0
                 
                 # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
-                # Увеличено до 10 пикселей для предотвращения дрожания
-                if distance_to_target <= 10:
+                # Уменьшено до 3 пикселей для более точного позиционирования
+                if distance_to_target <= 3:
                     self.separation_zone_tracker["paddle_reached_target"] = True
                     # КРИТИЧНО: Логируем для диагностики
                     import sys
