@@ -1677,10 +1677,24 @@ def main() -> None:
                                     "bricks_destroyed": total_bricks_destroyed,
                                     "lives_lost": MAX_LIVES,  # Все жизни потрачены
                                 }
-                                ai_player.learn_from_result(ai_result)
-                                ai_player.on_game_end(
-                                    False, score, training_mode=training_mode
-                                )
+                                try:
+                                    ai_player.learn_from_result(ai_result)
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в learn_from_result: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                
+                                try:
+                                    if hasattr(ai_player, 'on_game_end'):
+                                        ai_player.on_game_end(
+                                            False, score, training_mode=training_mode
+                                        )
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в on_game_end: {e}")
+                                        import traceback
+                                        traceback.print_exc()
                                 
                                 # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
                                 ai_player._reset_game_state_trackers()
@@ -2022,10 +2036,24 @@ def main() -> None:
                                     "bricks_destroyed": total_bricks_destroyed,
                                     "lives_lost": MAX_LIVES,  # Все жизни потрачены
                                 }
-                                ai_player.learn_from_result(ai_result)
-                                ai_player.on_game_end(
-                                    False, score, training_mode=training_mode
-                                )
+                                try:
+                                    ai_player.learn_from_result(ai_result)
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в learn_from_result: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                
+                                try:
+                                    if hasattr(ai_player, 'on_game_end'):
+                                        ai_player.on_game_end(
+                                            False, score, training_mode=training_mode
+                                        )
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в on_game_end: {e}")
+                                        import traceback
+                                        traceback.print_exc()
 
                             # В режиме обучения не показываем экран результатов, сразу перезапускаем
                             if training_mode:
@@ -2271,10 +2299,24 @@ def main() -> None:
                                     "bricks_destroyed": total_bricks_destroyed,
                                     "lives_lost": MAX_LIVES,  # Все жизни потрачены
                                 }
-                                ai_player.learn_from_result(ai_result)
-                                ai_player.on_game_end(
-                                    False, score, training_mode=training_mode
-                                )
+                                try:
+                                    ai_player.learn_from_result(ai_result)
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в learn_from_result: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                
+                                try:
+                                    if hasattr(ai_player, 'on_game_end'):
+                                        ai_player.on_game_end(
+                                            False, score, training_mode=training_mode
+                                        )
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART ERROR] Ошибка в on_game_end: {e}")
+                                        import traceback
+                                        traceback.print_exc()
 
                             # В режиме обучения не показываем экран результатов, сразу перезапускаем
                             if training_mode:
