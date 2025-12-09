@@ -2096,15 +2096,25 @@ def main() -> None:
                                 # КРИТИЧНО: Сбрасываем все трекеры состояния AI после перезапуска
                                 ai_player._reset_game_state_trackers()
                                 
-                                if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                                    print(f"[AI DEBUG] Игра перезапущена в режиме обучения, lives_left={lives_left}")
+                                # КРИТИЧНО: Логируем успешный перезапуск
+                                if not getattr(sys, "frozen", False):
+                                    print(f"[GAME RESTART] Игра успешно перезапущена! lives_left={lives_left}, game_over={game_over}, game_started={game_started}")
+                                    print(f"[GAME RESTART] ball.vel_x={ball.vel_x}, ball.vel_y={ball.vel_y}, paddle.x={paddle.rect.x}")
                                 
                                 continue  # Пропускаем остальную обработку кадра
 
                     if ball.rect.bottom >= SCREEN_HEIGHT:
                         # Уменьшаем жизни (в режиме обучения тоже)
                         lives_left -= 1
+                        # КРИТИЧНО: Логируем потерю жизни для диагностики
+                        if auto_mode or training_mode:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LIFE LOSS] Мяч потерян! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
                         if lives_left <= 0:
+                            # КРИТИЧНО: Логируем окончание жизней
+                            if auto_mode or training_mode:
+                                if not getattr(sys, "frozen", False):
+                                    print(f"[GAME END] Все жизни потрачены! lives_left={lives_left}, training_mode={training_mode}")
                             game_over = True
                             # Рассчитываем время игры и сохраняем результат
                             game_time_seconds = int(time.time() - game_start_time)

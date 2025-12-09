@@ -2540,6 +2540,9 @@ class AIPlayer:
             Смещение платформы (-1, 0, 1).
         """
         if not self.current_game_state or not self.is_active:
+            # КРИТИЧНО: Логируем, почему платформа не двигается
+            if not getattr(sys, "frozen", False):
+                print(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
             return self._fallback_movement(current_x)
 
         try:
@@ -2552,6 +2555,13 @@ class AIPlayer:
             )
             separation_zone_start = self.separation_zone_tracker.get("separation_zone_start", 226)
             paddle_zone_start = self.separation_zone_tracker.get("paddle_zone_start", 540)
+            
+            # КРИТИЧНО: Логируем состояние мяча для диагностики (только периодически, чтобы не засорять логи)
+            import random
+            if random.random() < 0.01:  # 1% кадров
+                if not getattr(sys, "frozen", False):
+                    optimal_x = self.get_optimal_paddle_position()
+                    print(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
             
             # ПРАВИЛО 1: Если мяч летит вверх - платформа НЕ двигается
             # КРИТИЧНО: Но только если мяч действительно летит вверх (vel_y < 0)
