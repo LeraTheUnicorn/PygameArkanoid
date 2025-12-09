@@ -2663,13 +2663,18 @@ class AIPlayer:
                     if target_pos is not None:
                         distance_to_target = abs(current_x - target_pos)
                         
-                        # ПРАВИЛО 3.1: Если платформа близко к цели (≤30 пикселей) - НЕ двигаемся
-                        # КРИТИЧНО: В зоне разделения с установленной целевой позицией просто останавливаемся
-                        # Не проверяем скорость приближения мяча - это вызывает дергание
-                        if distance_to_target <= 30:
+                        # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели (≤5 пикселей) - НЕ двигаемся
+                        # КРИТИЧНО: Уменьшено с 30 до 5 пикселей, чтобы платформа могла двигаться
+                        if distance_to_target <= 5:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
                                 self.separation_zone_tracker["paddle_reached_target"] = True
+                                # КРИТИЧНО: Логируем для диагностики
+                                import sys
+                                import random
+                                if random.random() < 0.2:  # 20% кадров
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
                                 self._log_paddle_movement(current_x, current_x, "paddle_reached_target", 1.0)
                             return 0
                         
@@ -2677,6 +2682,10 @@ class AIPlayer:
                         # Устанавливаем флаг, что платформа начала двигаться после установки цели
                         if not self.separation_zone_tracker.get("paddle_moved_after_set", False):
                             self.separation_zone_tracker["paddle_moved_after_set"] = True
+                            # КРИТИЧНО: Логируем начало движения
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: Начинаем движение к сохраненной позиции. current_x={current_x}, target_pos={target_pos}, distance={distance_to_target:.1f}")
                             self._log_paddle_movement(current_x, target_pos, "paddle_moving_to_target", 0.9)
                         
                         # КРИТИЧНО: Проверяем, что движение действительно нужно
@@ -2689,7 +2698,17 @@ class AIPlayer:
                         # КРИТИЧНО: Проверяем, что movement не равен 0 (должно быть -1 или 1)
                         if movement == 0:
                             # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
                             return self._fallback_movement(current_x)
+                        
+                        # КРИТИЧНО: Логируем движение (периодически)
+                        import sys
+                        import random
+                        if random.random() < 0.2:  # 20% кадров
+                            if not getattr(sys, "frozen", False):
+                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
                         
                         self._update_loop_tracking(movement, current_x, target_pos)
                         self._update_smoothness_tracking(movement, current_x)

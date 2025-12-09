@@ -2118,11 +2118,13 @@ def main() -> None:
                         if auto_mode or training_mode:
                             if not getattr(sys, "frozen", False):
                                 print(f"[LIFE LOSS] Мяч потерян! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
+                        
+                        # КРИТИЧНО: Проверяем, не закончились ли жизни
                         if lives_left <= 0:
                             # КРИТИЧНО: Логируем окончание жизней
                             if auto_mode or training_mode:
                                 if not getattr(sys, "frozen", False):
-                                    print(f"[GAME END] Все жизни потрачены! lives_left={lives_left}, training_mode={training_mode}")
+                                    print(f"[GAME END] Все жизни потрачены! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
                             game_over = True
                             # Рассчитываем время игры и сохраняем результат
                             game_time_seconds = int(time.time() - game_start_time)
