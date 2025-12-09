@@ -178,10 +178,17 @@ class LearningSystem:
         if trajectory_data and trajectory_data.get("intersection_point"):
             intersection = trajectory_data["intersection_point"]
             ball_pos = action_result.get("game_state_before", {}).get(
-                "ball_position", {}
+                "ball_position", None
             )
-            if ball_pos and abs(intersection.get("x", 0) - ball_pos.get("x", 0)) < 10:
-                penalty_factor *= 2.0
+            # КРИТИЧНО: intersection и ball_pos могут быть объектами Point (dataclass) или словарями
+            # Проверяем тип и используем правильный доступ к атрибутам
+            if ball_pos and intersection:
+                # Получаем x-координаты в зависимости от типа объекта
+                intersection_x = intersection.x if hasattr(intersection, 'x') else intersection.get("x", 0) if isinstance(intersection, dict) else 0
+                ball_pos_x = ball_pos.x if hasattr(ball_pos, 'x') else ball_pos.get("x", 0) if isinstance(ball_pos, dict) else 0
+                
+                if abs(intersection_x - ball_pos_x) < 10:
+                    penalty_factor *= 2.0
 
         strategy_type = self._determine_strategy_type(action_result)
 

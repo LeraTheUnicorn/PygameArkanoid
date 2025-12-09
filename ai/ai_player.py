@@ -6,6 +6,7 @@ import time
 import math
 import random
 import os
+import json
 from typing import List, Optional, Dict, Any
 
 import pygame
@@ -51,11 +52,14 @@ class AIPlayer:
         self.position_optimizer = PositionOptimizer(screen_width, screen_height)
         self.learning_system = LearningSystem()
 
-        # Логирование производительности (по переменной окружения)
-        enable_session_logging = os.getenv("AI_ENABLE_SESSION_LOGGING", "0") == "1"
+        # Логирование производительности (включено по умолчанию для диагностики)
+        enable_session_logging = os.getenv("AI_ENABLE_SESSION_LOGGING", "1") == "1"
         self.performance_logger = PerformanceLogger(
             enable_session_logging=enable_session_logging
         )
+        # КРИТИЧНО: НЕ создаем файл лога сразу при старте - это может блокировать выполнение
+        # Файл лога будет создан автоматически при первом вызове save_session_log()
+        # Это предотвращает блокировку при создании AIPlayer
 
         # Состояние AI
         self.current_game_state: Optional[GameState] = None

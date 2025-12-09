@@ -101,7 +101,47 @@ class PerformanceLogger:
             )
         else:
             self.session_log_file = None
+        
+        # КРИТИЧНО: Очищаем старые session логи при старте (оставляем только последний)
+        self._cleanup_old_session_logs()
 
+    def _cleanup_old_session_logs(self):
+        """
+        Очищает старые session логи при старте, оставляя только последний (самый новый).
+        Это предотвращает накопление большого количества лог файлов.
+        """
+        try:
+            if not os.path.exists(self.logs_dir):
+                return
+            
+            session_files = []
+            for file in os.listdir(self.logs_dir):
+                if file.startswith("session_") and file.endswith(".json"):
+                    file_path = os.path.join(self.logs_dir, file)
+                    try:
+                        mtime = os.path.getmtime(file_path)
+                        session_files.append((mtime, file_path))
+                    except Exception:
+                        session_files.append((0, file_path))
+            
+            # Сортируем по времени модификации (самый новый последний)
+            session_files.sort(key=lambda x: x[0])
+            
+            # Удаляем все session файлы, кроме последнего (самого нового)
+            if len(session_files) > 1:
+                for mtime, file_path in session_files[:-1]:
+                    try:
+                        os.remove(file_path)
+                        if not getattr(sys, "frozen", False):
+                            print(f"[LOG] Удален старый session лог при старте: {os.path.basename(file_path)}")
+                    except Exception as e:
+                        if not getattr(sys, "frozen", False):
+                            print(f"[LOG] Не удалось удалить старый лог {file_path}: {e}")
+        except Exception as e:
+            # Не блокируем выполнение при ошибке очистки
+            if not getattr(sys, "frozen", False):
+                print(f"[LOG] Ошибка при очистке старых session логов: {e}")
+    
     def _generate_session_id(self) -> str:
         """Генерирует уникальный ID сессии"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -125,9 +165,14 @@ class PerformanceLogger:
 
         self.actions_log.append(log_entry)
 
-        # Автосохранение каждые 100 действий
+        # Автосохранение каждые 100 действий (реже, чтобы не блокировать выполнение)
         if len(self.actions_log) % 100 == 0:
-            self.save_session_log()
+            try:
+                self.save_session_log()
+            except Exception as e:
+                # Не блокируем выполнение при ошибке сохранения
+                if not getattr(sys, "frozen", False):
+                    print(f"[WARNING] Ошибка автосохранения лога: {e}")
 
     def log_game_start(self, game_state: GameState):
         """Логирует начало новой игры"""
@@ -177,6 +222,58 @@ class PerformanceLogger:
         }
 
         self.log_action(movement_data)
+    
+    def log_ball_paddle_positions(
+        self, 
+        ball_x: float, 
+        ball_y: float, 
+        ball_vel_x: float, 
+        ball_vel_y: float,
+        paddle_x: float, 
+        paddle_y: float,
+        paddle_width: float,
+        paddle_height: float,
+        event_type: str = "frame_update"
+    ):
+        """
+        Логирует координаты мяча и платформы для диагностики
+        
+        Args:
+            ball_x, ball_y: Координаты центра мяча
+            ball_vel_x, ball_vel_y: Скорость мяча
+            paddle_x, paddle_y: Координаты платформы (top-left)
+            paddle_width, paddle_height: Размеры платформы
+            event_type: Тип события (frame_update, collision, etc.)
+        """
+        position_data = {
+            "type": "ball_paddle_positions",
+            "event_type": event_type,
+            "ball": {
+                "centerx": ball_x,
+                "centery": ball_y,
+                "velocity_x": ball_vel_x,
+                "velocity_y": ball_vel_y,
+            },
+            "paddle": {
+                "x": paddle_x,
+                "y": paddle_y,
+                "centerx": paddle_x + paddle_width / 2,
+                "centery": paddle_y + paddle_height / 2,
+                "width": paddle_width,
+                "height": paddle_height,
+                "top": paddle_y,
+                "bottom": paddle_y + paddle_height,
+                "left": paddle_x,
+                "right": paddle_x + paddle_width,
+            },
+            "distance": {
+                "ball_to_paddle_top": ball_y - paddle_y if ball_y > paddle_y else paddle_y - ball_y,
+                "ball_above_paddle": ball_y < paddle_y,
+                "ball_below_paddle": ball_y > paddle_y + paddle_height,
+            }
+        }
+        
+        self.log_action(position_data)
 
     def log_trajectory_prediction(
         self, predicted_trajectory: List[Dict], actual_result: Optional[Dict] = None
@@ -274,12 +371,21 @@ class PerformanceLogger:
         }
 
         try:
-            with open(self.session_log_file, "w", encoding="utf-8") as f:
-                json.dump(
-                    session_data, f, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
-                )
+            # КРИТИЧНО: Используем прямую запись вместо атомарной (избегаем проблем с правами доступа)
+            # Если файл заблокирован или недоступен, просто пропускаем сохранение
+            try:
+                with open(self.session_log_file, "w", encoding="utf-8") as f:
+                    json.dump(
+                        session_data, f, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
+                    )
+            except (PermissionError, OSError) as e:
+                # Файл заблокирован или нет прав доступа - пропускаем сохранение
+                # НЕ выводим предупреждение, чтобы не засорять консоль
+                pass
         except Exception as e:
-            print(f"Ошибка при сохранении лога сессии: {e}")
+            # Не блокируем выполнение при ошибке сохранения
+            # НЕ выводим предупреждение, чтобы не засорять консоль и не блокировать игру
+            pass
 
     def finalize_and_analyze(self):
         """
@@ -287,7 +393,8 @@ class PerformanceLogger:
         1. Сохраняет финальный лог сессии
         2. Запускает анализатор логов
         3. Сохраняет результат анализа
-        4. Удаляет ненужные логи (оставляет только анализ)
+        4. Удаляет старые session логи (оставляет только последний, если нужен)
+        5. Удаляет файлы после обработки
         """
         if not self.enable_session_logging:
             return
@@ -308,28 +415,82 @@ class PerformanceLogger:
             with open(analysis_file, "w", encoding="utf-8") as f:
                 json.dump(analysis_result, f, ensure_ascii=False, indent=2)
             
-            # Удаляем ненужные логи (оставляем только анализ и общий файл результатов)
-            if self.session_log_file and os.path.exists(self.session_log_file):
-                try:
-                    os.remove(self.session_log_file)
-                except Exception as e:
-                    print(f"Не удалось удалить лог сессии {self.session_log_file}: {e}")
-            
-            # Удаляем другие сессионные логи (кроме текущей сессии, если она еще не удалена)
+            # КРИТИЧНО: Удаляем старые session логи, оставляя только последний (самый новый)
             try:
+                session_files = []
                 for file in os.listdir(self.logs_dir):
                     if file.startswith("session_") and file.endswith(".json"):
                         file_path = os.path.join(self.logs_dir, file)
-                        if file_path != self.session_log_file:
-                            try:
-                                os.remove(file_path)
-                            except Exception as e:
-                                print(f"Не удалось удалить лог {file_path}: {e}")
+                        try:
+                            # Получаем время модификации файла
+                            mtime = os.path.getmtime(file_path)
+                            session_files.append((mtime, file_path))
+                        except Exception:
+                            # Если не удается получить время, добавляем с минимальным временем
+                            session_files.append((0, file_path))
+                
+                # Сортируем по времени модификации (самый новый последний)
+                session_files.sort(key=lambda x: x[0])
+                
+                # Удаляем все session файлы, кроме последнего (самого нового)
+                if len(session_files) > 1:
+                    # Удаляем все кроме последнего
+                    for mtime, file_path in session_files[:-1]:
+                        try:
+                            os.remove(file_path)
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LOG] Удален старый session лог: {os.path.basename(file_path)}")
+                        except Exception as e:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LOG] Не удалось удалить лог {file_path}: {e}")
+                
+                # КРИТИЧНО: После обработки удаляем все session файлы (включая последний)
+                # Они больше не нужны, так как анализ уже выполнен
+                for mtime, file_path in session_files:
+                    try:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LOG] Удален session лог после обработки: {os.path.basename(file_path)}")
+                    except Exception as e:
+                        if not getattr(sys, "frozen", False):
+                            print(f"[LOG] Не удалось удалить лог {file_path}: {e}")
             except Exception as e:
-                print(f"Ошибка при очистке логов: {e}")
+                if not getattr(sys, "frozen", False):
+                    print(f"[LOG] Ошибка при очистке session логов: {e}")
+            
+            # КРИТИЧНО: Удаляем старые analysis файлы, оставляя только последний (самый новый)
+            try:
+                analysis_files = []
+                for file in os.listdir(self.logs_dir):
+                    if file.startswith("analysis_") and file.endswith(".json"):
+                        file_path = os.path.join(self.logs_dir, file)
+                        try:
+                            mtime = os.path.getmtime(file_path)
+                            analysis_files.append((mtime, file_path))
+                        except Exception:
+                            analysis_files.append((0, file_path))
+                
+                # Сортируем по времени модификации (самый новый последний)
+                analysis_files.sort(key=lambda x: x[0])
+                
+                # Удаляем все analysis файлы, кроме последнего (самого нового)
+                if len(analysis_files) > 1:
+                    for mtime, file_path in analysis_files[:-1]:
+                        try:
+                            os.remove(file_path)
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LOG] Удален старый analysis файл: {os.path.basename(file_path)}")
+                        except Exception as e:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LOG] Не удалось удалить analysis файл {file_path}: {e}")
+            except Exception as e:
+                if not getattr(sys, "frozen", False):
+                    print(f"[LOG] Ошибка при очистке analysis файлов: {e}")
                 
         except Exception as e:
-            print(f"Ошибка при анализе логов: {e}")
+            if not getattr(sys, "frozen", False):
+                print(f"[LOG] Ошибка при анализе логов: {e}")
 
     def save_game_result(self, game_result: Dict[str, Any]):
         """Сохраняет результат игры в общий файл"""
