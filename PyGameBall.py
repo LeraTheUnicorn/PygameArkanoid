@@ -1432,13 +1432,25 @@ def main() -> None:
                     
                     # КРИТИЧНО: Проверяем, не попал ли мяч обратно в платформу после ball.update()
                     # Это может произойти, если мяч был установлен слишком близко к платформе
-                    if ball.rect.colliderect(paddle.rect) and ball.vel_y > 0:
+                    # НО: не обрабатываем, если мяч только что отскочил (предотвращаем ложные срабатывания)
+                    just_bounced = getattr(ball, '_just_bounced', False)
+                    bounce_frame = getattr(ball, '_bounce_frame', -1)
+                    if (ball.rect.colliderect(paddle.rect) and ball.vel_y > 0 
+                        and not (just_bounced and (bounce_frame == frame_counter or bounce_frame == frame_counter - 1))):
                         # Мяч попал обратно в платформу - принудительно перемещаем его выше
                         ball_radius = BALL_SIZE // 2
-                        ball.rect.centery = paddle.rect.top - ball_radius - 20
+                        min_distance = abs(ball.vel_y) + 15  # Скорость + запас
+                        ball.rect.centery = paddle.rect.top - ball_radius - min_distance
                         # Убеждаемся, что мяч движется вверх
                         if ball.vel_y >= 0:
                             ball.vel_y = -ball.get_speed()
+                        # Устанавливаем флаг отскока
+                        ball._just_bounced = True
+                        ball._bounce_frame = frame_counter
+                    
+                    # Сбрасываем флаг отскока через несколько кадров (чтобы не блокировать новые столкновения)
+                    if just_bounced and frame_counter - bounce_frame > 3:
+                        ball._just_bounced = False
                     
                     # КРИТИЧНО: Логируем координаты мяча и платформы для диагностики (каждый 10-й кадр для экономии)
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
