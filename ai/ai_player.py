@@ -2752,7 +2752,17 @@ class AIPlayer:
                 # КРИТИЧНО: Проверяем, что movement не равен 0
                 if movement == 0:
                     # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
                     return self._fallback_movement(current_x)
+                
+                # КРИТИЧНО: Логируем движение
+                import sys
+                import random
+                if random.random() < 0.2:  # 20% кадров
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
                 
                 self.separation_zone_tracker["paddle_moved_after_set"] = True
                 self._update_loop_tracking(movement, current_x, target_pos)
