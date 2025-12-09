@@ -2176,6 +2176,10 @@ def main() -> None:
 
                             # В режиме обучения не показываем экран результатов, сразу перезапускаем
                             if training_mode:
+                                # КРИТИЧНО: Логируем начало перезапуска
+                                if not getattr(sys, "frozen", False):
+                                    print(f"[GAME RESTART] Начинаем перезапуск игры в режиме обучения после потери всех жизней...")
+                                
                                 # КРИТИЧНО: Сбрасываем все трекеры состояния AI перед новой игрой
                                 ai_player._reset_game_state_trackers()
                                 
@@ -2212,6 +2216,10 @@ def main() -> None:
                                 
                                 # КРИТИЧНО: Логируем перезапуск игры для диагностики
                                 if auto_mode or training_mode:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[GAME RESTART] Игра перезапущена после потери всех жизней!")
+                                        print(f"[GAME RESTART] lives_left={lives_left}, game_over={game_over}, game_started={game_started}")
+                                        print(f"[GAME RESTART] ball.vel_x={ball.vel_x}, ball.vel_y={ball.vel_y}, paddle.x={paddle.rect.x}, bricks={len(bricks)}")
                                     ai_player.performance_logger.log_ball_paddle_positions(
                                         ball.rect.centerx,
                                         ball.rect.centery,
