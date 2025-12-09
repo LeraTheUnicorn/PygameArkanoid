@@ -3431,13 +3431,28 @@ class AIPlayer:
             return  # Пропускаем вывод в скомпилированном exe
         
         try:
+            # КРИТИЧНО: Проверяем, поддерживает ли консоль эмодзи (Windows может не поддерживать)
+            import sys
+            use_emoji = True
+            try:
+                # Пробуем вывести эмодзи для проверки поддержки
+                test_str = "📊"
+                # Просто проверяем, можем ли мы закодировать строку
+                test_str.encode('utf-8')
+            except (UnicodeEncodeError, UnicodeError):
+                use_emoji = False
+            
             print("\n" + "=" * 70)
             print("МЕТРИКИ ОЦЕНКИ РАБОТЫ СИСТЕМЫ AI (scikit-learn)")
             print("=" * 70)
             
             # Базовые метрики игры
-            print(f"\n📊 Результаты игры:")
-            print(f"   Результат: {'✅ ПОБЕДА' if success else '❌ ПОРАЖЕНИЕ'}")
+            emoji_results = "📊" if use_emoji else "[РЕЗУЛЬТАТЫ]"
+            emoji_win = "✅" if use_emoji else "[+]"
+            emoji_lose = "❌" if use_emoji else "[-]"
+            print(f"\n{emoji_results} Результаты игры:")
+            result_text = f"{emoji_win} ПОБЕДА" if success else f"{emoji_lose} ПОРАЖЕНИЕ"
+            print(f"   Результат: {result_text}")
             print(f"   Финальный счёт: {final_score}")
             print(f"   Всего игр: {self.performance_metrics['games_played']}")
             print(f"   Побед: {self.performance_metrics['games_won']}")
@@ -3641,16 +3656,23 @@ class AIPlayer:
                     )
                     print(f"   Комплексная оценка системы: {system_score:.1f}/100")
                     
+                    emoji_excellent = "🟢" if use_emoji else "[ОТЛИЧНО]"
+                    emoji_good = "🟡" if use_emoji else "[ХОРОШО]"
+                    emoji_satisfactory = "🟠" if use_emoji else "[УДОВЛЕТВОРИТЕЛЬНО]"
+                    emoji_poor = "🔴" if use_emoji else "[ТРЕБУЕТ УЛУЧШЕНИЯ]"
+                    emoji_warning = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
+                    
                     if system_score >= 80:
-                        print(f"   🟢 ОТЛИЧНО: Система работает эффективно")
+                        print(f"   {emoji_excellent} ОТЛИЧНО: Система работает эффективно")
                     elif system_score >= 60:
-                        print(f"   🟡 ХОРОШО: Система работает стабильно")
+                        print(f"   {emoji_good} ХОРОШО: Система работает стабильно")
                     elif system_score >= 40:
-                        print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
+                        print(f"   {emoji_satisfactory} УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
                     else:
-                        print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
+                        print(f"   {emoji_poor} ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
                 else:
-                    print(f"   ⚠️  Недостаточно данных для комплексной оценки")
+                    emoji_warning = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
+                    print(f"   {emoji_warning}  Недостаточно данных для комплексной оценки")
             
             print("=" * 70 + "\n")
         except Exception as e:
