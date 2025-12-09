@@ -2026,6 +2026,12 @@ def main() -> None:
                                     ball, paddle, bricks, score, int(game_start_time)
                                 )
                                 
+                                # КРИТИЧНО: Сбрасываем все трекеры состояния AI после перезапуска
+                                ai_player._reset_game_state_trackers()
+                                
+                                if frame_counter <= 3 and not getattr(sys, "frozen", False):
+                                    print(f"[AI DEBUG] Игра перезапущена в режиме обучения, lives_left={lives_left}")
+                                
                                 continue  # Пропускаем остальную обработку кадра
 
                     if ball.rect.bottom >= SCREEN_HEIGHT:

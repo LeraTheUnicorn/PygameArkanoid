@@ -2527,10 +2527,12 @@ class AIPlayer:
                 self._log_paddle_movement(current_x, current_x, "ball_flying_up", 1.0)
                 return 0
             elif ball_vel_y == 0:
-                # Мяч не движется вертикально - возможно ошибка состояния
-                # Используем fallback для безопасности
-                self._log_paddle_movement(current_x, current_x, "ball_vel_y_zero_fallback", 0.5)
-                return self._fallback_movement(current_x)
+                # КРИТИЧНО: Если vel_y == 0, это ошибка состояния (должно быть исправлено в PyGameBall.py)
+                # Но на всякий случай продолжаем движение к оптимальной позиции, а не используем fallback
+                # Это предотвращает ситуацию, когда платформа перестает двигаться из-за временного vel_y=0
+                # Логируем для диагностики, но продолжаем нормальную логику
+                self._log_paddle_movement(current_x, current_x, "ball_vel_y_zero_warning", 0.5)
+                # Продолжаем обработку с обычной логикой - НЕ возвращаем fallback!
             
             # ПРАВИЛО 2: Если мяч в зоне кубиков - платформа НЕ двигается
             # КРИТИЧНО: Но только если мяч действительно в зоне кубиков
