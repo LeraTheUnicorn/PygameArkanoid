@@ -3449,7 +3449,8 @@ class AIPlayer:
                 print(f"   Процент побед: {win_rate:.1f}%")
             
             # Метрики текущей игры
-            print(f"\n🎯 Метрики текущей игры:")
+            emoji_metrics = "🎯" if use_emoji else "[МЕТРИКИ]"
+            print(f"\n{emoji_metrics} Метрики текущей игры:")
             print(
                 f"   Уничтожено кубиков: {self.current_game_stats['bricks_destroyed']}"
             )
@@ -3654,7 +3655,11 @@ class AIPlayer:
             print("=" * 70 + "\n")
         except Exception as e:
             # В случае ошибки выводим минимальную информацию
-            print(f"\n⚠️  Ошибка при выводе метрик: {e}\n")
+            # КРИТИЧНО: Не используем эмодзи в сообщении об ошибке, чтобы избежать UnicodeError
+            try:
+                print(f"\n⚠️  Ошибка при выводе метрик: {e}\n")
+            except (UnicodeEncodeError, UnicodeError):
+                print(f"\n[ОШИБКА] Ошибка при выводе метрик: {e}\n")
 
     # ==========================
     # Сессии и анализ обучения
