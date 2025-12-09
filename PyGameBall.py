@@ -1946,10 +1946,18 @@ def main() -> None:
                     # КРИТИЧНО: Проверяем потерю мяча ПОСЛЕ проверки столкновения с платформой
                     # Если мяч ниже верхней границы платформы И не было столкновения - он потерян
                     if ball.rect.bottom > paddle.rect.top and not ball_hits_paddle_top:
+                        # КРИТИЧНО: Логируем потерю мяча
+                        if auto_mode or training_mode:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LIFE LOSS] Мяч потерян (ball.rect.bottom={ball.rect.bottom} > paddle.rect.top={paddle.rect.top})! lives_left={lives_left}")
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
                         # Мяч ниже верхней границы платформы и не отскочил - он потерян
                         lives_left -= 1
+                        # КРИТИЧНО: Логируем после уменьшения жизней
+                        if auto_mode or training_mode:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, game_over={game_over}")
                         if lives_left > 0:
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
