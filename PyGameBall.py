@@ -1072,13 +1072,23 @@ def main() -> None:
             ai_player.save_learning_data()
 
         # Ввод имени игрока (ПЕРЕД созданием AI, чтобы не создавать лишние логи)
-        # ВРЕМЕННО ДЛЯ ТЕСТИРОВАНИЯ: автоматически запускаем режим обучения
-        # Раскомментируйте следующую строку для автоматического запуска режима обучения:
-        # player_name, sound_enabled, exit_game, auto_mode, training_mode = "training", True, False, True, True
-        # И закомментируйте следующую строку:
-        player_name, sound_enabled, exit_game, auto_mode, training_mode = (
-            get_player_name(screen, font, big_font, highscore_manager)
-        )
+        # ФЛАГ ДЛЯ АВТОМАТИЧЕСКОГО ЗАПУСКА РЕЖИМА ОБУЧЕНИЯ (для тестирования)
+        AUTO_START_TRAINING_MODE = True  # Установите False для обычного режима выбора
+        
+        if AUTO_START_TRAINING_MODE:
+            # Автоматически запускаем режим обучения (mode 8)
+            player_name = "training"
+            sound_enabled = True
+            exit_game = False
+            auto_mode = True
+            training_mode = True
+            if not getattr(sys, "frozen", False):
+                print(f"[AUTO] Автоматический запуск режима обучения (mode 8)")
+        else:
+            # Обычный режим - выбор через меню
+            player_name, sound_enabled, exit_game, auto_mode, training_mode = (
+                get_player_name(screen, font, big_font, highscore_manager)
+            )
         if exit_game:
             pygame.quit()
             return
