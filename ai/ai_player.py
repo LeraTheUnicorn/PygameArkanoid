@@ -3489,6 +3489,9 @@ class AIPlayer:
             # Метрики обучения и scikit-learn
             learning_progress = self.learning_system.get_learning_progress()
             
+            # КРИТИЧНО: Определяем emoji_warning_local для использования в разных местах
+            emoji_warning_local = "⚠️" if use_emoji else "[ВНИМАНИЕ]"
+            
             if (
                 isinstance(learning_progress, dict)
                 and learning_progress.get("total_iterations", 0) > 0
