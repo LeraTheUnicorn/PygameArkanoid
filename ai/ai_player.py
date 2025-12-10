@@ -2653,27 +2653,62 @@ class AIPlayer:
                     distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
                     
                     # Пересчитываем если:
-                    # 1. Мяч близко к платформе (менее 200 пикселей) - КАЖДЫЙ КАДР для точности
-                    # 2. Или прошло 3+ кадров с момента установки позиции (для дальних мячей)
-                    if (distance_to_paddle > 0 and distance_to_paddle < 200) or frames_since_set >= 3:
+                    # 1. Прошло 3+ кадров с момента установки позиции (для стабильности)
+                    # 2. И мяч близко к платформе (менее 150 пикселей) - нужна точность
+                    if frames_since_set >= 3 and (distance_to_paddle > 0 and distance_to_paddle < 150):
                         should_recalculate = True
                     
                     if should_recalculate:
-                        # Пересчитываем оптимальную позицию
-                        optimal_x = self.get_optimal_paddle_position()
-                        if optimal_x is not None:
-                            # Обновляем целевую позицию
-                            old_target = self.separation_zone_tracker.get("target_position")
-                            self.separation_zone_tracker["target_position"] = int(optimal_x)
-                            self.separation_zone_tracker["frames_since_target_set"] = 0
-                            self.separation_zone_tracker["paddle_reached_target"] = False
-                            # Логируем пересчет если позиция изменилась значительно
-                            if old_target is not None and abs(int(optimal_x) - old_target) > 10:
-                                import sys
-                                if not getattr(sys, "frozen", False):
-                                    print(f"[PADDLE DEBUG] ПРАВИЛО 3: Пересчет позиции! old={old_target}, new={int(optimal_x)}, diff={abs(int(optimal_x) - old_target):.1f}")
+                        # Используем простой расчет для стабильности
+                        if self.current_game_state:
+                            ball_x = self.current_game_state.ball_position.x
+                            ball_y_state = self.current_game_state.ball_position.y
+                            vel_x = self.current_game_state.ball_velocity.x
+                            vel_y = self.current_game_state.ball_velocity.y
+                            
+                            if vel_y > 0 and ball_y_state < paddle_y:
+                                # Простое предсказание точки падения
+                                time_to_paddle = (paddle_y - ball_y_state) / vel_y
+                                if time_to_paddle > 0:
+                                    predicted_x = ball_x + vel_x * time_to_paddle
+                                    # Учитываем отскоки от стен
+                                    screen_width = self.screen_width
+                                    ball_radius = 8
+                                    while predicted_x < ball_radius or predicted_x > screen_width - ball_radius:
+                                        if predicted_x < ball_radius:
+                                            predicted_x = ball_radius + (ball_radius - predicted_x)
+                                            vel_x = abs(vel_x)
+                                        elif predicted_x > screen_width - ball_radius:
+                                            predicted_x = (screen_width - ball_radius) - (predicted_x - (screen_width - ball_radius))
+                                            vel_x = -abs(vel_x)
+                                    
+                                    # Ограничиваем границами
+                                    min_x = self.paddle_width // 2 + 30
+                                    max_x = screen_width - self.paddle_width // 2 - 30
+                                    new_optimal_x = max(min_x, min(max_x, int(predicted_x)))
+                                    
+                                    # КРИТИЧНО: Используем экспоненциальное сглаживание
+                                    old_target = self.separation_zone_tracker.get("target_position")
+                                    if old_target is not None:
+                                        # Сглаживание: 70% старая позиция, 30% новая
+                                        smoothed_x = int(old_target * 0.7 + new_optimal_x * 0.3)
+                                        # Обновляем только если изменение значительное (>20 пикселей)
+                                        if abs(smoothed_x - old_target) > 20:
+                                            self.separation_zone_tracker["target_position"] = smoothed_x
+                                            self.separation_zone_tracker["frames_since_target_set"] = 0
+                                            self.separation_zone_tracker["paddle_reached_target"] = False
+                                            optimal_x = smoothed_x
+                                        else:
+                                            optimal_x = old_target
+                                    else:
+                                        self.separation_zone_tracker["target_position"] = new_optimal_x
+                                        self.separation_zone_tracker["frames_since_target_set"] = 0
+                                        optimal_x = new_optimal_x
+                                else:
+                                    optimal_x = self.separation_zone_tracker.get("target_position")
+                            else:
+                                optimal_x = self.separation_zone_tracker.get("target_position")
                         else:
-                            # Если не удалось пересчитать, используем старую позицию
                             optimal_x = self.separation_zone_tracker.get("target_position")
                     else:
                         # Используем сохраненную позицию
