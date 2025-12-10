@@ -2610,20 +2610,19 @@ class AIPlayer:
             import sys
             # Логируем всегда когда мяч в зоне разделения или близко к платформе
             should_log = in_separation_zone or (ball_y > paddle_y - 100 and ball_vel_y > 0)
-            # КРИТИЧНО: Увеличиваем частоту логирования для диагностики (50% кадров вместо 10%)
-            if should_log and random.random() < 0.5:  # 50% кадров когда мяч близко
-                if not getattr(sys, "frozen", False):
-                    ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
-                    ball_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
-                    ball_speed = self.current_game_state.ball_speed if self.current_game_state else 0
-                    distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
-                    time_to_paddle = distance_to_paddle / ball_vel_y if ball_vel_y > 0 and distance_to_paddle > 0 else float('inf')
-                    optimal_x = self.get_optimal_paddle_position()
-                    distance_to_target = abs(current_x - optimal_x) if optimal_x is not None else 0
-                    print(f"[BALL TRACKING] ball=({ball_x:.1f},{ball_y:.1f}) vel=({ball_vel_x:.1f},{ball_vel_y:.1f}) speed={ball_speed:.1f} | "
-                          f"paddle_x={current_x:.1f} optimal_x={optimal_x:.1f} dist_to_target={distance_to_target:.1f} | "
-                          f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
-                          f"time_to_paddle={time_to_paddle:.2f} frames")
+            # КРИТИЧНО: Логируем всегда (100% кадров) для диагностики
+            if should_log:  # Всегда логируем когда мяч близко
+                ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
+                ball_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                ball_speed = self.current_game_state.ball_speed if self.current_game_state else 0
+                distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+                time_to_paddle = distance_to_paddle / ball_vel_y if ball_vel_y > 0 and distance_to_paddle > 0 else float('inf')
+                optimal_x = self.get_optimal_paddle_position()
+                distance_to_target = abs(current_x - optimal_x) if optimal_x is not None else 0
+                print(f"[BALL TRACKING] ball=({ball_x:.1f},{ball_y:.1f}) vel=({ball_vel_x:.1f},{ball_vel_y:.1f}) speed={ball_speed:.1f} | "
+                      f"paddle_x={current_x:.1f} optimal_x={optimal_x:.1f} dist_to_target={distance_to_target:.1f} | "
+                      f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
+                      f"time_to_paddle={time_to_paddle:.2f} frames")
             
             # ПРАВИЛО 3: Если целевая позиция установлена - используем её БЕЗ пересчета
             # КРИТИЧНО: Проверяем, что мяч все еще движется вниз и в зоне разделения
@@ -2650,9 +2649,7 @@ class AIPlayer:
                         
                         if target_difference > threshold:
                             # Траектория мяча кардинально изменилась - сбрасываем целевую позицию
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                print(f"[TARGET RESET] Траектория изменилась! Старая цель={current_target:.1f}, Новая цель={new_optimal:.1f}, Разница={target_difference:.1f}px")
+                            print(f"[TARGET RESET] Траектория изменилась! Старая цель={current_target:.1f}, Новая цель={new_optimal:.1f}, Разница={target_difference:.1f}px")
                             self.separation_zone_tracker["target_position_set"] = False
                             self.separation_zone_tracker["target_position"] = None
                             self.separation_zone_tracker["paddle_moved_after_set"] = False
@@ -2879,25 +2876,21 @@ class AIPlayer:
                                             zone_center_x = predicted_x
                                             selected_zone = "CENTER"
                                     
-                                    # КРИТИЧНО: Логируем выбор зоны для диагностики
-                                    import sys
-                                    import random
-                                    if random.random() < 0.15:  # 15% кадров
-                                        if not getattr(sys, "frozen", False):
-                                            current_paddle_x = self.current_game_state.paddle_position.x if self.current_game_state else 0
-                                            distance_to_zone_center = abs(current_paddle_x - zone_center_x)
-                                            # Вычисляем, где будет центр выбранной зоны при позиции платформы = zone_center_x
-                                            if selected_zone == "LEFT":
-                                                actual_zone_center = zone_center_x - zone_size  # центр левой зоны
-                                            elif selected_zone == "RIGHT":
-                                                actual_zone_center = zone_center_x + zone_size  # центр правой зоны
-                                            else:
-                                                actual_zone_center = zone_center_x  # центр центральной зоны
-                                            
-                                            print(f"[ZONE SELECTION] predicted_x={predicted_x:.1f} -> zone={selected_zone} "
-                                                  f"paddle_center={zone_center_x:.1f} actual_zone_center={actual_zone_center:.1f} "
-                                                  f"current_paddle={current_paddle_x:.1f} distance_to_zone={distance_to_zone_center:.1f}px "
-                                                  f"time_to_paddle={time_to_paddle:.2f} frames")
+                                    # КРИТИЧНО: Логируем выбор зоны для диагностики (всегда)
+                                    current_paddle_x = self.current_game_state.paddle_position.x if self.current_game_state else 0
+                                    distance_to_zone_center = abs(current_paddle_x - zone_center_x)
+                                    # Вычисляем, где будет центр выбранной зоны при позиции платформы = zone_center_x
+                                    if selected_zone == "LEFT":
+                                        actual_zone_center = zone_center_x - zone_size  # центр левой зоны
+                                    elif selected_zone == "RIGHT":
+                                        actual_zone_center = zone_center_x + zone_size  # центр правой зоны
+                                    else:
+                                        actual_zone_center = zone_center_x  # центр центральной зоны
+                                    
+                                    print(f"[ZONE SELECTION] predicted_x={predicted_x:.1f} -> zone={selected_zone} "
+                                          f"paddle_center={zone_center_x:.1f} actual_zone_center={actual_zone_center:.1f} "
+                                          f"current_paddle={current_paddle_x:.1f} distance_to_zone={distance_to_zone_center:.1f}px "
+                                          f"time_to_paddle={time_to_paddle:.2f} frames")
                                     
                                     # Ограничиваем границами экрана
                                     min_x = self.paddle_width // 2 + 30
@@ -2930,9 +2923,7 @@ class AIPlayer:
                                             threshold = 80 if distance_to_paddle_y < 50 else 100
                                             if abs(new_optimal_x - old_target) > threshold:
                                                 # Траектория изменилась - принудительно обновляем
-                                                import sys
-                                                if not getattr(sys, "frozen", False):
-                                                    print(f"[TARGET UPDATE] Принудительное обновление! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, Разница={abs(new_optimal_x - old_target):.1f}px")
+                                                print(f"[TARGET UPDATE] Принудительное обновление! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, Разница={abs(new_optimal_x - old_target):.1f}px")
                                                 self.separation_zone_tracker["target_position"] = int(new_optimal_x)
                                                 self.separation_zone_tracker["frames_since_target_set"] = 0
                                                 self.separation_zone_tracker["paddle_reached_target"] = False
@@ -2992,12 +2983,10 @@ class AIPlayer:
                         # КРИТИЧНО: Также пересчитываем, если мяч очень близко (менее 3 кадров)
                         if (not will_reach or force_recalculate) and time_to_paddle != float('inf') and time_to_paddle > 0:
                             # Платформа не успевает или мяч очень близко - пересчитываем целевую позицию с учетом текущей позиции
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                if force_recalculate:
-                                    print(f"[TARGET RESET] Мяч очень близко (time_to_paddle={time_to_paddle:.1f} < 3), пересчитываем цель для точности")
-                                else:
-                                    print(f"[TARGET RESET] Платформа не успевает! frames_to_reach={frames_to_reach:.1f} > time_to_paddle={time_to_paddle:.1f}, пересчитываем цель")
+                            if force_recalculate:
+                                print(f"[TARGET RESET] Мяч очень близко (time_to_paddle={time_to_paddle:.1f} < 3), пересчитываем цель для точности")
+                            else:
+                                print(f"[TARGET RESET] Платформа не успевает! frames_to_reach={frames_to_reach:.1f} > time_to_paddle={time_to_paddle:.1f}, пересчитываем цель")
                             
                             # КРИТИЧНО: Если мяч очень близко (менее 5 кадров), используем более агрессивный пересчет
                             # Рассчитываем максимальное расстояние, которое платформа может пройти
@@ -3248,27 +3237,23 @@ class AIPlayer:
                                 print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
                             return self._fallback_movement(current_x)
                         
-                        # КРИТИЧНО: Логируем движение с информацией о скорости (периодически)
+                        # КРИТИЧНО: Логируем движение с информацией о скорости (всегда)
                         # Примечание: проверка will_reach уже выполнена выше, перед проверкой tolerance
-                        import sys
-                        import random
-                        # КРИТИЧНО: Увеличиваем частоту логирования для диагностики (50% кадров вместо 20%)
-                        if random.random() < 0.5:  # 50% кадров для логирования
-                            if not getattr(sys, "frozen", False):
-                                # Пересчитываем для логирования
-                                ball_y_log = self.current_game_state.ball_position.y if self.current_game_state else 0
-                                ball_vel_y_log = self.current_game_state.ball_velocity.y if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
-                                paddle_y_log = self.current_game_state.paddle_position.y if self.current_game_state else paddle_zone_start
-                                distance_to_paddle_log = paddle_y_log - ball_y_log if ball_y_log < paddle_y_log else 0
-                                time_to_paddle_log = distance_to_paddle_log / ball_vel_y_log if ball_vel_y_log > 0 and distance_to_paddle_log > 0 else float('inf')
-                                distance_to_move_log = distance_to_target
-                                frames_to_reach_log = distance_to_move_log / paddle_speed if paddle_speed > 0 else float('inf')
-                                will_reach_log = frames_to_reach_log <= time_to_paddle_log if time_to_paddle_log != float('inf') else False
-                                
-                                print(f"[PADDLE MOVEMENT] movement={movement} distance={distance_to_target:.1f}px "
-                                      f"current_x={current_x:.1f} target={target_pos:.1f} | "
-                                      f"paddle_speed={paddle_speed} frames_to_reach={frames_to_reach_log:.1f} "
-                                      f"time_to_paddle={time_to_paddle_log:.1f} will_reach={will_reach_log}")
+                        # КРИТИЧНО: Логируем всегда (100% кадров) для диагностики
+                        # Пересчитываем для логирования
+                        ball_y_log = self.current_game_state.ball_position.y if self.current_game_state else 0
+                        ball_vel_y_log = self.current_game_state.ball_velocity.y if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                        paddle_y_log = self.current_game_state.paddle_position.y if self.current_game_state else paddle_zone_start
+                        distance_to_paddle_log = paddle_y_log - ball_y_log if ball_y_log < paddle_y_log else 0
+                        time_to_paddle_log = distance_to_paddle_log / ball_vel_y_log if ball_vel_y_log > 0 and distance_to_paddle_log > 0 else float('inf')
+                        distance_to_move_log = distance_to_target
+                        frames_to_reach_log = distance_to_move_log / paddle_speed if paddle_speed > 0 else float('inf')
+                        will_reach_log = frames_to_reach_log <= time_to_paddle_log if time_to_paddle_log != float('inf') else False
+                        
+                        print(f"[PADDLE MOVEMENT] movement={movement} distance={distance_to_target:.1f}px "
+                              f"current_x={current_x:.1f} target={target_pos:.1f} | "
+                              f"paddle_speed={paddle_speed} frames_to_reach={frames_to_reach_log:.1f} "
+                              f"time_to_paddle={time_to_paddle_log:.1f} will_reach={will_reach_log}")
                         
                         self._update_loop_tracking(movement, current_x, target_pos)
                         self._update_smoothness_tracking(movement, current_x)
