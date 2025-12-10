@@ -675,9 +675,8 @@ class AIPlayer:
                                     if pref > 0.6:
                                         return test_x
 
-                    # КРИТИЧНО: Если целевая позиция уже установлена, возвращаем её вместо пересчета
-                    if self.separation_zone_tracker.get("target_position_set", False):
-                        return int(self.separation_zone_tracker.get("target_position"))
+                    # КРИТИЧНО: УБРАНО - больше не блокируем пересчет позиции
+                    # Позиция должна ВСЕГДА пересчитываться для точности
                     
                     # КРИТИЧНО: Если мяч в зоне разделения, сохраняем целевую позицию один раз
                     if in_separation_zone and not self.separation_zone_tracker["target_position_set"]:
@@ -2669,7 +2668,7 @@ class AIPlayer:
                             self.separation_zone_tracker["frames_since_target_set"] = 0
                             self.separation_zone_tracker["paddle_reached_target"] = False
                             # Логируем пересчет если позиция изменилась значительно
-                            if old_target is not None and abs(int(optimal_x) - old_target) > 20:
+                            if old_target is not None and abs(int(optimal_x) - old_target) > 10:
                                 import sys
                                 if not getattr(sys, "frozen", False):
                                     print(f"[PADDLE DEBUG] ПРАВИЛО 3: Пересчет позиции! old={old_target}, new={int(optimal_x)}, diff={abs(int(optimal_x) - old_target):.1f}")
