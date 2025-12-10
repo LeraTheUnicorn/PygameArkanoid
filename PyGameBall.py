@@ -2083,6 +2083,60 @@ def main() -> None:
                                     # Логируем начало новой игры
                                     if ai_player.current_game_state:
                                         ai_player.performance_logger.log_game_start(ai_player.current_game_state)
+                            else:
+                                # В ручном режиме показываем экран результатов
+                                sound_enabled, restart_game, exit_game = (
+                                    show_game_results(
+                                        screen,
+                                        font,
+                                        big_font,
+                                        score,
+                                        player_name,
+                                        game_time_seconds,
+                                        highscore_manager,
+                                        settings_manager,
+                                        ball,
+                                        auto_mode,
+                                    )
+                                )
+
+                                # Если игрок хочет выйти из игры
+                                if exit_game:
+                                    # Сохраняем данные обучения перед выходом
+                                    if auto_mode:
+                                        ai_player.save_learning_data()
+                                    pygame.quit()
+                                    return
+
+                                # Обработка перезапуска в зависимости от режима
+                                if restart_game:
+                                    if auto_mode:
+                                        # В авторежиме возвращаемся к вводу имени
+                                        auto_mode_complete = True
+                                        running = False  # Останавливаем текущую игру
+                                        break  # Выход из игрового цикла
+                                    else:
+                                        # В ручном режиме перезапускаем игру - ПОЛНЫЙ СБРОС СОСТОЯНИЯ
+                                        paddle = Paddle()
+                                        ball = Ball()
+                                        ball_speed = settings_manager.get_ball_speed()
+                                        ball.set_speed(ball_speed)
+                                        ball.reset(paddle.rect)
+                                        ball.vel_y = 0
+                                        bricks = build_bricks()
+                                        score = 0
+                                        lives_left = MAX_LIVES
+                                        game_over = False
+                                        game_started = False
+                                        # Пересоздаем AI для новой игры
+                                        ai_player = AIPlayer(
+                                            SCREEN_WIDTH,
+                                            SCREEN_HEIGHT,
+                                            debug_mode=False,
+                                        )
+                                        ai_player.activate()
+                                        # Перезапускаем отсчет времени игры
+                                        game_start_time = time.time()
                         continue  # Пропускаем остальную обработку кадра
 
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
