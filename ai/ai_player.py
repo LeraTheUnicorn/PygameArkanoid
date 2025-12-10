@@ -2427,9 +2427,9 @@ class AIPlayer:
             Адаптивная скорость платформы
         """
         # Базовые параметры
-        base_paddle_speed = 9  # PADDLE_SPEED из игры
-        min_speed = 3
-        max_speed = 30
+        base_paddle_speed = 15  # Увеличено с 9 до 15 для лучшей скорости
+        min_speed = 5
+        max_speed = 50  # Увеличено с 30 до 50 для критических ситуаций
         
         if not self.current_game_state:
             return base_paddle_speed
@@ -2463,21 +2463,21 @@ class AIPlayer:
             # Если времени мало, нужна высокая скорость
             if time_to_meeting <= 20:  # Менее 20 кадров - критическая ситуация
                 required_speed = max(
-                    base_paddle_speed * 1.5,
-                    distance_to_optimal / max(time_to_meeting * 0.6, 1),
+                    base_paddle_speed * 2.5,  # Увеличено с 1.5 до 2.5
+                    distance_to_optimal / max(time_to_meeting * 0.5, 1),  # Увеличена скорость
                 )
             elif time_to_meeting <= 40:  # Менее 40 кадров
                 required_speed = max(
-                    base_paddle_speed * 1.2,
-                    distance_to_optimal / max(time_to_meeting * 0.7, 1),
+                    base_paddle_speed * 2.0,  # Увеличено с 1.2 до 2.0
+                    distance_to_optimal / max(time_to_meeting * 0.6, 1),  # Увеличена скорость
                 )
             elif time_to_meeting <= 80:  # Менее 80 кадров  
                 required_speed = max(
-                    base_paddle_speed * 0.9,
-                    distance_to_optimal / max(time_to_meeting, 1),
+                    base_paddle_speed * 1.5,  # Увеличено с 0.9 до 1.5
+                    distance_to_optimal / max(time_to_meeting * 0.8, 1),
                 )
             else:  # Много времени - можно двигаться медленно
-                required_speed = max(min_speed, base_paddle_speed * 0.6)
+                required_speed = max(min_speed, base_paddle_speed * 1.0)  # Увеличено с 0.6 до 1.0
         else:
             # Мяч не движется к платформе, используем умеренную скорость
             required_speed = base_paddle_speed * 0.8
@@ -2682,10 +2682,53 @@ class AIPlayer:
                                             predicted_x = (screen_width - ball_radius) - (predicted_x - (screen_width - ball_radius))
                                             vel_x = -abs(vel_x)
                                     
-                                    # Ограничиваем границами
+                                    # КРИТИЧНО: Разделяем платформу на 3 зоны и всегда прицеливаемся в центр ближайшей зоны
+                                    # Платформа шириной 120px делится на 3 равные зоны по 40px каждая
+                                    # Левая зона: центр на -40px от центра платформы
+                                    # Центральная зона: центр на 0px (центр платформы)
+                                    # Правая зона: центр на +40px от центра платформы
+                                    
+                                    zone_size = self.paddle_width / 3  # 40px
+                                    
+                                    # Вычисляем смещение точки падения относительно центра платформы
+                                    # Если платформа будет в позиции predicted_x, то центр платформы = predicted_x
+                                    # Но нам нужно выбрать, в какую зону попадает точка падения
+                                    
+                                    # Три центра зон (относительно центра платформы):
+                                    left_zone_offset = -zone_size  # -40px
+                                    center_zone_offset = 0  # 0px
+                                    right_zone_offset = zone_size  # +40px
+                                    
+                                    # Определяем, в какую зону попадает точка падения
+                                    # Если predicted_x - это точка падения, то относительно центра платформы в predicted_x:
+                                    # Левая зона: predicted_x - 40
+                                    # Центральная зона: predicted_x
+                                    # Правая зона: predicted_x + 40
+                                    
+                                    # Выбираем зону, центр которой ближе всего к точке падения
+                                    left_zone_center = predicted_x + left_zone_offset
+                                    center_zone_center = predicted_x + center_zone_offset
+                                    right_zone_center = predicted_x + right_zone_offset
+                                    
+                                    # Находим ближайший центр зоны к точке падения
+                                    distances = [
+                                        abs(predicted_x - left_zone_center),
+                                        abs(predicted_x - center_zone_center),
+                                        abs(predicted_x - right_zone_center)
+                                    ]
+                                    min_distance_idx = distances.index(min(distances))
+                                    
+                                    if min_distance_idx == 0:
+                                        zone_center_x = left_zone_center
+                                    elif min_distance_idx == 1:
+                                        zone_center_x = center_zone_center
+                                    else:
+                                        zone_center_x = right_zone_center
+                                    
+                                    # Ограничиваем границами экрана
                                     min_x = self.paddle_width // 2 + 30
                                     max_x = screen_width - self.paddle_width // 2 - 30
-                                    new_optimal_x = max(min_x, min(max_x, int(predicted_x)))
+                                    new_optimal_x = max(min_x, min(max_x, int(zone_center_x)))
                                     
                                     # КРИТИЧНО: Используем экспоненциальное сглаживание
                                     old_target = self.separation_zone_tracker.get("target_position")

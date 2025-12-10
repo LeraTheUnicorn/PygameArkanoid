@@ -46,7 +46,7 @@ FPS = 60
 # Размеры и скорость платформы
 PADDLE_WIDTH = 120
 PADDLE_HEIGHT = 15
-PADDLE_SPEED = 9
+PADDLE_SPEED = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
 
 # Размеры и скорость мяча
 BALL_SIZE = 16
@@ -1073,7 +1073,7 @@ def main() -> None:
 
         # Ввод имени игрока (ПЕРЕД созданием AI, чтобы не создавать лишние логи)
         # ФЛАГ ДЛЯ АВТОМАТИЧЕСКОГО ЗАПУСКА РЕЖИМА ОБУЧЕНИЯ (для тестирования)
-        AUTO_START_TRAINING_MODE = True  # Установите False для обычного режима выбора
+        AUTO_START_TRAINING_MODE = False  # Установите True только для тестирования
         
         if AUTO_START_TRAINING_MODE:
             # Автоматически запускаем режим обучения (mode 8)
@@ -1340,39 +1340,27 @@ def main() -> None:
 
                 # Движение платформы
                 if auto_mode or training_mode:
-                    # Отладочное сообщение только в первых 3 кадрах
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Начинаем движение платформы...")
-                    
                     # В авторежиме и режиме обучения используем адаптивную скорость платформы
                     if training_mode:
                         # В режиме обучения ИИ управляет скоростью платформы
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Вызываем get_optimal_paddle_speed_multiplier...")
                         paddle_speed_multiplier = (
                             ai_player.get_optimal_paddle_speed_multiplier()
                         )
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] get_optimal_paddle_speed_multiplier завершен, multiplier={paddle_speed_multiplier}")
                         base_speed = PADDLE_SPEED * paddle_speed_multiplier
                     else:
                         # В авторежиме используем стандартную логику
                         base_speed = max(
                             PADDLE_SPEED, ball.get_speed() * 0.8
-                        )  # Минимум 9 или 80% от скорости мяча
+                        )  # Минимум 15 или 80% от скорости мяча
                         base_speed = max(
                             base_speed, PADDLE_SPEED * 1.5
-                        )  # Минимум 13.5 для авторежима
+                        )  # Минимум 22.5 для авторежима
                     
                     # КРИТИЧНО: При малом количестве блоков увеличиваем скорость платформы
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем количество блоков...")
                     try:
                         bricks_remaining = len(bricks) if bricks is not None else 50
                     except (NameError, TypeError):
                         bricks_remaining = 50
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] bricks_remaining={bricks_remaining}, base_speed={base_speed}")
                     if bricks_remaining <= 5:
                         # Увеличиваем скорость в критических ситуациях
                         base_speed = int(base_speed * 1.5)  # Увеличиваем на 50%
@@ -1384,21 +1372,13 @@ def main() -> None:
                             base_speed = int(base_speed * (ball.get_speed() / 20.0))
 
                     # Используем AI систему для автоматического управления
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вызываем move_paddle_towards, paddle.rect.centerx={paddle.rect.centerx}, base_speed={base_speed}")
                     movement = ai_player.move_paddle_towards(
                         paddle.rect.centerx, int(base_speed)
                     )
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] move_paddle_towards завершен, movement={movement}")
                     # Получаем скорректированную скорость от AI (с учетом адаптации)
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вызываем get_adjusted_paddle_speed...")
                     adjusted_speed = ai_player.get_adjusted_paddle_speed(
                         int(base_speed)
                     )
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] get_adjusted_paddle_speed завершен, adjusted_speed={adjusted_speed}")
                     # Применяем движение с правильной скоростью
                     paddle.rect.x += movement * adjusted_speed
                     # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
@@ -1408,8 +1388,6 @@ def main() -> None:
                     paddle.rect.centerx = max(
                         min_center_x, min(max_center_x, paddle.rect.centerx)
                     )
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Платформа перемещена, paddle.rect.centerx={paddle.rect.centerx}")
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
