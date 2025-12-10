@@ -2610,7 +2610,8 @@ class AIPlayer:
             import sys
             # Логируем всегда когда мяч в зоне разделения или близко к платформе
             should_log = in_separation_zone or (ball_y > paddle_y - 100 and ball_vel_y > 0)
-            if should_log and random.random() < 0.1:  # 10% кадров когда мяч близко
+            # КРИТИЧНО: Увеличиваем частоту логирования для диагностики (50% кадров вместо 10%)
+            if should_log and random.random() < 0.5:  # 50% кадров когда мяч близко
                 if not getattr(sys, "frozen", False):
                     ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
                     ball_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
@@ -3251,7 +3252,8 @@ class AIPlayer:
                         # Примечание: проверка will_reach уже выполнена выше, перед проверкой tolerance
                         import sys
                         import random
-                        if random.random() < 0.2:  # 20% кадров для логирования
+                        # КРИТИЧНО: Увеличиваем частоту логирования для диагностики (50% кадров вместо 20%)
+                        if random.random() < 0.5:  # 50% кадров для логирования
                             if not getattr(sys, "frozen", False):
                                 # Пересчитываем для логирования
                                 ball_y_log = self.current_game_state.ball_position.y if self.current_game_state else 0
