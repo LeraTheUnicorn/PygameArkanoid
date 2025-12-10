@@ -2981,21 +2981,48 @@ class AIPlayer:
                         # Это особенно важно, когда мяч очень близко
                         will_reach = (frames_to_reach <= time_to_paddle + 0.5) if time_to_paddle != float('inf') else False
                         
+                        # КРИТИЧНО: Если мяч очень близко (менее 3 кадров), ВСЕГДА пересчитываем цель
+                        # Это критично, потому что траектория мяча может измениться в последний момент
+                        # Даже если платформа "успевает" добраться до старой цели, новая цель может быть более точной
+                        force_recalculate = (time_to_paddle != float('inf') and time_to_paddle < 3)
+                        
                         # КРИТИЧНО: Если платформа НЕ успевает добраться до цели, пересчитываем целевую позицию
                         # ВАЖНО: Делаем это ДО проверки tolerance!
-                        if not will_reach and time_to_paddle != float('inf') and time_to_paddle > 0:
-                            # Платформа не успевает - пересчитываем целевую позицию с учетом текущей позиции
+                        # КРИТИЧНО: Также пересчитываем, если мяч очень близко (менее 3 кадров)
+                        if (not will_reach or force_recalculate) and time_to_paddle != float('inf') and time_to_paddle > 0:
+                            # Платформа не успевает или мяч очень близко - пересчитываем целевую позицию с учетом текущей позиции
                             import sys
                             if not getattr(sys, "frozen", False):
-                                print(f"[TARGET RESET] Платформа не успевает! frames_to_reach={frames_to_reach:.1f} > time_to_paddle={time_to_paddle:.1f}, пересчитываем цель")
+                                if force_recalculate:
+                                    print(f"[TARGET RESET] Мяч очень близко (time_to_paddle={time_to_paddle:.1f} < 3), пересчитываем цель для точности")
+                                else:
+                                    print(f"[TARGET RESET] Платформа не успевает! frames_to_reach={frames_to_reach:.1f} > time_to_paddle={time_to_paddle:.1f}, пересчитываем цель")
                             
                             # КРИТИЧНО: Если мяч очень близко (менее 5 кадров), используем более агрессивный пересчет
                             # Рассчитываем максимальное расстояние, которое платформа может пройти
-                            max_distance = paddle_speed * time_to_paddle
+                            # КРИТИЧНО: Добавляем запас 10% для учета неточностей расчета
+                            max_distance = paddle_speed * time_to_paddle * 1.1
                             
                             # Пересчитываем оптимальную позицию
                             new_optimal = self.get_optimal_paddle_position()
                             if new_optimal is not None:
+                                # КРИТИЧНО: Проверяем, не является ли мяч в EDGE зоне
+                                # Если да, и мяч очень близко, доезжаем до края зоны
+                                screen_width = self.screen_width
+                                ball_radius = 8
+                                min_safe_x = ball_radius + 40
+                                max_safe_x = screen_width - ball_radius - 40
+                                is_edge_zone_now = (new_optimal < min_safe_x or new_optimal > max_safe_x)
+                                
+                                # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров), доезжаем до края зоны
+                                if is_edge_zone_now and time_to_paddle < 3:
+                                    if new_optimal > screen_width / 2:
+                                        # Мяч справа - край платформы касается правой стены
+                                        new_optimal = screen_width - self.paddle_width // 2
+                                    else:
+                                        # Мяч слева - край платформы касается левой стены
+                                        new_optimal = self.paddle_width // 2
+                                
                                 # Если новая цель слишком далеко, ограничиваем её максимальным расстоянием
                                 if abs(new_optimal - current_x) > max_distance:
                                     if new_optimal > current_x:
@@ -3081,12 +3108,16 @@ class AIPlayer:
                             # Мяч очень близко - ВСЕГДА пересчитываем цель для актуального predicted_x
                             new_optimal = self.get_optimal_paddle_position()
                             if new_optimal is not None:
+                                # КРИТИЧНО: Проверяем, является ли новая цель EDGE зоной
+                                screen_width = self.screen_width
+                                ball_radius = 8
+                                min_safe_x = ball_radius + 40
+                                max_safe_x = screen_width - ball_radius - 40
+                                is_edge_zone_new = (new_optimal < min_safe_x or new_optimal > max_safe_x)
+                                
                                 # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров),
                                 # платформа должна доезжать до края зоны (край платформы касается стены)
-                                if is_edge_zone and time_to_paddle < 3:
-                                    # Проверяем, близко ли predicted_x к стене
-                                    screen_width = self.screen_width
-                                    
+                                if is_edge_zone_new and time_to_paddle < 3:
                                     # Получаем predicted_x из новой оптимальной позиции
                                     # Если новая позиция близка к краю экрана, доезжаем до края зоны
                                     if new_optimal > screen_width / 2:
@@ -3107,6 +3138,8 @@ class AIPlayer:
                                 self.separation_zone_tracker["paddle_reached_target"] = False
                                 target_pos = int(new_optimal)
                                 distance_to_target = abs(current_x - target_pos)
+                                # Обновляем is_edge_zone для проверки ниже
+                                is_edge_zone = is_edge_zone_new
                             else:
                                 # Если не удалось пересчитать, используем текущую цель
                                 target_pos = self.separation_zone_tracker.get("target_position")
@@ -3156,9 +3189,15 @@ class AIPlayer:
                                         self.separation_zone_tracker["paddle_reached_target"] = True
                                     return 0
                         elif distance_to_target <= tolerance:
-                            # Устанавливаем флаг, что платформа достигла цели
-                            if not self.separation_zone_tracker.get("paddle_reached_target", False):
-                                self.separation_zone_tracker["paddle_reached_target"] = True
+                            # КРИТИЧНО: Если мяч очень близко (менее 3 кадров), НЕ останавливаемся
+                            # Это критично для предотвращения потери мяча в последний момент
+                            if time_to_paddle != float('inf') and time_to_paddle < 3:
+                                # Мяч очень близко - продолжаем движение, даже если близко к цели
+                                pass  # Пропускаем остановку, продолжаем движение
+                            else:
+                                # Устанавливаем флаг, что платформа достигла цели
+                                if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                    self.separation_zone_tracker["paddle_reached_target"] = True
                                 # КРИТИЧНО: Логируем для диагностики
                                 import sys
                                 import random
