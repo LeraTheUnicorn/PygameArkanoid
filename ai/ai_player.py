@@ -467,15 +467,9 @@ class AIPlayer:
             if separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y <= 0:
                 return int(self.current_game_state.paddle_position.x)
 
-            # КРИТИЧНО: Если целевая позиция уже установлена, пересчитываем её периодически
+            # КРИТИЧНО: УБРАНО - больше не блокируем пересчет позиции
+            # Позиция должна ВСЕГДА пересчитываться для точности
             # Это позволяет платформе адаптироваться к изменению траектории мяча
-            # Пересчет происходит в move_paddle_towards, здесь просто возвращаем текущую позицию
-            # если она установлена (для обратной совместимости)
-            if self.separation_zone_tracker.get("target_position_set", False):
-                target_pos = self.separation_zone_tracker.get("target_position")
-                if target_pos is not None:
-                    # Возвращаем сохраненную позицию, но она будет пересчитана в move_paddle_towards
-                    return int(target_pos)
             
             # КРИТИЧНО: Проверяем, вошел ли мяч в зону разделения
             in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
@@ -2653,16 +2647,16 @@ class AIPlayer:
                     self._log_paddle_movement(current_x, current_x, "target_reset_ball_left_zone", 1.0)
                     # Продолжаем обработку с обычной логикой - НЕ возвращаем 0!
                 else:
-                    # КРИТИЧНО: Пересчитываем позицию периодически для точности
-                    # Пересчитываем каждые 10 кадров или когда мяч близко к платформе (менее 100 пикселей)
+                    # КРИТИЧНО: Пересчитываем позицию КАЖДЫЙ КАДР когда мяч близко к платформе
+                    # Это критично для точного позиционирования и предотвращения потери мяча
                     should_recalculate = False
                     frames_since_set = self.separation_zone_tracker.get("frames_since_target_set", 0)
                     distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
                     
                     # Пересчитываем если:
-                    # 1. Прошло 5+ кадров с момента установки позиции
-                    # 2. Мяч близко к платформе (менее 150 пикселей) - нужна точность
-                    if frames_since_set >= 5 or (distance_to_paddle > 0 and distance_to_paddle < 150):
+                    # 1. Мяч близко к платформе (менее 200 пикселей) - КАЖДЫЙ КАДР для точности
+                    # 2. Или прошло 3+ кадров с момента установки позиции (для дальних мячей)
+                    if (distance_to_paddle > 0 and distance_to_paddle < 200) or frames_since_set >= 3:
                         should_recalculate = True
                     
                     if should_recalculate:
@@ -2692,9 +2686,9 @@ class AIPlayer:
                         distance_to_target = abs(current_x - target_pos)
                         
                         # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели - НЕ двигаемся
-                        # КРИТИЧНО: Уменьшено до 2 пикселей для более точного позиционирования
-                        # Используем гистерезис: если уже достигли цели, увеличиваем до 4 пикселей
-                        tolerance = 4 if self.separation_zone_tracker.get("paddle_reached_target", False) else 2
+                        # КРИТИЧНО: Уменьшено до 1 пикселя для максимальной точности
+                        # Используем гистерезис: если уже достигли цели, увеличиваем до 3 пикселей
+                        tolerance = 3 if self.separation_zone_tracker.get("paddle_reached_target", False) else 1
                         if distance_to_target <= tolerance:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
