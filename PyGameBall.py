@@ -1305,6 +1305,15 @@ def main() -> None:
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
                         print(f"[AI DEBUG] update_game_state завершен")
                     
+                    # КРИТИЧНО: Проверяем нарушение правила фиксации позиции
+                    if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get("game_restart_required", False):
+                        # Нарушение правила - перезапускаем игру
+                        if not getattr(sys, "frozen", False):
+                            print(f"[CRITICAL ERROR] Перезапуск игры из-за нарушения правила фиксации позиции!")
+                        game_over = True
+                        # Сбрасываем флаг
+                        ai_player.separation_zone_tracker["game_restart_required"] = False
+                    
                     # В режиме обучения обновляем статистику и управляем скоростью мяча
                     if training_mode:
                         # Обновляем статистику обучения
@@ -1376,16 +1385,18 @@ def main() -> None:
                         if ball.get_speed() > 20:
                             base_speed = int(base_speed * (ball.get_speed() / 20.0))
 
-                    # КРИТИЧНО: Платформа двигается только когда мяч в зоне разделения и движется вниз
+                    # КРИТИЧНО: Платформа начинает движение когда мяч в зоне разделения
                     # Правила работы:
                     # 1. Мяч улетает (вверх) - платформа стоит на месте
                     # 2. Мяч в зоне кубиков (выше зоны разделения) - платформа стоит на месте
-                    # 3. Мяч падает вниз и вошел в зону разделения - платформа двигается к точке падения
+                    # 3. Мяч падает вниз и вошел в зону разделения - платформа начинает движение к точке падения
+                    ball_falling_down = ball.vel_y > 0  # Мяч движется вниз
                     ball_in_separation_zone = (
                         SEPARATION_ZONE_TOP <= ball.rect.centery <= SEPARATION_ZONE_BOTTOM
                         and ball.vel_y > 0  # Мяч движется вниз
                     )
                     
+                    # Начинаем движение когда мяч в зоне разделения
                     if ball_in_separation_zone:
                         # Используем AI систему для автоматического управления
                         movement = ai_player.move_paddle_towards(
@@ -1395,17 +1406,30 @@ def main() -> None:
                         adjusted_speed = ai_player.get_adjusted_paddle_speed(
                             int(base_speed)
                         )
-                        # Применяем движение с правильной скоростью
-                        paddle.rect.x += movement * adjusted_speed
+                        
+                        # КРИТИЧНО: Используем адаптивную скорость для предотвращения перескакивания через цель
+                        # Получаем целевую позицию от AI
+                        target_pos = ai_player.separation_zone_tracker.get("target_position")
+                        if target_pos is not None:
+                            distance_to_target = abs(paddle.rect.centerx - target_pos)
+                            # Если платформа близко к цели (distance < speed), уменьшаем скорость
+                            # Это предотвращает перескакивание через цель и дергание
+                            if distance_to_target < adjusted_speed:
+                                # Двигаемся только на расстояние до цели, не больше
+                                adjusted_speed = max(1, int(distance_to_target))
+                        
+                        # КРИТИЧНО: Используем centerx для движения, чтобы избежать конфликта с x
+                        # Применяем движение с адаптивной скоростью
+                        new_center_x = paddle.rect.centerx + movement * adjusted_speed
+                        
+                        # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+                        paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+                        min_center_x = paddle_half_width
+                        max_center_x = SCREEN_WIDTH - paddle_half_width
+                        paddle.rect.centerx = max(
+                            min_center_x, min(max_center_x, new_center_x)
+                        )
                     # Если мяч не в зоне разделения - платформа остается на месте (movement = 0)
-                    
-                    # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
-                    paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
-                    min_center_x = paddle_half_width
-                    max_center_x = SCREEN_WIDTH - paddle_half_width
-                    paddle.rect.centerx = max(
-                        min_center_x, min(max_center_x, paddle.rect.centerx)
-                    )
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
@@ -2243,8 +2267,8 @@ def main() -> None:
                             ai_player.empty_bounce_tracker["ceiling_bounces"] = 0
 
                         # Обучаем AI на результате попадания в кубик
-                        if auto_mode:
-                            # destroyed_brick определена выше в этом же блоке (строка 1784)
+                        if auto_mode or training_mode:
+                            # destroyed_brick определена выше в этом же блоке (строка 2237)
                             try:
                                 ai_result = {
                                     "action_type": "brick_hit",
@@ -2257,7 +2281,7 @@ def main() -> None:
                                     "ball_speed": ball.get_speed(),
                                 }
                                 ai_player.learn_from_result(ai_result)
-                            except UnboundLocalError as e:
+                            except Exception as e:
                                 if not getattr(sys, "frozen", False):
                                     print(f"[ERROR] Ошибка при обучении AI: {e}")
                                     import traceback

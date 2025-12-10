@@ -173,6 +173,9 @@ class AIPlayer:
             "paddle_moved_after_set": False,  # Флаг: платформа начала двигаться после установки цели
             "paddle_reached_target": False,  # Флаг: платформа достигла целевой позиции
             "last_movement_frame": 0,  # Номер кадра последнего движения
+            "frames_since_target_set": 0,  # Количество кадров с момента установки цели
+            "saved_ball_vel_x": None,  # Сохраненная скорость vel_x для отслеживания отскоков от стены
+            "game_restart_required": False,  # Флаг: требуется перезапуск игры из-за нарушения правила
         }
 
     def activate(self) -> None:
@@ -422,265 +425,436 @@ class AIPlayer:
 
     def get_optimal_paddle_position(self) -> int:
         """
-        Вычисляет оптимальную позицию платформы - точку падения мяча.
-        Содержит основную стратегическую логику AI.
+        Получает оптимальную позицию центра платформы
+        с прицельным отбиванием по кубикам.
         """
         if not self.current_game_state or not self.is_active:
+            # Резервная позиция — центр экрана
             return self.screen_width // 2
 
         try:
-            # 1. Базовые параметры
-            ball_x = self.current_game_state.ball_position.x
             ball_y = self.current_game_state.ball_position.y
-            vel_x = self.current_game_state.ball_velocity.x
-            vel_y = self.current_game_state.ball_velocity.y
-            paddle_y = self.current_game_state.paddle_position.y
-            
-            # Определяем, находится ли мяч в зоне разделения
-            separation_start = self.separation_zone_tracker.get("separation_zone_start", 226)
-            in_separation_zone = ball_y > separation_start and vel_y > 0
-            
-            bricks_count = len(self.current_game_state.remaining_bricks)
-            ball_speed = math.sqrt(vel_x**2 + vel_y**2)
+            ball_vel_y = (
+                self.current_game_state.ball_velocity.y
+                if hasattr(self.current_game_state, "ball_velocity")
+                else 0
+            )
 
-            # 2. Предсказываем базовую точку падения
-            landing_x = self._calculate_ball_landing_point(ball_x, ball_y, vel_x, vel_y, paddle_y)
+            # Зоны по Y
+            bricks_zone_end = 210  # Верхняя зона с кубиками
+            ball_diameter = 16
+            separation_zone_start = bricks_zone_end + ball_diameter  # ~226
+            paddle_zone_start = self.screen_height - 60  # ~540
 
-            # 3. Принудительное прицеливание по координатам (если обычное не сработало или мало блоков)
-            if self.targeting_system.get("brick_coordinates"):
-                 # При отбитии в пустоту СБРАСЫВАЕМ целевую позицию
-                if self.empty_bounce_tracker.get("consecutive_empty_bounces", 0) > 0:
+            # Обновляем отслеживание зоны разделения
+            self.separation_zone_tracker["separation_zone_start"] = separation_zone_start
+            self.separation_zone_tracker["paddle_zone_start"] = paddle_zone_start
+
+            # КРИТИЧНО: Если мяч в зоне кубиков - платформа НЕ должна двигаться
+            if ball_y < separation_zone_start:
+                # Мяч в зоне кубиков - платформа на месте
+                # КРИТИЧНО: НЕ сбрасываем отслеживание зоны разделения и целевую позицию,
+                # так как мяч может временно попасть в зону кубиков (при отскоке),
+                # но потом вернуться в зону разделения
+                # Сбрасываем только если мяч действительно ушел далеко вверх (выше 50)
+                # и НЕ установлена целевая позиция (чтобы не сбрасывать уже установленную позицию)
+                if ball_y < 50 and not self.separation_zone_tracker.get("target_position_set", False):
+                    # Мяч очень высоко и целевая позиция не установлена - сбрасываем отслеживание
+                    self.separation_zone_tracker["ball_entered_separation_zone"] = False
                     self.separation_zone_tracker["target_position_set"] = False
                     self.separation_zone_tracker["target_position"] = None
-                
-                # Пытаемся найти позицию через координаты (Force method)
-                optimal_position = self._force_target_brick_from_coordinates(landing_x)
-                
-                if optimal_position is not None:
-                    # Логика зоны разделения: фиксируем цель один раз
-                    if in_separation_zone:
-                         # Если цель уже зафиксирована и мяч все еще в зоне, не меняем её дергано
-                        if not self.separation_zone_tracker.get("target_position_set"):
-                            self.separation_zone_tracker["target_position"] = int(optimal_position)
-                            self.separation_zone_tracker["target_position_set"] = True
-                        elif self.separation_zone_tracker.get("target_position") is not None:
-                             return self.separation_zone_tracker["target_position"]
+                # ВСЕГДА возвращаем текущую позицию, не двигаемся
+                return int(self.current_game_state.paddle_position.x)
+            
+            # Если мяч в разделительной зоне, но движется вверх — не дёргаем платформу
+            if separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y <= 0:
+                return int(self.current_game_state.paddle_position.x)
 
+            # КРИТИЧНО: УБРАНО - больше не блокируем пересчет позиции
+            # Позиция должна ВСЕГДА пересчитываться для точности
+            # Это позволяет платформе адаптироваться к изменению траектории мяча
+            
+            # КРИТИЧНО: Проверяем, вошел ли мяч в зону разделения
+            in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
+            
+            # КРИТИЧНО: Если позиция уже зафиксирована в зоне разделения - возвращаем её БЕЗ пересчета
+            # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз при входе мяча в зону разделения
+            # и не меняется до следующего отскока от стены
+            if in_separation_zone and self.separation_zone_tracker.get("target_position_set"):
+                fixed_position = self.separation_zone_tracker.get("target_position")
+                if fixed_position is not None:
+                    # КРИТИЧНО: Логируем возврат зафиксированной позиции для отслеживания
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        import random
+                        if random.random() < 0.1:  # Логируем 10% кадров
+                            print(f"[POSITION RETURN] ФЛАГ: Возвращаем зафиксированную позицию БЕЗ пересчета! "
+                                  f"target_position={fixed_position:.1f}, ball_y={ball_y:.1f}")
+                    
+                    # КРИТИЧНО: Проверяем, не изменилась ли позиция (нарушение правила)
+                    # Если позиция изменилась без отскока от стены - это нарушение
+                    saved_vel_x = self.separation_zone_tracker.get("saved_ball_vel_x")
+                    current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
+                    
+                    # Если vel_x не изменился (нет отскока от стены), но позиция изменилась - нарушение
+                    if saved_vel_x is not None and abs(current_vel_x - saved_vel_x) <= 0.1:
+                        # Нет отскока от стены - позиция НЕ должна меняться
+                        # Возвращаем зафиксированную позицию БЕЗ изменений
+                        return int(fixed_position)
+                    else:
+                        # vel_x изменился - это отскок от стены, позиция может измениться
+                        # Но мы все равно возвращаем зафиксированную позицию до следующего пересчета
+                        return int(fixed_position)
+            
+            # Если мяч только что вошел в зону разделения, определяем целевую позицию ОДИН РАЗ
+            if in_separation_zone and not self.separation_zone_tracker["ball_entered_separation_zone"]:
+                self.separation_zone_tracker["ball_entered_separation_zone"] = True
+                # Определяем целевую позицию на основе траектории и оставшихся кубиков
+                # Это будет сделано ниже в коде
+
+            # Мяч ниже кубиков и движется вниз/в разделительной зоне — считаем прицельную позицию
+            if ball_y < paddle_zone_start:
+                landing_x = self._predict_exact_landing_position()
+                bricks_count = (
+                    len(self.current_game_state.remaining_bricks)
+                    if self.current_game_state
+                    else 0
+                )
+                ball_speed = (
+                    self.current_game_state.ball_speed if self.current_game_state else 5
+                )
+
+                # Получаем текущую ситуацию для learning_system
+                current_situation = {
+                    "bricks_remaining": bricks_count,
+                    "ball_speed": ball_speed,
+                    "time_pressure": self._is_time_pressure(),
+                }
+
+                # Применяем пользовательские правила из промпта "разрушение и контроль"
+                user_rules = self.learning_system.apply_user_prompt_rules(
+                    current_situation
+                )
+
+                # Получаем рекомендации по стратегии
+                strategy_weights = self.learning_system.get_strategy_recommendation(
+                    current_situation
+                )
+
+                # КРИТИЧНО: Для малого количества блоков (<=10) ВСЕГДА используем точное прицеливание
+                # Учитываем пользовательские правила из промпта "разрушение и контроль"
+                precision_priority = (
+                    user_rules.get("precision_priority", False) or bricks_count <= 10
+                )
+                
+                # Применяем правила из промпта: если указан приоритет точности, используем его
+                if user_rules.get("destruction_priority", False):
+                    precision_priority = True  # Приоритет разрушения всех блоков
+                
+                # КРИТИЧНО: Если было отбитие в пустоту, принудительно используем точное прицеливание
+                # Порог уменьшен до 1 - после первого отбития в пустоту сразу меняем стратегию
+                if self.empty_bounce_tracker["consecutive_empty_bounces"] >= self.empty_bounce_tracker["max_empty_bounces"]:
+                    precision_priority = True
+                    # Используем координаты кубиков напрямую из brick_coordinates
+                    if self.targeting_system.get("brick_coordinates"):
+                        # Принудительно находим позицию для прицеливания в ближайший кубик
+                        optimal_position = self._force_target_brick_from_coordinates(landing_x)
+                        if optimal_position is not None:
+                            # КРИТИЧНО: При отбитии в пустоту СБРАСЫВАЕМ целевую позицию и устанавливаем новую
+                            # Это позволяет изменить траекторию мяча и избежать зацикливания
+                            self.separation_zone_tracker["target_position_set"] = False
+                            self.separation_zone_tracker["target_position"] = None
+                            # Устанавливаем новую целевую позицию для изменения траектории
+                            if in_separation_zone:
+                                self.separation_zone_tracker["target_position"] = int(optimal_position)
+                                self.separation_zone_tracker["target_position_set"] = True
+                            self._log_paddle_movement(
+                                self.current_game_state.paddle_position.x,
+                                int(optimal_position),
+                                f"ПРИНУДИТЕЛЬНОЕ прицеливание после {self.empty_bounce_tracker['consecutive_empty_bounces']} отбитий в пустоту. Координаты кубиков: {len(self.targeting_system.get('brick_coordinates', []))}",
+                                1.0
+                            )
+                            return int(optimal_position)
+
+                if precision_priority:
+                    # КРИТИЧНО: Используем координаты кубиков из brick_coordinates для точного прицеливания
+                    optimal_position = self._calculate_precise_position_for_few_bricks(
+                        landing_x
+                    )
+                    # Если позиция не найдена, но есть координаты кубиков - используем их напрямую
+                    if optimal_position is None and self.targeting_system.get("brick_coordinates"):
+                        optimal_position = self._force_target_brick_from_coordinates(landing_x)
+                    
+                    if optimal_position is not None:
+                        # Оцениваем вероятность успеха для этой позиции
+                        action_plan = {
+                            "ball_speed": ball_speed,
+                            "movement_distance": abs(
+                                optimal_position
+                                - self.current_game_state.paddle_position.x
+                            ),
+                            "confidence": 0.8,
+                        }
+                        success_prob = self.learning_system.predict_success_probability(
+                            action_plan
+                        )
+                        # КРИТИЧНО: Для малого количества блоков (<=10) ВСЕГДА используем позицию,
+                        # даже если вероятность невысокая, чтобы не отбивать в пустоту
+                        if success_prob > 0.2 or bricks_count <= 10:  # Очень низкий порог для малого количества
+                            # КРИТИЧНО: Если целевая позиция уже установлена, возвращаем её вместо пересчета
+                            if self.separation_zone_tracker.get("target_position_set", False):
+                                return int(self.separation_zone_tracker.get("target_position"))
+                            
+                            # КРИТИЧНО: Если мяч в зоне разделения, сохраняем целевую позицию один раз
+                            if in_separation_zone:
+                                if self.separation_zone_tracker.get("target_position_set", False):
+                                    # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
+                                    old_pos = self.separation_zone_tracker.get("target_position")
+                                    import sys
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (few_bricks)! "
+                                              f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
+                                              f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
+                                    self.separation_zone_tracker["game_restart_required"] = True
+                                else:
+                                    self.separation_zone_tracker["target_position"] = int(optimal_position)
+                                    self.separation_zone_tracker["target_position_set"] = True
+                                    import sys
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (few_bricks)! "
+                                              f"target_position={int(optimal_position):.1f}")
+                            
+                            # Логируем передвижение платформы (используем лог из промпта)
+                            if user_rules.get("use_movement_log", True):  # По умолчанию включено
+                                brick_coords = [f"({b.get('x', 0):.0f},{b.get('y', 0):.0f})" for b in self.targeting_system.get('brick_coordinates', [])]
+                                self._log_paddle_movement(
+                                    self.current_game_state.paddle_position.x,
+                                    int(optimal_position),
+                                    f"Точное прицеливание в {bricks_count} блоков. Координаты: {', '.join(brick_coords[:5])}",
+                                    0.9
+                                )
+                            return int(optimal_position)
+                
+                # На поздних этапах используем стратегию максимизации разрушений
+                if bricks_count <= 15:
+                    optimal_position = self._calculate_position_for_max_destruction(
+                        landing_x
+                    )
+                    if optimal_position is not None:
+                        # Оцениваем вероятность успеха
+                        action_plan = {
+                            "ball_speed": ball_speed,
+                            "movement_distance": abs(
+                                optimal_position
+                                - self.current_game_state.paddle_position.x
+                            ),
+                            "confidence": 0.7,
+                        }
+                        success_prob = self.learning_system.predict_success_probability(
+                            action_plan
+                        )
+                        if success_prob > 0.5:
+                            # КРИТИЧНО: Если целевая позиция уже установлена, возвращаем её вместо пересчета
+                            if self.separation_zone_tracker.get("target_position_set", False):
+                                return int(self.separation_zone_tracker.get("target_position"))
+                        return int(optimal_position)
+                
+                target_brick = self._find_best_target_brick()
+
+                if target_brick:
+                    # Оптимальное смещение по платформе
+                    optimal_offset = self._calculate_optimal_offset(
+                        landing_x, target_brick
+                    )
+
+                    self.targeting_system["target_brick"] = target_brick
+                    self.targeting_system["optimal_offset"] = optimal_offset
+
+                    paddle_half_width = self.paddle_width / 2
+                    optimal_position = landing_x - (optimal_offset * paddle_half_width)
+
+                    # КРИТИЧНО: Границы по центру платформы с безопасным отступом от краев
+                    # Минимум 30 пикселей от края экрана, чтобы избежать боковых ударов
+                    safe_margin = 30  # Безопасный отступ от края
+                    min_position = paddle_half_width + safe_margin
+                    max_position = self.screen_width - paddle_half_width - safe_margin
+                    
+                    # Если рассчитанная позиция слишком близко к краю, смещаем к центру
+                    if optimal_position < min_position:
+                        # Слишком близко к левому краю - смещаем вправо
+                        optimal_position = min_position
+                    elif optimal_position > max_position:
+                        # Слишком близко к правому краю - смещаем влево
+                        optimal_position = max_position
+                    
+                    # Дополнительная проверка: если позиция все еще слишком близко к краю
+                    # (менее 20 пикселей от края платформы), смещаем еще больше к центру
+                    paddle_left_edge = optimal_position - paddle_half_width
+                    paddle_right_edge = optimal_position + paddle_half_width
+                    
+                    if paddle_left_edge < safe_margin:
+                        # Платформа слишком близко к левому краю
+                        optimal_position = safe_margin + paddle_half_width
+                    elif paddle_right_edge > self.screen_width - safe_margin:
+                        # Платформа слишком близко к правому краю
+                        optimal_position = self.screen_width - safe_margin - paddle_half_width
+
+                    # Учитываем предпочтения позиций из learning_system
+                    position_preference = (
+                        self.learning_system.get_optimal_position_preference(
+                            int(optimal_position)
+                        )
+                    )
+                    # Если предпочтительность низкая, немного корректируем позицию
+                    if position_preference < 0.4:
+                        # КРИТИЧНО: Если целевая позиция уже установлена, не ищем альтернативную позицию
+                        if self.separation_zone_tracker.get("target_position_set", False):
+                            pass  # Пропускаем поиск альтернативной позиции
+                        else:
+                            # Ищем ближайшую позицию с высокой предпочтительностью
+                            for offset in range(-40, 41, 10):
+                                test_x = int(optimal_position) + offset
+                                if min_position <= test_x <= max_position:
+                                    pref = self.learning_system.get_optimal_position_preference(
+                                        test_x
+                                    )
+                                    if pref > 0.6:
+                                        return test_x
+
+                    # КРИТИЧНО: УБРАНО - больше не блокируем пересчет позиции
+                    # Позиция должна ВСЕГДА пересчитываться для точности
+                    
+                    # КРИТИЧНО: Если мяч в зоне разделения, сохраняем целевую позицию один раз
+                    if in_separation_zone and not self.separation_zone_tracker["target_position_set"]:
+                        self.separation_zone_tracker["target_position"] = int(optimal_position)
+                        self.separation_zone_tracker["target_position_set"] = True
+                    
+                    # Логируем передвижение (всегда для анализа)
                     self._log_paddle_movement(
                         self.current_game_state.paddle_position.x,
                         int(optimal_position),
-                        f"Targeting from coords (bricks: {bricks_count})",
-                        1.0
+                        f"Прицеливание в целевой блок (осталось {bricks_count} блоков)",
+                        0.8
                     )
                     return int(optimal_position)
-
-            # 4. Точное прицеливание для малого количества блоков (<=10)
-            if bricks_count <= 10:
-                precise_pos = self._calculate_precise_position_for_few_bricks(landing_x)
-                if precise_pos is not None:
+                else:
+                    # КРИТИЧНО: Если нет явной цели, но есть координаты кубиков - используем их
+                    if bricks_count <= 10 and self.targeting_system.get("brick_coordinates"):
+                        # КРИТИЧНО: Если целевая позиция уже установлена, возвращаем её вместо пересчета
+                        if self.separation_zone_tracker.get("target_position_set", False):
+                            return int(self.separation_zone_tracker.get("target_position"))
+                        
+                        optimal_position = self._force_target_brick_from_coordinates(landing_x)
+                        if optimal_position is not None:
+                            # КРИТИЧНО: Обеспечиваем безопасную позицию (не слишком близко к краям)
+                            safe_margin = 30  # Безопасный отступ от края
+                            paddle_half_width = self.paddle_width / 2
+                            min_position = paddle_half_width + safe_margin
+                            max_position = self.screen_width - paddle_half_width - safe_margin
+                            optimal_position = max(min_position, min(max_position, optimal_position))
+                            
+                            # КРИТИЧНО: Если мяч в зоне разделения, сохраняем целевую позицию один раз
+                            if in_separation_zone:
+                                if self.separation_zone_tracker.get("target_position_set", False):
+                                    # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
+                                    old_pos = self.separation_zone_tracker.get("target_position")
+                                    import sys
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (brick_coords)! "
+                                              f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
+                                              f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
+                                    self.separation_zone_tracker["game_restart_required"] = True
+                                else:
+                                    self.separation_zone_tracker["target_position"] = int(optimal_position)
+                                    self.separation_zone_tracker["target_position_set"] = True
+                                    import sys
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (brick_coords)! "
+                                              f"target_position={int(optimal_position):.1f}")
+                            
+                            # Логируем передвижение (всегда для анализа)
+                            self._log_paddle_movement(
+                                self.current_game_state.paddle_position.x,
+                                int(optimal_position),
+                                f"Прицеливание по координатам (осталось {bricks_count} блоков)",
+                                0.7
+                            )
+                            return int(optimal_position)
+                    
+                    # Нет явной цели — просто ловим мяч
+                    # КРИТИЧНО: Если позиция уже зафиксирована - возвращаем её
+                    if in_separation_zone and self.separation_zone_tracker.get("target_position_set"):
+                        fixed_position = self.separation_zone_tracker.get("target_position")
+                        if fixed_position is not None:
+                            return int(fixed_position)
+                    
+                    # КРИТИЧНО: Обеспечиваем безопасную позицию (не слишком близко к краям)
+                    safe_margin = 30  # Безопасный отступ от края
+                    paddle_half_width = self.paddle_width / 2
+                    min_position = paddle_half_width + safe_margin
+                    max_position = self.screen_width - paddle_half_width - safe_margin
+                    base_position = max(min_position, min(max_position, int(landing_x)))
+                    
+                    # КРИТИЧНО: Фиксируем позицию в зоне разделения
+                    if in_separation_zone:
+                        if self.separation_zone_tracker.get("target_position_set", False):
+                            # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
+                            old_pos = self.separation_zone_tracker.get("target_position")
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (простое движение)! "
+                                      f"Старая позиция={old_pos:.1f}, Новая позиция={base_position:.1f}, "
+                                      f"Разница={abs(old_pos - base_position):.1f}px")
+                            self.separation_zone_tracker["game_restart_required"] = True
+                        else:
+                            self.separation_zone_tracker["target_position"] = base_position
+                            self.separation_zone_tracker["target_position_set"] = True
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (простое движение)! "
+                                      f"target_position={base_position:.1f}")
+                    
+                    # Логируем даже простое движение для полного анализа
                     self._log_paddle_movement(
-                        self.current_game_state.paddle_position.x, 
-                        int(precise_pos), 
-                        "Precise endgame targeting", 
-                        0.9
+                        self.current_game_state.paddle_position.x,
+                        base_position,
+                        f"Простое движение к мячу (осталось {bricks_count} блоков)",
+                        0.5
                     )
-                    return int(precise_pos)
-
-            # 5. Максимизация разрушений (<= 15 блоков)
-            if bricks_count <= 15:
-                max_destr_pos = self._calculate_position_for_max_destruction(landing_x)
-                if max_destr_pos is not None:
-                    # Проверяем вероятность успеха через LearningSystem
-                    action_plan = {
-                        "ball_speed": ball_speed,
-                        "movement_distance": abs(max_destr_pos - self.current_game_state.paddle_position.x),
-                        "confidence": 0.7
-                    }
-                    if self.learning_system.predict_success_probability(action_plan) > 0.5:
-                         return int(max_destr_pos)
-
-            # 6. Стандартное прицеливание (Target Brick)
-            target_brick = self._find_best_target_brick()
-            if target_brick:
-                optimal_offset = self._calculate_optimal_offset(landing_x, target_brick)
-                self.targeting_system["target_brick"] = target_brick
-                self.targeting_system["optimal_offset"] = optimal_offset
-                
-                paddle_half_width = self.paddle_width / 2
-                optimal_position = landing_x - (optimal_offset * paddle_half_width)
-                
-                # Безопасные границы
-                safe_margin = 30
-                min_pos = paddle_half_width + safe_margin
-                max_pos = self.screen_width - paddle_half_width - safe_margin
-                
-                # Корректировка, если слишком близко к краю
-                if optimal_position < min_pos: optimal_position = min_pos
-                elif optimal_position > max_pos: optimal_position = max_pos
-                
-                self._log_paddle_movement(
-                     self.current_game_state.paddle_position.x,
-                     int(optimal_position),
-                     "Standard target brick strategy",
-                     0.8
-                )
-                return int(optimal_position)
-
-            # 7. Fallback: Просто ловим мяч (если нет целей)
-            # Если мяч летит вверх (y < 50), учитываем отскок от потолка
-            if ball_y < 50:
-                 return self._handle_ceiling_bounce_positioning()
-            
-            return int(landing_x)
+                    # Учитываем предпочтения позиций
+                    position_preference = (
+                        self.learning_system.get_optimal_position_preference(
+                            base_position
+                        )
+                    )
+                    if position_preference < 0.4:
+                        # Ищем ближайшую позицию с высокой предпочтительностью
+                        for offset in range(-40, 41, 10):
+                            test_x = base_position + offset
+                            # КРИТИЧНО: Учитываем безопасные границы при поиске альтернативной позиции
+                            if min_position <= test_x <= max_position:
+                                pref = self.learning_system.get_optimal_position_preference(
+                                    test_x
+                                )
+                                if pref > 0.6:
+                                    return test_x
+                    return base_position
+            else:
+                # Мяч движется вверх — обрабатываем возможный отскок от потолка
+                if ball_y < 50:
+                    return self._handle_ceiling_bounce_positioning()
+                # Иначе просто сопровождаем мяч
+                return int(self._track_ball_position())
 
         except Exception as e:
-            print(f"Error in get_optimal_paddle_position: {e}")
-            # Аварийный режим - просто центр
-            return self.screen_width // 2
-
-    def _predict_exact_landing_position(self) -> float:
-        """
-        Предсказывает точную точку падения мяча на платформу.
-        Очищенная версия: выполняет ТОЛЬКО математический расчет.
-        """
-        if not self.current_game_state:
-            return self.screen_width // 2
-            
-        ball_x = self.current_game_state.ball_position.x
-        ball_y = self.current_game_state.ball_position.y
-        vel_x = self.current_game_state.ball_velocity.x
-        vel_y = self.current_game_state.ball_velocity.y
-        paddle_y = self.current_game_state.paddle_position.y
-
-        return self._calculate_ball_landing_point(ball_x, ball_y, vel_x, vel_y, paddle_y)
+            print(f"Ошибка при расчете оптимальной позиции: {e}")
+            return int(self.current_game_state.paddle_position.x)
 
     # ==========================
     # Выбор целевого кирпича
     # ==========================
 
     def _find_best_target_brick(self) -> Optional[Any]:
-        """
-        Находит лучший кубик для прицеливания с учётом видимости, позиции платформы и траектории.
-
-        Приоритеты:
-        1. На поздних этапах (<= 15 блоков) - максимизация разрушений в следующем цикле.
-        2. Кубики, видимые для текущей траектории.
-        3. Кубики в нижних рядах (ближе к платформе).
-        4. Кубики ближе к центру экрана (стабильнее).
-        5. Кубики с хорошей историей попаданий.
-        """
-        if not self.current_game_state or not self.current_game_state.remaining_bricks:
-            return None
-
-        bricks_count = len(self.current_game_state.remaining_bricks)
-        
-        # На поздних этапах используем стратегию максимизации разрушений
-        if bricks_count <= 15:
-            return self._find_optimal_angle_for_max_destruction()
-
-        visible_targets = self.targeting_system["visible_targets"]
-        paddle_y = self.current_game_state.paddle_position.y
-
-        # 1. Сначала рассматриваем только видимые цели
-        if visible_targets:
-            best_visible_brick = None
-            best_visible_score = -float("inf")
-            
-            # Получаем историю последних выбранных целей для проверки симметрии
-            recent_targets = self.targeting_system.get("recent_target_positions", [])
-            screen_center = self.screen_width // 2
-
-            for target in visible_targets:
-                brick = target["brick"]
-                brick_x = getattr(brick, "x", 0)
-                brick_y = getattr(brick, "y", 0)
-                brick_width = getattr(brick, "width", 60)
-                brick_center_x = brick_x + brick_width / 2
-
-                score = 1000.0  # базовый бонус за видимость
-
-                # Бонус за близость к платформе
-                distance_to_paddle = paddle_y - brick_y
-                if distance_to_paddle > 0:
-                    score += (1.0 / distance_to_paddle) * 500.0
-
-                # Штраф за удалённость от центра
-                center_distance = abs(brick_center_x - screen_center)
-                score -= center_distance * 0.3
-
-                if score > best_visible_score:
-                    best_visible_score = score
-                    best_visible_brick = brick
-
-            if best_visible_brick:
-                return best_visible_brick
-
-        # 2. Если видимых целей нет, выбираем ближайший кубик к платформе
-        closest_brick = None
-        closest_distance = float("inf")
-
-        for brick in self.current_game_state.remaining_bricks:
-            brick_x = getattr(brick, "x", 0)
-            brick_y = getattr(brick, "y", 0)
-            brick_width = getattr(brick, "width", 60)
-            brick_center_x = brick_x + brick_width / 2
-
-            distance = abs(brick_center_x - self.current_game_state.paddle_position.x)
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_brick = brick
-
-        return closest_brick
-
-    def _calculate_optimal_offset(self, landing_x: float, target_brick: Any) -> float:
-        """
-        Вычисляет оптимальное смещение платформы для попадания в целевой кубик.
-        
-        Args:
-            landing_x: Точка падения мяча на платформу
-            target_brick: Целевой кубик
-            
-        Returns:
-            Смещение от центра платформы (-1.0 до 1.0)
-        """
-        if not target_brick:
-            return 0.0
-        
-        brick_x = getattr(target_brick, "x", 0)
-        brick_width = getattr(target_brick, "width", 60)
-        brick_center_x = brick_x + brick_width / 2
-        
-        # Вычисляем смещение для попадания в центр кубика
-        paddle_half_width = self.paddle_width / 2
-        offset = (brick_center_x - landing_x) / paddle_half_width
-        
-        # Ограничиваем диапазоном [-1, 1]
-        return max(-1.0, min(1.0, offset))
-
-    # ==========================
-    # Выбор целевого кирпича
-    # ==========================
-
-    def _find_optimal_angle_for_max_destruction(self) -> Optional[Any]:
-        """Находит оптимальный угол для максимизации разрушений."""
-        if not self.current_game_state or not self.current_game_state.remaining_bricks:
-            return None
-        
-        # Простая логика: возвращаем первый кубик
-        return self.current_game_state.remaining_bricks[0] if self.current_game_state.remaining_bricks else None
-
-    def _predict_exact_landing_position(self) -> float:
-        """Предсказывает точную точку падения мяча на платформу."""
-        if not self.current_game_state:
-            return self.screen_width // 2
-        
-        ball_x = self.current_game_state.ball_position.x
-        ball_y = self.current_game_state.ball_position.y
-        vel_x = self.current_game_state.ball_velocity.x
-        vel_y = self.current_game_state.ball_velocity.y
-        paddle_y = self.current_game_state.paddle_position.y
-        
-        return self._calculate_ball_landing_point(ball_x, ball_y, vel_x, vel_y, paddle_y)
         """
         Находит лучший кубик для прицеливания с учётом видимости, позиции платформы и траектории.
 
@@ -2234,30 +2408,79 @@ class AIPlayer:
     # ==========================
 
     def _predict_exact_landing_position(self) -> float:
-        """Точное предсказание X-координаты, где мяч встретится с платформой."""
+        """
+        Точное предсказание X-координаты, где мяч встретится с платформой.
+        ИСПРАВЛЕННАЯ ВЕРСИЯ с правильным расчетом отскоков от стен.
+        """
         ball_x = self.current_game_state.ball_position.x
         ball_y = self.current_game_state.ball_position.y
         vel_x = self.current_game_state.ball_velocity.x
         vel_y = self.current_game_state.ball_velocity.y
         paddle_y = self.current_game_state.paddle_position.y
 
-        # Время до платформы
-        time_to_paddle = (paddle_y - ball_y) / vel_y if vel_y != 0 else 0
+        if vel_y <= 0:
+            return ball_x
+
+        ball_radius = 8
+        paddle_height = 15
+        screen_width = self.screen_width
+        
+        # КРИТИЧНО: paddle_y - это centery платформы, нужно вычислить top
+        paddle_top = paddle_y - paddle_height / 2
+        
+        # Расстояние от центра мяча до верха платформы
+        distance_y = (paddle_top - ball_radius) - ball_y
+        
+        if distance_y <= 0:
+            return ball_x
+
+        # Время до платформы (в кадрах)
+        time_to_paddle = distance_y / vel_y
         if time_to_paddle <= 0:
             return ball_x
 
-        predicted_x = ball_x + vel_x * time_to_paddle
-        screen_width = self.screen_width
-        ball_radius = 8
+        # КРИТИЧНО: Правильная симуляция движения с учетом отскоков от стен
+        # Используем ту же логику, что и в Ball.update()
+        current_x = ball_x
+        current_vel_x = vel_x
+        remaining_time = time_to_paddle
+        min_center_x = ball_radius
+        max_center_x = screen_width - ball_radius
+        
+        while remaining_time > 0 and abs(current_vel_x) > 0.001:
+            # Двигаем мяч
+            new_x = current_x + current_vel_x * remaining_time
+            
+            # Проверяем столкновение со стенами (как в Ball.update())
+            if new_x < min_center_x:
+                # Отскок от левой стены
+                time_to_wall = (min_center_x - current_x) / current_vel_x if current_vel_x < 0 else 0
+                if time_to_wall > 0 and time_to_wall < remaining_time:
+                    current_x = min_center_x
+                    remaining_time -= time_to_wall
+                    current_vel_x = -current_vel_x
+                else:
+                    current_x = new_x
+                    break
+            elif new_x > max_center_x:
+                # Отскок от правой стены
+                time_to_wall = (max_center_x - current_x) / current_vel_x if current_vel_x > 0 else 0
+                if time_to_wall > 0 and time_to_wall < remaining_time:
+                    current_x = max_center_x
+                    remaining_time -= time_to_wall
+                    current_vel_x = -current_vel_x
+                else:
+                    current_x = new_x
+                    break
+            else:
+                # Нет отскока
+                current_x = new_x
+                break
 
-        # Моделируем отскоки от вертикальных стен
-        while predicted_x < ball_radius or predicted_x > screen_width - ball_radius:
-            if predicted_x < ball_radius:
-                predicted_x = 2 * ball_radius - predicted_x
-            elif predicted_x > screen_width - ball_radius:
-                predicted_x = 2 * (screen_width - ball_radius) - predicted_x
-
-        return predicted_x
+        # Ограничиваем границами для платформы
+        min_x = self.paddle_width // 2
+        max_x = screen_width - self.paddle_width // 2
+        return max(min_x, min(max_x, current_x))
 
     def _handle_ceiling_bounce_positioning(self) -> int:
         """
@@ -2434,248 +2657,1141 @@ class AIPlayer:
 
     def move_paddle_towards(self, current_x: int, paddle_speed: int) -> int:
         """
-        Простое движение платформы к точке падения мяча.
-        
+        Двигает платформу к оптимальной позиции с предотвращением зацикливания.
+        ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ МЕТОД с флагами и логированием.
+
         Args:
             current_x: Текущая X-координата платформы.
-            paddle_speed: Базовая скорость движения платформы (не используется).
-            
+            paddle_speed: Базовая скорость движения платформы.
+
         Returns:
             Смещение платформы (-1, 0, 1).
         """
         if not self.current_game_state or not self.is_active:
-            return 0
-        
+            # КРИТИЧНО: Логируем, почему платформа не двигается
+            import sys
+            if not getattr(sys, "frozen", False):
+                print(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
+            return self._fallback_movement(current_x)
+
         try:
             # Получаем состояние мяча
-            ball_x = self.current_game_state.ball_position.x
             ball_y = self.current_game_state.ball_position.y
-            vel_x = self.current_game_state.ball_velocity.x
-            vel_y = self.current_game_state.ball_velocity.y
-            paddle_y = self.current_game_state.paddle_position.y
+            ball_vel_y = (
+                self.current_game_state.ball_velocity.y
+                if hasattr(self.current_game_state, "ball_velocity")
+                else 0
+            )
+            separation_zone_start = self.separation_zone_tracker.get("separation_zone_start", 226)
+            paddle_zone_start = self.separation_zone_tracker.get("paddle_zone_start", 540)
             
-            # Если мяч потерян (ниже платформы) - не двигаемся
-            if ball_y > paddle_y:
-                return 0
+            # КРИТИЧНО: Логируем состояние мяча для диагностики (только периодически, чтобы не засорять логи)
+            import random
+            import sys
+            if random.random() < 0.01:  # 1% кадров
+                if not getattr(sys, "frozen", False):
+                    optimal_x = self.get_optimal_paddle_position()
+                    print(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
             
-            # Если мяч в зоне кубиков (выше зоны разделения) - не двигаемся
-            separation_zone_start = 226
+            # КРИТИЧНО: УБРАНО ПРАВИЛО 1 - платформа ДОЛЖНА двигаться к точке падения мяча
+            # даже когда мяч летит вверх, чтобы успеть к моменту падения
+            # Продолжаем расчет оптимальной позиции независимо от направления мяча
+            
+            if ball_vel_y == 0:
+                # КРИТИЧНО: Если vel_y == 0, это ошибка состояния (должно быть исправлено в PyGameBall.py)
+                # Но на всякий случай продолжаем движение к оптимальной позиции, а не используем fallback
+                # Это предотвращает ситуацию, когда платформа перестает двигаться из-за временного vel_y=0
+                # Логируем для диагностики, но продолжаем нормальную логику
+                self._log_paddle_movement(current_x, current_x, "ball_vel_y_zero_warning", 0.5)
+                # Продолжаем обработку с обычной логикой - НЕ возвращаем fallback!
+            
+            # ПРАВИЛО 2: Если мяч в зоне кубиков - платформа НЕ двигается
+            # КРИТИЧНО: Но только если мяч действительно в зоне кубиков
+            # Если мяч уже ниже зоны кубиков, но еще не в зоне разделения - все равно двигаемся
             if ball_y < separation_zone_start:
+                # КРИТИЧНО: Логируем для диагностики (периодически)
+                import random
+                if random.random() < 0.05:  # 5% кадров
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
+                self._log_paddle_movement(current_x, current_x, "ball_in_bricks_zone", 1.0)
                 return 0
             
-            # Вычисляем точку падения мяча
-            target_x = self._calculate_ball_landing_point(ball_x, ball_y, vel_x, vel_y, paddle_y)
+            # КРИТИЧНО: Проверяем, не потерян ли мяч (ниже верхней границы платформы)
+            # Если мяч ниже верхней границы платформы - он считается потерянным, платформа НЕ двигается
+            paddle_y = self.current_game_state.paddle_position.y if self.current_game_state else paddle_zone_start
+            ball_lost = ball_y > paddle_y  # Мяч ниже верхней границы платформы
             
-            # Вычисляем расстояние до цели
-            distance = target_x - current_x
-            tolerance = 5  # Точность в 5 пикселей
-            
-            # Если уже на месте - не двигаемся
-            if abs(distance) <= tolerance:
+            if ball_lost:
+                # Мяч потерян - платформа НЕ двигается
+                # КРИТИЧНО: Логируем для диагностики (периодически)
+                import random
+                if random.random() < 0.05:  # 5% кадров
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
+                self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle", 1.0)
                 return 0
             
-            # Двигаемся к цели
-            return 1 if distance > 0 else -1
+            # Проверяем, находится ли мяч в зоне разделения
+            # КРИТИЧНО: Мяч должен быть выше верхней границы платформы и в разрешенной зоне
+            # Зона разделения: от separation_zone_start до верхней границы платформы
+            in_separation_zone = separation_zone_start <= ball_y < paddle_y and ball_vel_y > 0
             
-        except Exception:
-            return 0
-    
-    def _calculate_ball_landing_point(self, ball_x: float, ball_y: float, vel_x: float, vel_y: float, paddle_y: float) -> float:
+            # КРИТИЧНО: Логируем состояние зоны разделения для диагностики
+            import random
+            import sys
+            # Логируем всегда когда мяч в зоне разделения или близко к платформе
+            should_log = in_separation_zone or (ball_y > paddle_y - 100 and ball_vel_y > 0)
+            # КРИТИЧНО: Логируем всегда (100% кадров) для диагностики
+            if should_log:  # Всегда логируем когда мяч близко
+                ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
+                ball_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                ball_speed = self.current_game_state.ball_speed if self.current_game_state else 0
+                distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+                time_to_paddle = distance_to_paddle / ball_vel_y if ball_vel_y > 0 and distance_to_paddle > 0 else float('inf')
+                # КРИТИЧНО: НЕ вызываем get_optimal_paddle_position() если позиция уже зафиксирована
+                # Это может вызвать пересчет и дергание
+                if self.separation_zone_tracker.get("target_position_set", False):
+                    optimal_x = self.separation_zone_tracker.get("target_position")
+                else:
+                    optimal_x = self.get_optimal_paddle_position()
+                distance_to_target = abs(current_x - optimal_x) if optimal_x is not None else 0
+                print(f"[BALL TRACKING] ball=({ball_x:.1f},{ball_y:.1f}) vel=({ball_vel_x:.1f},{ball_vel_y:.1f}) speed={ball_speed:.1f} | "
+                      f"paddle_x={current_x:.1f} optimal_x={optimal_x:.1f} dist_to_target={distance_to_target:.1f} | "
+                      f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
+                      f"time_to_paddle={time_to_paddle:.2f} frames")
+            
+            # ПРАВИЛО 3: Если целевая позиция установлена - используем её БЕЗ пересчета
+            # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз при входе мяча в зону разделения
+            # и не меняется до следующего отскока от стены
+            if self.separation_zone_tracker.get("target_position_set", False):
+                # КРИТИЧНО: В зоне разделения траектория мяча НЕ МЕНЯЕТСЯ (нет отскоков от кубиков)
+                # Проверяем ТОЛЬКО изменение скорости vel_x (отскок от стены)
+                # НЕ пересчитываем цель на основе разницы в optimal_x - это вызывает дёргание
+                current_target = self.separation_zone_tracker.get("target_position")
+                if current_target is not None and in_separation_zone:
+                    # КРИТИЧНО: Проверяем изменение vel_x - это единственный признак отскока от стены
+                    # Сохраняем предыдущую скорость vel_x для сравнения
+                    saved_vel_x = self.separation_zone_tracker.get("saved_ball_vel_x")
+                    current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
+                    
+                    # Если vel_x изменился (мяч отскочил от стены) - сбрасываем цель
+                    if saved_vel_x is not None and abs(current_vel_x - saved_vel_x) > 0.1:
+                        # Мяч отскочил от стены - траектория изменилась, нужно пересчитать цель
+                        print(f"[TARGET RESET] Мяч отскочил от стены! Старая vel_x={saved_vel_x:.1f}, Новая vel_x={current_vel_x:.1f}")
+                        self.separation_zone_tracker["target_position_set"] = False
+                        self.separation_zone_tracker["target_position"] = None
+                        self.separation_zone_tracker["paddle_moved_after_set"] = False
+                        self.separation_zone_tracker["paddle_reached_target"] = False
+                        self.separation_zone_tracker["frames_since_target_set"] = 0
+                        self.separation_zone_tracker["saved_ball_vel_x"] = current_vel_x
+                        self._log_paddle_movement(current_x, current_x, "target_reset_wall_bounce", 1.0)
+                        # Продолжаем обработку с обычной логикой для установки новой цели
+                    else:
+                        # Скорость не изменилась - траектория стабильна, НЕ обновляем цель
+                        # КРИТИЧНО: Возвращаем зафиксированную позицию БЕЗ пересчета
+                        # Это гарантирует, что позиция не изменится до отскока от стены
+                        self.separation_zone_tracker["saved_ball_vel_x"] = current_vel_x
+                        
+                        # КРИТИЧНО: НЕ вызываем get_optimal_paddle_position() для проверки - это может вызвать пересчет
+                        # Просто используем зафиксированную позицию
+                        
+                        # ВСЕГДА возвращаем зафиксированную позицию
+                        # КРИТИЧНО: НЕ вызываем get_optimal_paddle_position() - это может вызвать пересчет и дергание
+                        target_pos = int(current_target)
+                        distance_to_target = abs(current_x - target_pos)
+                        
+                        # КРИТИЧНО: Используем большой tolerance для остановки, чтобы предотвратить дергание
+                        # Проблема: платформа движется со скоростью 15px/кадр и "перескакивает" через цель
+                        # Решение: используем большой tolerance (равный скорости движения), чтобы платформа останавливалась
+                        # даже если немного перескочила через цель
+                        tolerance = 15  # Равен скорости движения платформы - предотвращает дергание
+                        
+                        # КРИТИЧНО: Логируем движение к зафиксированной позиции для отслеживания
+                        import sys
+                        if not getattr(sys, "frozen", False):
+                            import random
+                            if random.random() < 0.1:  # Логируем 10% кадров
+                                print(f"[MOVING TO FIXED] ФЛАГ: Движение к зафиксированной позиции! "
+                                      f"current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+                                      f"distance={distance_to_target:.1f}px, tolerance={tolerance}")
+                        
+                        # Двигаемся к зафиксированной позиции
+                        if distance_to_target > tolerance:
+                            # Платформа далеко от цели - начинаем движение
+                            movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
+                            if movement != 0:
+                                self._update_loop_tracking(movement, current_x, target_pos)
+                                self._update_smoothness_tracking(movement, current_x)
+                                self._log_paddle_movement(current_x, target_pos, "moving_to_fixed_target", 1.0)
+                                return movement
+                        else:
+                            # Достигли цели - останавливаемся
+                            # КРИТИЧНО: НЕ устанавливаем флаг paddle_reached_target - он не нужен
+                            # Просто останавливаемся, если близко к цели
+                            return 0
+                
+                # КРИТИЧНО: Если позиция зафиксирована, но мяч не в зоне разделения - проверяем сброс
+                # КРИТИЧНО: Используем гистерезис для предотвращения дергания
+                # Сбрасываем целевую позицию ТОЛЬКО если:
+                # 1. Мяч ушел далеко вверх (выше зоны кубиков) ИЛИ
+                # 2. Мяч потерян (ниже верхней границы платформы)
+                should_reset = False
+                
+                # Проверка 1: Мяч ушел далеко вверх (выше зоны кубиков)
+                if ball_y < separation_zone_start - 50:  # Далеко выше зоны разделения
+                    should_reset = True
+                
+                # Проверка 2: Мяч потерян (ниже верхней границы платформы)
+                if ball_lost:
+                    should_reset = True
+                
+                # Если нужно сбросить - сбрасываем
+                if should_reset:
+                    self.separation_zone_tracker["target_position_set"] = False
+                    self.separation_zone_tracker["target_position"] = None
+                    self.separation_zone_tracker["paddle_moved_after_set"] = False
+                    self.separation_zone_tracker["paddle_reached_target"] = False
+                    self._log_paddle_movement(current_x, current_x, "target_reset_ball_left_zone", 1.0)
+                    # Продолжаем обработку с обычной логикой - НЕ возвращаем 0!
+                else:
+                    # КРИТИЧНО: Позиция зафиксирована, но мяч не в зоне разделения
+                    # Используем зафиксированную позицию БЕЗ пересчета
+                    current_target = self.separation_zone_tracker.get("target_position")
+                    if current_target is not None:
+                        target_pos = int(current_target)
+                        distance_to_target = abs(current_x - target_pos)
+                        tolerance = 3
+                        
+                        if distance_to_target > tolerance:
+                            movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
+                            if movement != 0:
+                                self._update_loop_tracking(movement, current_x, target_pos)
+                                self._update_smoothness_tracking(movement, current_x)
+                                self._log_paddle_movement(current_x, target_pos, "moving_to_fixed_target_outside_zone", 1.0)
+                                return movement
+                        else:
+                            return 0
+                    
+                    # КРИТИЧНО: УБРАНО - пересчет позиции в зоне разделения вызывает дёргание
+                    # Позиция фиксируется один раз и НЕ пересчитывается до отскока от стены
+                    if False:  # Никогда не пересчитываем в зоне разделения
+                        # Используем простой расчет для стабильности
+                        if self.current_game_state:
+                            ball_x = self.current_game_state.ball_position.x
+                            ball_y_state = self.current_game_state.ball_position.y
+                            vel_x = self.current_game_state.ball_velocity.x
+                            vel_y = self.current_game_state.ball_velocity.y
+                            
+                            if vel_y > 0 and ball_y_state < paddle_y:
+                                # КРИТИЧНО: Улучшенное предсказание точки падения с учетом времени движения платформы
+                                time_to_paddle = (paddle_y - ball_y_state) / vel_y
+                                if time_to_paddle > 0:
+                                    # Предсказываем позицию мяча в момент падения
+                                    predicted_x = ball_x + vel_x * time_to_paddle
+                                    
+                                    # КРИТИЧНО: Учитываем отскоки от стен более точно
+                                    screen_width = self.screen_width
+                                    ball_radius = 8
+                                    remaining_time = time_to_paddle
+                                    current_predicted_x = ball_x
+                                    current_vel_x = vel_x
+                                    
+                                    # Симулируем движение мяча с учетом отскоков от стен
+                                    while remaining_time > 0:
+                                        # Рассчитываем, когда мяч достигнет стены
+                                        if current_vel_x > 0:
+                                            time_to_right_wall = (screen_width - ball_radius - current_predicted_x) / current_vel_x
+                                        else:
+                                            time_to_right_wall = float('inf')
+                                        
+                                        if current_vel_x < 0:
+                                            time_to_left_wall = (current_predicted_x - ball_radius) / abs(current_vel_x)
+                                        else:
+                                            time_to_left_wall = float('inf')
+                                        
+                                        time_to_wall = min(time_to_left_wall, time_to_right_wall)
+                                        
+                                        if time_to_wall > 0 and time_to_wall <= remaining_time:
+                                            # Мяч отскочит от стены
+                                            current_predicted_x += current_vel_x * time_to_wall
+                                            remaining_time -= time_to_wall
+                                            current_vel_x = -current_vel_x
+                                        else:
+                                            # Мяч не достигнет стены до падения
+                                            current_predicted_x += current_vel_x * remaining_time
+                                            remaining_time = 0
+                                    
+                                    predicted_x = current_predicted_x
+                                    
+                                    # Дополнительная проверка границ
+                                    if predicted_x < ball_radius:
+                                        predicted_x = ball_radius
+                                    elif predicted_x > screen_width - ball_radius:
+                                        predicted_x = screen_width - ball_radius
+                                    
+                                    # КРИТИЧНО: Разделяем платформу на 3 зоны и всегда прицеливаемся в центр выбранной зоны
+                                    # Платформа шириной 120px делится на 3 равные зоны по 40px каждая
+                                    # Левая зона: от -60px до -20px от центра платформы (центр на -40px)
+                                    # Центральная зона: от -20px до +20px от центра платформы (центр на 0px)
+                                    # Правая зона: от +20px до +60px от центра платформы (центр на +40px)
+                                    
+                                    zone_size = self.paddle_width / 3  # 40px
+                                    zone_half = zone_size / 2  # 20px - половина зоны
+                                    
+                                    # КРИТИЧНО: Проверяем, не находится ли точка падения близко к стене
+                                    # Если точка падения в пределах 40px от края экрана - используем точку падения напрямую
+                                    screen_width = self.screen_width
+                                    ball_radius = 8
+                                    min_safe_x = ball_radius + 40  # Минимум 40px от левого края
+                                    max_safe_x = screen_width - ball_radius - 40  # Минимум 40px от правого края
+                                    
+                                    use_direct_position = (predicted_x < min_safe_x or predicted_x > max_safe_x)
+                                    
+                                    if use_direct_position:
+                                        # Точка падения близко к стене - используем точку падения напрямую
+                                        # КРИТИЧНО: Если мяч очень близко (менее 3 кадров), платформа должна доезжать до края зоны
+                                        # Край платформы должен касаться стены для максимального покрытия
+                                        if time_to_paddle < 3:
+                                            # Мяч очень близко - доезжаем до края зоны
+                                            if predicted_x > screen_width / 2:
+                                                # Мяч справа - край платформы касается правой стены
+                                                zone_center_x = screen_width - self.paddle_width // 2
+                                            else:
+                                                # Мяч слева - край платформы касается левой стены
+                                                zone_center_x = self.paddle_width // 2
+                                        else:
+                                            # Мяч не очень близко - используем точку падения напрямую
+                                            zone_center_x = predicted_x
+                                        selected_zone = "EDGE"
+                                    else:
+                                        # КРИТИЧНО: Правильная логика позиционирования для попадания в ЦЕНТР зоны
+                                        # Цель: позиционировать платформу так, чтобы predicted_x попал в ЦЕНТР выбранной зоны
+                                        
+                                        # Если центр платформы = X, то:
+                                        # - Левая зона: от X-60 до X-20, центр на X-40
+                                        # - Центральная зона: от X-20 до X+20, центр на X
+                                        # - Правая зона: от X+20 до X+60, центр на X+40
+                                        
+                                        # КРИТИЧНО: Выбираем зону так, чтобы мяч попал в ЦЕНТР зоны, а не на границу
+                                        # Для этого нужно определить, в какую зону попадает predicted_x,
+                                        # и позиционировать платформу так, чтобы центр этой зоны совпал с predicted_x
+                                        
+                                        # Варианты позиционирования:
+                                        # 1. Центральная зона: центр платформы = predicted_x (центр зоны = predicted_x)
+                                        # 2. Левая зона: центр платформы = predicted_x + 40 (центр зоны = predicted_x)
+                                        # 3. Правая зона: центр платформы = predicted_x - 40 (центр зоны = predicted_x)
+                                        
+                                        # Определяем, какая зона лучше подходит, проверяя границы зон:
+                                        # Если центр платформы = predicted_x:
+                                        #   - Левая зона: от predicted_x-60 до predicted_x-20
+                                        #   - Центральная зона: от predicted_x-20 до predicted_x+20
+                                        #   - Правая зона: от predicted_x+20 до predicted_x+60
+                                        
+                                        # Если predicted_x находится в центральной зоне (от predicted_x-20 до predicted_x+20),
+                                        # то predicted_x всегда попадает в центр центральной зоны - используем центральную зону
+                                        
+                                        # Если predicted_x находится в левой зоне (от predicted_x-60 до predicted_x-20),
+                                        # то нужно сдвинуть платформу вправо на 40px, чтобы predicted_x попал в центр левой зоны
+                                        
+                                        # Если predicted_x находится в правой зоне (от predicted_x+20 до predicted_x+60),
+                                        # то нужно сдвинуть платформу влево на 40px, чтобы predicted_x попал в центр правой зоны
+                                        
+                                        # Но predicted_x - это точка падения, а не позиция относительно платформы!
+                                        # Нужно определить, в какую зону попадает predicted_x, если центр платформы = predicted_x
+                                        
+                                        # Упрощенный подход: выбираем зону на основе расстояния от predicted_x до центров зон
+                                        # при условии, что центр платформы = predicted_x
+                                        
+                                        # Центры зон при центре платформы = predicted_x:
+                                        center_zone_center = predicted_x  # центр центральной зоны
+                                        left_zone_center = predicted_x - zone_size  # центр левой зоны (predicted_x - 40)
+                                        right_zone_center = predicted_x + zone_size  # центр правой зоны (predicted_x + 40)
+                                        
+                                        # Расстояния от predicted_x до центров зон:
+                                        dist_to_center = abs(predicted_x - center_zone_center)  # всегда 0
+                                        dist_to_left = abs(predicted_x - left_zone_center)  # всегда 40
+                                        dist_to_right = abs(predicted_x - right_zone_center)  # всегда 40
+                                        
+                                        # КРИТИЧНО: Выбираем зону на основе того, где находится predicted_x относительно экрана
+                                        # Если predicted_x близко к левому краю - предпочитаем левую зону
+                                        # Если predicted_x близко к правому краю - предпочитаем правую зону
+                                        # Иначе - используем центральную зону
+                                        
+                                        screen_center = screen_width / 2
+                                        # КРИТИЧНО: Используем более широкие пороги для выбора боковых зон
+                                        # Это гарантирует, что платформа будет двигаться дальше влево/вправо,
+                                        # чтобы мяч попадал в центр боковой зоны, а не на границу
+                                        left_threshold = screen_center - zone_size * 2  # 400 - 80 = 320
+                                        right_threshold = screen_center + zone_size * 2  # 400 + 80 = 480
+                                        
+                                        if predicted_x < left_threshold:
+                                            # predicted_x в левой части экрана - используем левую зону
+                                            # Чтобы predicted_x попал в центр левой зоны, центр платформы = predicted_x + 40
+                                            zone_center_x = predicted_x + zone_size
+                                            selected_zone = "LEFT"
+                                        elif predicted_x > right_threshold:
+                                            # predicted_x в правой части экрана - используем правую зону
+                                            # Чтобы predicted_x попал в центр правой зоны, центр платформы = predicted_x - 40
+                                            zone_center_x = predicted_x - zone_size
+                                            selected_zone = "RIGHT"
+                                        else:
+                                            # predicted_x в центральной части экрана - используем центральную зону
+                                            # Чтобы predicted_x попал в центр центральной зоны, центр платформы = predicted_x
+                                            zone_center_x = predicted_x
+                                            selected_zone = "CENTER"
+                                    
+                                    # КРИТИЧНО: Логируем выбор зоны для диагностики (всегда)
+                                    current_paddle_x = self.current_game_state.paddle_position.x if self.current_game_state else 0
+                                    distance_to_zone_center = abs(current_paddle_x - zone_center_x)
+                                    # Вычисляем, где будет центр выбранной зоны при позиции платформы = zone_center_x
+                                    if selected_zone == "LEFT":
+                                        actual_zone_center = zone_center_x - zone_size  # центр левой зоны
+                                    elif selected_zone == "RIGHT":
+                                        actual_zone_center = zone_center_x + zone_size  # центр правой зоны
+                                    else:
+                                        actual_zone_center = zone_center_x  # центр центральной зоны
+                                    
+                                    print(f"[ZONE SELECTION] predicted_x={predicted_x:.1f} -> zone={selected_zone} "
+                                          f"paddle_center={zone_center_x:.1f} actual_zone_center={actual_zone_center:.1f} "
+                                          f"current_paddle={current_paddle_x:.1f} distance_to_zone={distance_to_zone_center:.1f}px "
+                                          f"time_to_paddle={time_to_paddle:.2f} frames")
+                                    
+                                    # Ограничиваем границами экрана
+                                    # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров),
+                                    # платформа должна доезжать до края зоны (край платформы касается стены)
+                                    # НЕ ограничиваем границами в этом случае
+                                    min_x = self.paddle_width // 2 + 30
+                                    max_x = screen_width - self.paddle_width // 2 - 30
+                                    
+                                    # КРИТИЧНО: Если это EDGE зона и мяч очень близко, доезжаем до края
+                                    if selected_zone == "EDGE" and time_to_paddle < 3:
+                                        # В EDGE зоне и очень близко - используем zone_center_x напрямую
+                                        # (уже рассчитан для края зоны в строках 2794 или 2797)
+                                        new_optimal_x = int(zone_center_x)
+                                    else:
+                                        # Обычное ограничение границами
+                                        new_optimal_x = max(min_x, min(max_x, int(zone_center_x)))
+                                    
+                                    # КРИТИЧНО: Используем экспоненциальное сглаживание
+                                    # НО: не обновляем целевую позицию, если платформа уже близко к текущей цели
+                                    # КРИТИЧНО: Если мяч очень близко (менее 5 кадров), ВСЕГДА обновляем цель без сглаживания
+                                    old_target = self.separation_zone_tracker.get("target_position")
+                                    if old_target is not None:
+                                        # Проверяем, насколько далеко платформа от текущей цели
+                                        distance_to_old_target = abs(current_x - old_target)
+                                        
+                                        # КРИТИЧНО: НЕ обновляем цель без сглаживания когда мяч очень близко
+                                        # Это вызывает дёргание платформы, если траектория стабильна
+                                        # Обновляем только если траектория кардинально изменилась
+                                        distance_to_paddle_y = paddle_y - ball_y_state if ball_y_state < paddle_y else 0
+                                        
+                                        if distance_to_old_target <= 40:
+                                            # КРИТИЧНО: Если платформа уже близко к текущей цели, НЕ обновляем цель вообще
+                                            # Это предотвращает дёргание в точке падения
+                                            # Используем удвоенный tolerance для проверки "близко к цели"
+                                            tolerance_check = 30  # Удвоенный tolerance (15 * 2)
+                                            if distance_to_old_target <= tolerance_check:
+                                                # Платформа уже близко к цели - НЕ обновляем, даже если new_optimal немного отличается
+                                                # Это критично для предотвращения дёргания в точке падения
+                                                optimal_x = old_target
+                                                # Логируем, что мы НЕ обновляем цель, хотя new_optimal отличается
+                                                if abs(new_optimal_x - old_target) > 10:  # Только если разница значительная
+                                                    print(f"[POSITION CHANGE BLOCKED] Платформа близко к цели (distance={distance_to_old_target:.1f} <= {tolerance_check}), "
+                                                          f"НОВУЮ цель НЕ устанавливаем! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, Разница={abs(new_optimal_x - old_target):.1f}px")
+                                            else:
+                                                # Платформа еще далеко от цели - проверяем, не изменилась ли траектория кардинально
+                                                # Увеличиваем порог до 50px минимум, чтобы не реагировать на мелкие изменения
+                                                threshold = 50 if distance_to_paddle_y < 50 else 80
+                                                # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз и НЕ меняется до отскока от стены
+                                                # НЕ обновляем позицию, даже если траектория "изменилась кардинально"
+                                                # Это нарушение правила - используем старую позицию
+                                                optimal_x = old_target
+                                                import sys
+                                                if not getattr(sys, "frozen", False):
+                                                    if abs(new_optimal_x - old_target) > threshold:
+                                                        print(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию ({old_target:.1f} -> {new_optimal_x:.1f}) "
+                                                              f"БЕЗ отскока от стены! Используем старую позицию.")
+                                        else:
+                                            # Платформа далеко от старой цели - используем сглаживание
+                                            # НО: увеличиваем порог для обновления, чтобы не дёргаться
+                                            # КРИТИЧНО: Проверяем разницу между старой и новой целью
+                                            # Если разница маленькая (менее 50px), НЕ обновляем, даже если платформа далеко
+                                            target_difference = abs(new_optimal_x - old_target)
+                                            if target_difference <= 50:
+                                                # Разница слишком маленькая - не обновляем, даже если платформа далеко
+                                                optimal_x = old_target
+                                                if distance_to_old_target > 50:  # Только логируем если платформа действительно далеко
+                                                    print(f"[POSITION CHANGE BLOCKED] Разница между целями слишком маленькая (target_difference={target_difference:.1f} <= 50), "
+                                                          f"НЕ обновляем цель при сглаживании! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, distance_to_old={distance_to_old_target:.1f}")
+                                            else:
+                                                # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз и НЕ меняется до отскока от стены
+                                                # НЕ используем сглаживание - это нарушение правила
+                                                # Всегда используем старую позицию
+                                                optimal_x = old_target
+                                                import sys
+                                                if not getattr(sys, "frozen", False):
+                                                    if abs(new_optimal_x - old_target) > 50:
+                                                        print(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию через сглаживание "
+                                                              f"({old_target:.1f} -> {new_optimal_x:.1f}) БЕЗ отскока от стены! Используем старую позицию.")
+                                    else:
+                                        # ПРАВИЛО 4: Устанавливаем целевую позицию впервые
+                                        # КРИТИЧНО: Проверяем, не была ли позиция уже установлена (нарушение правила)
+                                        if self.separation_zone_tracker.get("target_position_set", False):
+                                            # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
+                                            old_pos = self.separation_zone_tracker.get("target_position")
+                                            import sys
+                                            if not getattr(sys, "frozen", False):
+                                                print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
+                                                      f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
+                                                      f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
+                                            self.separation_zone_tracker["game_restart_required"] = True
+                                            # Используем старую позицию
+                                            optimal_x = old_pos
+                                        else:
+                                            # Позиция устанавливается впервые - это правильно
+                                            current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
+                                            self.separation_zone_tracker["target_position"] = int(new_optimal_x)
+                                            self.separation_zone_tracker["target_position_set"] = True
+                                            self.separation_zone_tracker["frames_since_target_set"] = 0
+                                            self.separation_zone_tracker["paddle_moved_after_set"] = False
+                                            self.separation_zone_tracker["paddle_reached_target"] = False
+                                            self.separation_zone_tracker["saved_ball_vel_x"] = current_vel_x
+                                            current_target = self.separation_zone_tracker.get("target_position")
+                                            current_target_str = f"{current_target:.1f}" if current_target is not None else "None"
+                                            print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (ПРАВИЛО 4)! "
+                                                  f"target_position={int(new_optimal_x):.1f}, paddle_x={current_x:.1f}")
+                                            optimal_x = int(new_optimal_x)
+                                else:
+                                    optimal_x = self.separation_zone_tracker.get("target_position")
+                            else:
+                                optimal_x = self.separation_zone_tracker.get("target_position")
+                        else:
+                            optimal_x = self.separation_zone_tracker.get("target_position")
+                    else:
+                        # Используем сохраненную позицию
+                        optimal_x = self.separation_zone_tracker.get("target_position")
+                        # КРИТИЧНО: Обновляем счетчик кадров с момента установки цели
+                        frames_since_target_set = self.separation_zone_tracker.get("frames_since_target_set", 0)
+                        self.separation_zone_tracker["frames_since_target_set"] = frames_since_target_set + 1
+                    
+                    if optimal_x is not None:
+                        target_pos = int(optimal_x)
+                        distance_to_target = abs(current_x - target_pos)
+                        
+                        # КРИТИЧНО: Сначала проверяем, успеет ли платформа добраться до цели
+                        # Это должно быть ПЕРЕД проверкой tolerance, чтобы не останавливаться раньше времени
+                        ball_y = self.current_game_state.ball_position.y if self.current_game_state else 0
+                        ball_vel_y = self.current_game_state.ball_velocity.y if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                        paddle_y = self.current_game_state.paddle_position.y if self.current_game_state else paddle_zone_start
+                        distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+                        time_to_paddle = distance_to_paddle / ball_vel_y if ball_vel_y > 0 and distance_to_paddle > 0 else float('inf')
+                        distance_to_move = distance_to_target
+                        frames_to_reach = distance_to_move / paddle_speed if paddle_speed > 0 else float('inf')
+                        # КРИТИЧНО: Добавляем небольшой запас (0.5 кадра) для учета неточностей расчета
+                        # Это особенно важно, когда мяч очень близко
+                        will_reach = (frames_to_reach <= time_to_paddle + 0.5) if time_to_paddle != float('inf') else False
+                        
+                        # КРИТИЧНО: НЕ пересчитываем цель когда мяч очень близко, если траектория стабильна
+                        # Если мяч летит по прямой траектории и не может её изменить (нет кубиков на пути, нет стен),
+                        # то пересчёт цели в последний момент только вызывает дёргание платформы
+                        # Пересчитываем ТОЛЬКО если платформа не успевает добраться до цели
+                        force_recalculate = False  # УБРАНО: пересчёт при близком мяче вызывает дёргание
+                        
+                        # КРИТИЧНО: УБРАНО - пересчет позиции когда "не успевает" вызывает дёргание
+                        # Платформа должна продолжать движение к зафиксированной цели, даже если "не успевает"
+                        # Это лучше, чем постоянно пересчитывать позицию и дёргаться
+                        # if (not will_reach) and time_to_paddle != float('inf') and time_to_paddle > 0:
+                        #     ... пересчет позиции ...
+                        
+                        # ПРАВИЛО 3.1: Если платформа близко к цели - проверяем, нужно ли еще двигаться
+                        # КРИТИЧНО: Минимальный tolerance - платформа должна двигаться до точной позиции
+                        # Останавливаемся ТОЛЬКО когда действительно достигли цели (tolerance = 3px)
+                        tolerance = 3
+                        
+                        # КРИТИЧНО: УБРАНО - сложная логика с проверкой зон вызывает дёргание
+                        # Платформа должна просто двигаться к цели до точной позиции
+                        
+                        # КРИТИЧНО: Если мяч очень близко к платформе (менее 10 кадров), уменьшаем tolerance еще больше
+                        if time_to_paddle != float('inf') and time_to_paddle < 10:
+                            tolerance = max(3, tolerance // 2)  # Уменьшаем tolerance вдвое, минимум 3px
+                        
+                        # КРИТИЧНО: Используем зафиксированную позицию БЕЗ пересчета
+                        # Позиция фиксируется один раз и НЕ меняется до отскока от стены
+                        target_pos = self.separation_zone_tracker.get("target_position")
+                        if target_pos is None:
+                            target_pos = current_x
+                        distance_to_target = abs(current_x - target_pos)
+                        # Определяем is_edge_zone на основе сохранённой цели
+                        if target_pos is not None:
+                            screen_width = self.screen_width
+                            ball_radius = 8
+                            min_safe_x = ball_radius + 40
+                            max_safe_x = screen_width - ball_radius - 40
+                            is_edge_zone = (target_pos < min_safe_x or target_pos > max_safe_x)
+                        else:
+                            is_edge_zone = False
+                        
+                        # Продолжаем движение к актуальной цели, даже если близко к старой цели
+                        # Для EDGE зоны используем меньший порог (2px), для остальных - 3px
+                        # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров), НЕ останавливаемся до достижения края
+                        if is_edge_zone and time_to_paddle < 3:
+                            # В EDGE зоне и очень близко - продолжаем движение до края зоны
+                            # Проверяем, достигли ли мы края зоны
+                            screen_width = self.screen_width
+                            # Определяем, к какому краю нужно двигаться
+                            saved_target = self.separation_zone_tracker.get("target_position")
+                            target_to_check = target_pos if target_pos is not None else (saved_target if saved_target is not None else current_x)
+                            
+                            if target_to_check > screen_width / 2:
+                                # Правый край - проверяем, достигли ли мы правого края
+                                right_edge = screen_width - self.paddle_width // 2
+                                if abs(current_x - right_edge) > 2:
+                                    pass  # Продолжаем движение к правому краю
+                                else:
+                                    # Достигли правого края - останавливаемся
+                                    if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                        self.separation_zone_tracker["paddle_reached_target"] = True
+                                    return 0
+                            else:
+                                # Левый край - проверяем, достигли ли мы левого края
+                                left_edge = self.paddle_width // 2
+                                if abs(current_x - left_edge) > 2:
+                                    pass  # Продолжаем движение к левому краю
+                                else:
+                                    # Достигли левого края - останавливаемся
+                                    if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                        self.separation_zone_tracker["paddle_reached_target"] = True
+                                    return 0
+                        elif distance_to_target <= tolerance:
+                            # КРИТИЧНО: В зоне разделения цель установлена ОДИН РАЗ и НЕ обновляется
+                            # Траектория мяча не меняется - используем сохраненную цель БЕЗ изменений
+                            # НЕ проверяем actual_distance - это вызывает дёргание
+                            
+                            # КРИТИЧНО: Если мяч очень близко (менее 3 кадров), НЕ останавливаемся
+                            # Это критично для предотвращения потери мяча в последний момент
+                            # КРИТИЧНО: Если мяч в EDGE зоне, НЕ останавливаемся до достижения края зоны
+                            # даже если мяч не очень близко - это критично для предотвращения потери мяча у края
+                            if (time_to_paddle != float('inf') and time_to_paddle < 3) or is_edge_zone:
+                                # Мяч очень близко ИЛИ в EDGE зоне - продолжаем движение, даже если близко к цели
+                                # Для EDGE зоны проверяем, достигли ли мы края зоны
+                                if is_edge_zone:
+                                    screen_width = self.screen_width
+                                    saved_target = self.separation_zone_tracker.get("target_position")
+                                    target_to_check = target_pos if target_pos is not None else (saved_target if saved_target is not None else current_x)
+                                    
+                                    if target_to_check > screen_width / 2:
+                                        # Правый край - проверяем, достигли ли мы правого края
+                                        right_edge = screen_width - self.paddle_width // 2
+                                        if abs(current_x - right_edge) > 2:
+                                            # Еще не достигли правого края - продолжаем движение
+                                            pass  # Пропускаем остановку, продолжаем движение
+                                        else:
+                                            # Достигли правого края - останавливаемся
+                                            if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                                self.separation_zone_tracker["paddle_reached_target"] = True
+                                            return 0
+                                    else:
+                                        # Левый край - проверяем, достигли ли мы левого края
+                                        left_edge = self.paddle_width // 2
+                                        if abs(current_x - left_edge) > 2:
+                                            # Еще не достигли левого края - продолжаем движение
+                                            pass  # Пропускаем остановку, продолжаем движение
+                                        else:
+                                            # Достигли левого края - останавливаемся
+                                            if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                                self.separation_zone_tracker["paddle_reached_target"] = True
+                                            return 0
+                                else:
+                                    # Мяч очень близко, но не в EDGE зоне - продолжаем движение
+                                    pass  # Пропускаем остановку, продолжаем движение
+                            else:
+                                # КРИТИЧНО: В зоне разделения цель установлена ОДИН РАЗ и НЕ обновляется
+                                # Если достигли сохраненной цели - останавливаемся
+                                if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                    self.separation_zone_tracker["paddle_reached_target"] = True
+                                # КРИТИЧНО: Логируем для диагностики
+                                import sys
+                                import random
+                                if random.random() < 0.2:  # 20% кадров
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
+                                self._log_paddle_movement(current_x, current_x, "paddle_reached_target", 1.0)
+                                return 0
+                        
+                        # ПРАВИЛО 3.2: Платформа еще не достигла цели - двигаемся к сохраненной позиции
+                        # КРИТИЧНО: УБРАНО - сложная логика с проверкой "очень близко" вызывает дёргание
+                        # Платформа должна просто двигаться к цели до точной позиции (tolerance = 3px)
+                        
+                        # Устанавливаем флаг, что платформа начала двигаться после установки цели
+                        if not self.separation_zone_tracker.get("paddle_moved_after_set", False):
+                            self.separation_zone_tracker["paddle_moved_after_set"] = True
+                            # КРИТИЧНО: Логируем начало движения
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: Начинаем движение к сохраненной позиции. current_x={current_x}, target_pos={target_pos}, distance={distance_to_target:.1f}")
+                            self._log_paddle_movement(current_x, target_pos, "paddle_moving_to_target", 0.9)
+                        
+                        # КРИТИЧНО: Проверяем, что движение действительно нужно
+                        # Если target_pos == current_x, не двигаемся
+                        if target_pos == current_x:
+                            return 0
+                        
+                        # Двигаемся к сохраненной позиции БЕЗ дополнительных проверок
+                        movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
+                        # КРИТИЧНО: Проверяем, что movement не равен 0 (должно быть -1 или 1)
+                        if movement == 0:
+                            # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
+                            import sys
+                            if not getattr(sys, "frozen", False):
+                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
+                            return self._fallback_movement(current_x)
+                        
+                        # КРИТИЧНО: Логируем движение с информацией о скорости (всегда)
+                        # Примечание: проверка will_reach уже выполнена выше, перед проверкой tolerance
+                        # КРИТИЧНО: Логируем всегда (100% кадров) для диагностики
+                        # Пересчитываем для логирования
+                        ball_y_log = self.current_game_state.ball_position.y if self.current_game_state else 0
+                        ball_vel_y_log = self.current_game_state.ball_velocity.y if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                        paddle_y_log = self.current_game_state.paddle_position.y if self.current_game_state else paddle_zone_start
+                        distance_to_paddle_log = paddle_y_log - ball_y_log if ball_y_log < paddle_y_log else 0
+                        time_to_paddle_log = distance_to_paddle_log / ball_vel_y_log if ball_vel_y_log > 0 and distance_to_paddle_log > 0 else float('inf')
+                        distance_to_move_log = distance_to_target
+                        frames_to_reach_log = distance_to_move_log / paddle_speed if paddle_speed > 0 else float('inf')
+                        will_reach_log = frames_to_reach_log <= time_to_paddle_log if time_to_paddle_log != float('inf') else False
+                        
+                        print(f"[PADDLE MOVEMENT] movement={movement} distance={distance_to_target:.1f}px "
+                              f"current_x={current_x:.1f} target={target_pos:.1f} | "
+                              f"paddle_speed={paddle_speed} frames_to_reach={frames_to_reach_log:.1f} "
+                              f"time_to_paddle={time_to_paddle_log:.1f} will_reach={will_reach_log}")
+                        
+                        self._update_loop_tracking(movement, current_x, target_pos)
+                        self._update_smoothness_tracking(movement, current_x)
+                        self._log_paddle_movement(current_x, target_pos, "moving_to_locked_target", 1.0)
+                        return movement
+                    else:
+                        # target_pos is None - сбрасываем флаг и продолжаем обработку
+                        self.separation_zone_tracker["target_position_set"] = False
+                        self._log_paddle_movement(current_x, current_x, "target_reset_none", 1.0)
+                        # Продолжаем обработку с обычной логикой - НЕ возвращаем 0!
+            
+            # ПРАВИЛО 4: Если целевая позиция НЕ установлена и мяч в зоне разделения
+            # - устанавливаем целевую позицию ОДИН РАЗ через get_optimal_paddle_position
+            # - после установки используем её без пересчета
+            # КРИТИЧНО: Проверяем, что мяч НЕ потерян перед установкой целевой позиции
+            if in_separation_zone and not self.separation_zone_tracker.get("target_position_set", False) and not ball_lost:
+                # КРИТИЧНО: Логируем установку целевой позиции
+                import sys
+                import random
+                if random.random() < 0.2:  # 20% кадров для диагностики
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
+                # Устанавливаем целевую позицию один раз
+                optimal_x = self.get_optimal_paddle_position()
+                
+                # КРИТИЧНО: Проверяем, что optimal_x валиден
+                if optimal_x is None:
+                    # Если не удалось рассчитать позицию, используем fallback
+                    return self._fallback_movement(current_x)
+                
+                # КРИТИЧНО: Проверяем, успеет ли платформа добраться до цели
+                # Если мяч уже очень близко (менее 10 кадров), и платформа далеко от цели (более 100px),
+                # используем более близкую позицию или текущую позицию мяча
+                distance_to_target = abs(current_x - optimal_x)
+                distance_to_paddle_y = paddle_y - ball_y if ball_y < paddle_y else 0
+                time_to_paddle = distance_to_paddle_y / ball_vel_y if ball_vel_y > 0 and distance_to_paddle_y > 0 else float('inf')
+                
+                if time_to_paddle != float('inf') and time_to_paddle < 10 and distance_to_target > 100:
+                    # Мяч очень близко, а платформа далеко - пересчитываем цель с учетом зон
+                    # Вместо простого ограничения движения, пересчитываем оптимальную позицию
+                    # с учетом того, что платформа не успеет далеко переместиться
+                    original_optimal = optimal_x
+                    
+                    # Рассчитываем максимальное расстояние, которое платформа может пройти
+                    # Используем переданный paddle_speed или базовую скорость
+                    max_distance = paddle_speed * time_to_paddle
+                    
+                    # Определяем, в какую зону попадает predicted_x
+                    ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
+                    ball_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+                    predicted_x = ball_x + ball_vel_x * time_to_paddle
+                    
+                    # Применяем логику зон к predicted_x
+                    zone_size = self.paddle_width / 3
+                    screen_center = self.screen_width / 2
+                    left_threshold = screen_center - zone_size * 2
+                    right_threshold = screen_center + zone_size * 2
+                    
+                    if predicted_x < left_threshold:
+                        # Левая зона
+                        zone_center_x = predicted_x + zone_size
+                    elif predicted_x > right_threshold:
+                        # Правая зона
+                        zone_center_x = predicted_x - zone_size
+                    else:
+                        # Центральная зона
+                        zone_center_x = predicted_x
+                    
+                    # Ограничиваем максимальное расстояние движения
+                    if zone_center_x > current_x:
+                        optimal_x = min(zone_center_x, current_x + max_distance)
+                    else:
+                        optimal_x = max(zone_center_x, current_x - max_distance)
+                    
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[TARGET ADJUST] Мяч близко! time_to_paddle={time_to_paddle:.1f}, скорректирована цель с {original_optimal:.1f} на {optimal_x:.1f} (max_distance={max_distance:.1f})")
+                
+                # Сохраняем целевую позицию
+                current_target = self.separation_zone_tracker.get("target_position")
+                old_target_str = f"{current_target:.1f}" if current_target is not None else "None"
+                print(f"[POSITION CHANGE] ФЛАГ: Платформа устанавливает новую цель (ПРАВИЛО 4)! paddle_x={current_x:.1f}, "
+                      f"старая_цель={old_target_str}, "
+                      f"новая_цель={optimal_x:.1f}, distance_to_target={abs(current_x - optimal_x):.1f}")
+                self.separation_zone_tracker["target_position"] = int(optimal_x)
+                self.separation_zone_tracker["target_position_set"] = True
+                self.separation_zone_tracker["paddle_moved_after_set"] = False
+                self.separation_zone_tracker["paddle_reached_target"] = False
+                self.separation_zone_tracker["frames_since_target_set"] = 0
+                self._log_paddle_movement(current_x, optimal_x, "target_position_set", 1.0)
+                # Продолжаем обработку с установленной позицией
+                target_pos = int(optimal_x)
+                distance_to_target = abs(current_x - target_pos)
+                
+                # КРИТИЧНО: Проверяем, что движение действительно нужно
+                # Если target_pos == current_x, не двигаемся
+                if target_pos == current_x:
+                    self.separation_zone_tracker["paddle_reached_target"] = True
+                    return 0
+                
+                # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
+                # Увеличено до 25 пикселей для предотвращения дрожания
+                if distance_to_target <= 25:
+                    self.separation_zone_tracker["paddle_reached_target"] = True
+                    # КРИТИЧНО: Логируем для диагностики
+                    import sys
+                    import random
+                    if random.random() < 0.2:  # 20% кадров
+                        if not getattr(sys, "frozen", False):
+                            print(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
+                    return 0
+                
+                movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
+                # КРИТИЧНО: Проверяем, что movement не равен 0
+                if movement == 0:
+                    # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
+                    import sys
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
+                    return self._fallback_movement(current_x)
+                
+                # КРИТИЧНО: Логируем движение
+                import sys
+                import random
+                if random.random() < 0.2:  # 20% кадров
+                    if not getattr(sys, "frozen", False):
+                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
+                
+                self.separation_zone_tracker["paddle_moved_after_set"] = True
+                self._update_loop_tracking(movement, current_x, target_pos)
+                self._update_smoothness_tracking(movement, current_x)
+                self._log_paddle_movement(current_x, target_pos, "moving_to_new_target", 0.9)
+                return movement
+            
+            # ПРАВИЛО 5: Если мяч НЕ в зоне разделения и целевая позиция НЕ установлена
+            # - используем обычную логику (мяч еще в зоне кубиков или выше)
+            # КРИТИЧНО: Но только если мяч НЕ потерян и движется вниз
+            # Если мяч потерян или движется вверх - не двигаемся
+            if ball_lost:
+                self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle_rule5", 1.0)
+                return 0
+            
+            # КРИТИЧНО: УБРАНО правило "не двигаться когда мяч летит вверх"
+            # Платформа ДОЛЖНА двигаться к точке падения мяча даже когда мяч летит вверх,
+            # чтобы успеть к моменту падения. Продолжаем расчет оптимальной позиции.
+            
+            # КРИТИЧНО: Если мяч в разрешенной зоне (ниже кубиков, но выше платформы) и движется вниз
+            # - платформа ДОЛЖНА двигаться к точке падения мяча
+            optimal_x = self.get_optimal_paddle_position()
+            
+            # КРИТИЧНО: Проверяем, что optimal_x валиден
+            if optimal_x is None:
+                # Если не удалось рассчитать позицию, используем fallback
+                return self._fallback_movement(current_x)
+
+            # Проверяем зацикливание и при необходимости меняем стратегию
+            # НО ТОЛЬКО если целевая позиция НЕ установлена
+            if not self.separation_zone_tracker.get("target_position_set", False):
+                self._change_strategy_if_looping()
+                if self.loop_prevention_system["strategy_change_cooldown"] == 0:
+                    optimal_x = self._apply_alternative_strategy(optimal_x)
+                    # Проверяем, что альтернативная стратегия тоже валидна
+                    if optimal_x is None:
+                        return self._fallback_movement(current_x)
+
+            # Допуск по точности позиционирования
+            precision_tolerance = 2
+            # Проверяем дрожание и применяем штрафы
+            jitter_detected = self._detect_jitter()
+            if jitter_detected:
+                # Увеличиваем допуск для уменьшения дрожания
+                precision_tolerance = max(5, precision_tolerance + 2)
+                # Увеличиваем штраф за дрожание
+                self.smoothness_system["smoothness_penalty"] = min(
+                    1.0, self.smoothness_system["smoothness_penalty"] + 0.1
+                )
+            else:
+                # Уменьшаем штраф при плавном движении
+                self.smoothness_system["smoothness_penalty"] = max(
+                    0.0, self.smoothness_system["smoothness_penalty"] - 0.05
+                )
+
+            # Допуск по точности позиционирования (учитываем штраф за дрожание)
+            base_precision_tolerance = 2
+            precision_tolerance = base_precision_tolerance + int(
+                self.smoothness_system["smoothness_penalty"] * 3
+            )
+
+            # Увеличиваем допуск, когда мяч движется вниз и траектория известна
+            if self.current_game_state:
+                ball_vel_y = (
+                    self.current_game_state.ball_velocity.y
+                    if hasattr(self.current_game_state, "ball_velocity")
+                    else 0
+                )
+                ball_y = self.current_game_state.ball_position.y
+                paddle_zone_start = self.screen_height - 60
+                separation_zone_start = self.separation_zone_tracker.get("separation_zone_start", 226)
+                in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
+
+                # КРИТИЧНО: НЕ увеличиваем допуск слишком сильно, иначе платформа не будет двигаться
+                # Если мяч движется вниз и уже ниже кубиков - используем умеренный допуск
+                if ball_vel_y > 0 and ball_y > 250:  # Мяч движется вниз и ниже кубиков
+                    # Используем умеренный допуск (5-10 пикселей), чтобы платформа могла двигаться
+                    # Только если платформа УЖЕ очень близко к цели (менее 5 пикселей) - не двигаемся
+                    if abs(optimal_x - current_x) < 5:
+                        precision_tolerance = max(precision_tolerance, 5)  # Очень близко - не двигаемся
+                    else:
+                        # Платформа еще не достигла цели - используем минимальный допуск для движения
+                        precision_tolerance = max(precision_tolerance, 2)  # Минимальный допуск
+
+            distance_to_optimal = abs(optimal_x - current_x)
+
+            # Поощряем минимальные движения - если расстояние очень мало, не двигаемся
+            min_movement_distance = self.smoothness_system["min_movement_distance"]
+            
+            # КРИТИЧНО: Убрана проверка ball_approaching_quickly - она вызывала дергание
+            # В зоне разделения с установленной целевой позицией платформа просто движется к цели и останавливается
+            
+            if distance_to_optimal < min_movement_distance:
+                # Если расстояние меньше минимального, проверяем, стоит ли двигаться
+                if distance_to_optimal <= precision_tolerance:
+                    movement = 0
+                    # Поощряем точное позиционирование
+                    self.smoothness_system["consecutive_stops"] += 1
+                    if self.smoothness_system["consecutive_stops"] > 3:
+                        # Уменьшаем штраф за хорошее позиционирование
+                        self.smoothness_system["smoothness_penalty"] = max(
+                            0.0, self.smoothness_system["smoothness_penalty"] - 0.1
+                        )
+                    # Сохраняем базовую скорость, так как не двигаемся
+                    self._last_adjusted_paddle_speed = paddle_speed
+                else:
+                    # Двигаемся только если действительно нужно
+                    movement = self._calculate_smooth_movement(
+                        current_x, optimal_x, distance_to_optimal
+                    )
+                    # Сохраняем базовую скорость для этого случая
+                    self._last_adjusted_paddle_speed = paddle_speed
+            elif distance_to_optimal <= precision_tolerance:
+                movement = 0
+                self.smoothness_system["consecutive_stops"] += 1
+                # Сохраняем базовую скорость, так как не двигаемся
+                self._last_adjusted_paddle_speed = paddle_speed
+            else:
+                self.smoothness_system["consecutive_stops"] = 0
+                # Адаптивная скорость от системы обучения
+                if self.current_game_state:
+                    ball_speed = self.current_game_state.ball_speed
+                    distance_to_target = distance_to_optimal
+
+                    # Рассчитываем время до встречи с мячом для более агрессивного увеличения скорости
+                    time_to_meeting = float("inf")
+                    ball_vel_y = (
+                        self.current_game_state.ball_velocity.y
+                        if hasattr(self.current_game_state, "ball_velocity")
+                        else 0
+                    )
+                    if ball_vel_y > 0:  # Мяч движется вниз
+                        ball_y = self.current_game_state.ball_position.y
+                        paddle_y = self.current_game_state.paddle_position.y
+                        distance_y = paddle_y - ball_y
+                        if distance_y > 0:
+                            time_to_meeting = distance_y / ball_vel_y
+
+                    speed_multiplier = self.learning_system.get_adaptive_paddle_speed(
+                        ball_speed, distance_to_target
+                    )
+
+                    # Если мяч быстро приближается, агрессивно увеличиваем скорость
+                    if time_to_meeting != float("inf") and time_to_meeting > 0:
+                        # Чем меньше времени до встречи, тем выше должна быть скорость
+                        if time_to_meeting < 30:  # Менее 30 кадров (0.5 сек при 60 FPS)
+                            urgency_factor = 30.0 / max(time_to_meeting, 1)
+                            speed_multiplier *= min(
+                                urgency_factor, 3.0
+                            )  # До 3x дополнительного ускорения
+                        elif time_to_meeting < 60:  # Менее 60 кадров (1 сек)
+                            urgency_factor = 60.0 / max(time_to_meeting, 1)
+                            speed_multiplier *= min(
+                                urgency_factor, 2.0
+                            )  # До 2x дополнительного ускорения
+
+                    # КРИТИЧНО: Увеличиваем базовую скорость платформы в 10 раз
+                    # Платформа не может не успеть - скорость задает сам алгоритм
+                    base_speed_multiplier = 10.0  # Увеличиваем базовую скорость в 10 раз
+                    
+                    # Ограничиваем минимальный множитель скорости, чтобы платформа не двигалась слишком медленно
+                    # AI может увеличивать скорость до 10x для достижения цели (в дополнение к базовому 10x)
+                    max_multiplier = 10.0  # Дополнительный множитель до 10x
+                    speed_multiplier = max(0.8, min(max_multiplier, speed_multiplier))
+                    adjusted_paddle_speed = int(paddle_speed * base_speed_multiplier)  # ИСПРАВЛЕНО: убрано двойное умножение
+                    # Гарантируем минимальную скорость платформы
+                    adjusted_paddle_speed = max(
+                        int(paddle_speed * 0.8), adjusted_paddle_speed
+                    )
+                    self._last_paddle_speed_multiplier = speed_multiplier
+                    # Сохраняем для использования в PyGameBall.py
+                    self._last_adjusted_paddle_speed = adjusted_paddle_speed
+                else:
+                    adjusted_paddle_speed = paddle_speed
+
+                # Сохраняем для использования в PyGameBall.py
+                self._last_adjusted_paddle_speed = adjusted_paddle_speed
+
+                movement = self.position_optimizer.calculate_paddle_movement(
+                    current_x, optimal_x, adjusted_paddle_speed
+                )
+
+                # Если расчёт не даёт движения, но мы не на месте — fallback
+                if movement == 0 and optimal_x != current_x:
+                    movement = self._fallback_movement(current_x)
+
+            # Обновляем данные по зацикливанию
+            self._update_loop_tracking(movement, current_x, optimal_x)
+            
+            # Обновляем данные по плавности движения
+            self._update_smoothness_tracking(movement, current_x)
+
+            # Логирование движения
+            if movement != 0:
+                reason = (
+                    "ball_tracking"
+                    if not self.is_ball_moving_towards_paddle()
+                    else "trajectory_optimization"
+                )
+                confidence = self._calculate_decision_confidence(optimal_x)
+                self.performance_logger.log_paddle_movement(
+                    from_x=current_x,
+                    to_x=current_x + movement * paddle_speed,
+                    reason=reason,
+                    confidence=confidence,
+                )
+
+            # Статистика по ходам
+            self.current_game_stats["total_moves"] += 1
+            if abs(optimal_x - current_x) < 10:
+                self.current_game_stats["optimal_moves"] += 1
+
+            # Учитываем плавность движения в обучении
+            if movement != 0:
+                # Штрафуем за дрожание при обучении
+                if self.smoothness_system["smoothness_penalty"] > 0.5:
+                    # Высокий штраф за дрожание - это плохое поведение
+                    jitter_penalty = {
+                        "action_type": "movement_jitter",
+                        "success": False,
+                        "penalty": self.smoothness_system["smoothness_penalty"],
+                        "movement_distance": abs(optimal_x - current_x),
+                    }
+                    # Можно добавить в систему обучения для улучшения поведения
+                    # self.learning_system.update_strategy(jitter_penalty)
+
+            return movement
+
+        except Exception as e:
+            # Не выводим в exe файле
+            import sys
+
+            if not getattr(sys, "frozen", False):
+                print(f"Ошибка при движении платформы: {e}")
+            return self._fallback_movement(current_x)
+
+    def _fallback_movement(self, current_x: int) -> int:
         """
-        Вычисляет точку падения мяча на платформу с учетом отскоков от стен.
-        
+        Резервное движение платформы — улучшенное следование за мячом.
+
         Args:
-            ball_x: Текущая X-координата мяча
-            ball_y: Текущая Y-координата мяча
-            vel_x: Скорость мяча по X
-            vel_y: Скорость мяча по Y
-            paddle_y: Y-координата платформы
-            
+            current_x: Текущая X-координата платформы.
+
         Returns:
-            X-координата точки падения мяча
+            Смещение платформы (-1, 0, 1).
         """
-        if vel_y <= 0:
-            # Мяч движется вверх - просто следуем за ним
-            return ball_x
-        
-        # Время до падения на платформу
-        time_to_paddle = (paddle_y - ball_y) / vel_y if vel_y > 0 else 0
-        
-        if time_to_paddle <= 0:
-            return ball_x
-        
-        # Предсказываем точку пересечения без учета стен
-        predicted_x = ball_x + vel_x * time_to_paddle
-        
-        # Учитываем отскоки от стен
-        ball_radius = 8
-        screen_width = self.screen_width
-        current_vel_x = vel_x
-        
-        # Моделируем отскоки от стен
-        remaining_time = time_to_paddle
-        current_x = ball_x
-        
-        while remaining_time > 0 and abs(current_vel_x) > 0.01:
-            # Время до следующего отскока от стены
-            if current_vel_x > 0:
-                # Движение вправо
-                time_to_right_wall = (screen_width - ball_radius - current_x) / current_vel_x if current_vel_x > 0 else float('inf')
-                time_to_left_wall = float('inf')
+        if not self.current_game_state:
+            return 0
+
+        ball_x = self.current_game_state.ball_position.x
+        ball_y = self.current_game_state.ball_position.y
+        vel_x = self.current_game_state.ball_velocity.x
+        vel_y = self.current_game_state.ball_velocity.y
+        paddle_y = self.current_game_state.paddle_position.y
+
+        # Если мяч падает — предсказываем точку встречи с платформой
+        if vel_y > 0:
+            time_to_paddle = (paddle_y - ball_y) / vel_y if vel_y != 0 else 0
+            if time_to_paddle > 0:
+                predicted_x = ball_x + vel_x * time_to_paddle
+
+                screen_width = self.screen_width
+                ball_radius = 8
+
+                # Простое моделирование отскоков
+                while (
+                    predicted_x < ball_radius
+                    or predicted_x > screen_width - ball_radius
+                ):
+                    if predicted_x < ball_radius:
+                        predicted_x = 2 * ball_radius - predicted_x
+                        vel_x = abs(vel_x)
+                    elif predicted_x > screen_width - ball_radius:
+                        predicted_x = 2 * (screen_width - ball_radius) - predicted_x
+                        vel_x = -abs(vel_x)
+                target_x = predicted_x
             else:
-                # Движение влево
-                time_to_left_wall = (ball_radius - current_x) / current_vel_x if current_vel_x < 0 else float('inf')
-                time_to_right_wall = float('inf')
-            
-            time_to_wall = min(time_to_left_wall, time_to_right_wall)
-            
-            if time_to_wall > remaining_time:
-                # Мяч достигнет платформы до отскока от стены
-                current_x += current_vel_x * remaining_time
-                break
+                target_x = ball_x
+        else:
+            # Мяч движется вверх — следим с небольшим упреждением
+            prediction_factor = abs(vel_x) * 2
+            if vel_x > 0:
+                target_x = ball_x + prediction_factor
+            elif vel_x < 0:
+                target_x = ball_x - prediction_factor
             else:
-                # Мяч отскочит от стены
-                current_x += current_vel_x * time_to_wall
-                remaining_time -= time_to_wall
-                current_vel_x = -current_vel_x  # Отскок
-        
-        # Ограничиваем границами экрана
-        min_x = self.paddle_width // 2
-        max_x = screen_width - self.paddle_width // 2
-        return max(min_x, min(max_x, current_x))
+                target_x = ball_x
+
+        distance = target_x - current_x
+        tolerance = 3
+
+        if abs(distance) <= tolerance:
+            return 0
+        return 1 if distance > 0 else -1
 
     # ==========================
     # Оценка уверенности и давление по времени
     # ==========================
 
-    def _is_time_pressure(self) -> bool:
-        """Определяет, есть ли давление по времени/ситуации (мало времени или кубиков)."""
-        if not self.current_game_state:
-            return False
-
-        game_time = self.current_game_state.game_time
-        if game_time > 300:
-            return True
-
-        if len(self.current_game_state.remaining_bricks) <= 5:
-            return True
-
-        return False
-
-    def _is_time_pressure(self) -> bool:
-        """Определяет, есть ли давление по времени/ситуации (мало времени или кубиков)."""
-        if not self.current_game_state:
-            return False
-
-        game_time = self.current_game_state.game_time
-        if game_time > 300:
-            return True
-
-        if len(self.current_game_state.remaining_bricks) <= 5:
-            return True
-
-        return False
-
-    def _calculate_decision_confidence(self, target_position: int) -> float:
-        """
-        Рассчитывает уверенность в принятом решении.
-
-        Args:
-            target_position: Целевая X-позиция платформы.
-
-        Returns:
-            Уровень уверенности (0.0–1.0).
-        """
-        if not self.current_game_state:
-            return 0.5
-
-        confidence = 0.7
-
-        bricks_count = len(self.current_game_state.remaining_bricks)
-        if bricks_count <= 5:
-            confidence += 0.1
-        elif bricks_count >= 20:
-            confidence -= 0.1
-
-        ball_speed = self.current_game_state.ball_speed
-        if ball_speed >= 8:
-            confidence -= 0.1
-        elif ball_speed <= 3:
-            confidence += 0.1
-
-        return max(0.1, min(1.0, confidence))
-
-    # ==========================
-    # Обучение по результату действия
-    # ==========================
-
-    def learn_from_result(self, action_result: Dict[str, Any]) -> None:
-        """
-        Обучает AI-систему на основе результата последнего действия.
-
-        Args:
-            action_result: Словарь с информацией о результате (hit/miss, счёт и т.д.).
-
-        Raises:
-            ValueError: Если action_result не является словарем или пуст.
-        """
-        if not isinstance(action_result, dict):
-            raise ValueError("action_result должен быть словарем")
-
-        if not action_result:
-            raise ValueError("action_result не может быть пустым")
-
-        if not self.current_game_state:
-            return
-
-        enhanced_result = action_result.copy()
-        enhanced_result.update(
-            {
-                "game_state_before": {
-                    "ball_position": {
-                        "x": self.current_game_state.ball_position.x,
-                        "y": self.current_game_state.ball_position.y,
-                    },
-                    "paddle_position": {
-                        "x": self.current_game_state.paddle_position.x,
-                        "y": self.current_game_state.paddle_position.y,
-                    },
-                    "bricks_remaining": len(self.current_game_state.remaining_bricks),
-                    "ball_speed": self.current_game_state.ball_speed,
-                },
-                "trajectory_prediction": self._get_current_trajectory_prediction(),
-            }
-        )
-
-        # Запись результата для системы прицеливания
-        action_type = action_result.get("action_type", "")
-
-        if action_type == "brick_hit":
-            bricks_destroyed = action_result.get("bricks_destroyed", [])
-            for brick in bricks_destroyed:
-                paddle_x = self.current_game_state.paddle_position.x
-                ball_x = self.current_game_state.ball_position.x
-                paddle_offset = (ball_x - paddle_x) / (self.paddle_width / 2)
-                paddle_offset = max(-1.0, min(1.0, paddle_offset))
-                self.record_hit_result(brick, paddle_offset, success=True)
-
-        elif action_type == "paddle_bounce":
-            # Отслеживаем отбития в пустоту
-            bricks_before = enhanced_result.get("game_state_before", {}).get("bricks_remaining", 0)
-            bricks_after = len(self.current_game_state.remaining_bricks) if self.current_game_state else 0
-            
-            # Если количество блоков не изменилось после отскока - это отбитие в пустоту
-            if bricks_before == bricks_after:
-                self.empty_bounce_tracker["consecutive_empty_bounces"] += 1
-                self.empty_bounce_tracker["last_bounce_position"] = self.current_game_state.paddle_position.x
-                self.empty_bounce_tracker["last_bounce_time"] = time.time()
-            else:
-                # Блок был сбит - сбрасываем счетчик
-                self.empty_bounce_tracker["consecutive_empty_bounces"] = 0
-
-        # Передаем результат в систему обучения
-        self.learning_system.learn_from_action(enhanced_result)
-    
     def _is_time_pressure(self) -> bool:
         """Определяет, есть ли давление по времени/ситуации (мало времени или кубиков)."""
         if not self.current_game_state:
@@ -2862,11 +3978,29 @@ class AIPlayer:
 
         if "bricks_destroyed" in action_result:
             bricks_value = action_result["bricks_destroyed"]
-            # bricks_destroyed может быть int (общее количество) или list (список кубиков)
-            if isinstance(bricks_value, int):
-                self.current_game_stats["bricks_destroyed"] += bricks_value
-            elif isinstance(bricks_value, list):
-                self.current_game_stats["bricks_destroyed"] += len(bricks_value)
+            # КРИТИЧНО: Если это окончание игры (game_end), устанавливаем значение напрямую, а не накапливаем
+            # Это предотвращает неправильный подсчет при повторных вызовах
+            if action_result.get("action_type") == "game_end":
+                # При окончании игры bricks_destroyed - это общее количество за всю игру
+                if isinstance(bricks_value, int):
+                    # КРИТИЧНО: Ограничиваем значение максимумом кубиков в игре (50)
+                    # Это предотвращает отображение неправильных значений (например, 70 вместо 50)
+                    max_bricks = 50  # Максимальное количество кубиков в игре
+                    self.current_game_stats["bricks_destroyed"] = min(bricks_value, max_bricks)
+                elif isinstance(bricks_value, list):
+                    max_bricks = 50
+                    self.current_game_stats["bricks_destroyed"] = min(len(bricks_value), max_bricks)
+            else:
+                # Для других событий накапливаем значение
+                if isinstance(bricks_value, int):
+                    self.current_game_stats["bricks_destroyed"] += bricks_value
+                elif isinstance(bricks_value, list):
+                    self.current_game_stats["bricks_destroyed"] += len(bricks_value)
+                
+                # КРИТИЧНО: Ограничиваем накопленное значение максимумом кубиков в игре
+                max_bricks = 50
+                if self.current_game_stats["bricks_destroyed"] > max_bricks:
+                    self.current_game_stats["bricks_destroyed"] = max_bricks
 
         self.current_game_stats["total_predictions"] += 1
 
@@ -3241,13 +4375,13 @@ class AIPlayer:
                     print(f"   Комплексная оценка системы: {system_score:.1f}/100")
                     
                     if system_score >= 80:
-                        print(f"   [ОТЛИЧНО] ОТЛИЧНО: Система работает эффективно")
+                        print(f"   [ОТЛИЧНО] Система работает эффективно")
                     elif system_score >= 60:
-                        print(f"   [ХОРОШО] ХОРОШО: Система работает стабильно")
+                        print(f"   [ХОРОШО] Система работает стабильно")
                     elif system_score >= 40:
-                        print(f"   [УДОВЛЕТВОРИТЕЛЬНО] УДОВЛЕТВОРИТЕЛЬНО: Система обучается")
+                        print(f"   [УДОВЛЕТВОРИТЕЛЬНО] Система обучается")
                     else:
-                        print(f"   [ТРЕБУЕТ УЛУЧШЕНИЯ] ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных")
+                        print(f"   [ТРЕБУЕТ УЛУЧШЕНИЯ] Недостаточно данных")
                 else:
                     print(f"   [ВНИМАНИЕ]  Недостаточно данных для комплексной оценки")
             
