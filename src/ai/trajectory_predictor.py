@@ -3,7 +3,7 @@
 """
 
 import pygame
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 import math
 from .game_state import Point, GameState
 
@@ -15,12 +15,19 @@ class TrajectoryPredictor:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.gravity = 0.5  # Гравитация для более реалистичной траектории
+        
+        # Кэш для результатов расчетов траекторий
+        # Ключ: хеш состояния игры, Значение: результат расчета
+        self._trajectory_cache = {}
+        self._intersection_cache = {}
+        self._after_bounce_cache = {}
+        self._cache_max_size = 100  # Максимальный размер кэша
 
     def predict_trajectory(
         self, game_state: GameState, max_points: int = 50
     ) -> List[Point]:
         """
-        Предсказывает траекторию мяча
+        Предсказывает траекторию мяча с кэшированием результатов
 
         Args:
             game_state: Текущее состояние игры
@@ -29,6 +36,13 @@ class TrajectoryPredictor:
         Returns:
             Список точек траектории
         """
+        # Создаем ключ кэша на основе состояния игры
+        cache_key = self._create_cache_key(game_state, max_points)
+        
+        # Проверяем кэш
+        if cache_key in self._trajectory_cache:
+            return self._trajectory_cache[cache_key]
+        
         trajectory = []
         current_pos = Point(game_state.ball_position.x, game_state.ball_position.y)
         current_vel = Point(game_state.ball_velocity.x, game_state.ball_velocity.y)
@@ -61,13 +75,16 @@ class TrajectoryPredictor:
             if next_y >= self.screen_height:
                 break
 
+        # Сохраняем в кэш
+        self._cache_result(self._trajectory_cache, cache_key, trajectory)
+        
         return trajectory
 
     def predict_paddle_intersection(
         self, game_state: GameState, paddle_y: float
     ) -> Optional[Point]:
         """
-        Предсказывает точку пересечения мяча с платформой (улучшенная версия)
+        Предсказывает точку пересечения мяча с платформой (улучшенная версия) с кэшированием
 
         Args:
             game_state: Текущее состояние игры
@@ -78,6 +95,13 @@ class TrajectoryPredictor:
         """
         if game_state.ball_velocity.y <= 0:
             return None  # Мяч не падает
+        
+        # Создаем ключ кэша
+        cache_key = self._create_intersection_cache_key(game_state, paddle_y)
+        
+        # Проверяем кэш
+        if cache_key in self._intersection_cache:
+            return self._intersection_cache[cache_key]
 
         # Получаем текущие параметры
         ball_x = game_state.ball_position.x
@@ -119,13 +143,18 @@ class TrajectoryPredictor:
             if sim_time > time_to_paddle * 3:
                 break
 
-        return Point(sim_x, paddle_y)
+        result = Point(sim_x, paddle_y)
+        
+        # Сохраняем в кэш
+        self._cache_result(self._intersection_cache, cache_key, result)
+        
+        return result
 
     def predict_after_bounce_trajectory(
         self, game_state: GameState, bounce_point: Point, bounce_x: float
     ) -> List[Point]:
         """
-        Предсказывает траекторию мяча после отскока от платформы
+        Предсказывает траекторию мяча после отскока от платформы с кэшированием
 
         Args:
             game_state: Текущее состояние игры
@@ -135,6 +164,13 @@ class TrajectoryPredictor:
         Returns:
             Траектория после отскока
         """
+        # Создаем ключ кэша
+        cache_key = self._create_after_bounce_cache_key(game_state, bounce_point, bounce_x)
+        
+        # Проверяем кэш
+        if cache_key in self._after_bounce_cache:
+            return self._after_bounce_cache[cache_key]
+        
         # Рассчитываем новую скорость после отскока
         new_vel_x = self._calculate_bounce_velocity_x(game_state, bounce_x)
         new_vel_y = -abs(
@@ -154,7 +190,12 @@ class TrajectoryPredictor:
         )
 
         # Предсказываем траекторию после отскока
-        return self.predict_trajectory(after_bounce_state, max_points=30)
+        trajectory = self.predict_trajectory(after_bounce_state, max_points=30)
+        
+        # Сохраняем в кэш
+        self._cache_result(self._after_bounce_cache, cache_key, trajectory)
+        
+        return trajectory
 
     def _calculate_bounce_velocity_x(
         self, game_state: GameState, bounce_x: float
@@ -236,7 +277,8 @@ class TrajectoryPredictor:
         self, trajectory: List[Point], bricks: List[pygame.Rect]
     ) -> float:
         """
-        Оценивает эффективность траектории по количеству кубиков, в которые попадет мяч
+        Оценивает эффективность траектории по количеству кубиков, в которые попадет мяч.
+        Использует точные координаты кубиков для более точной оценки.
 
         Args:
             trajectory: Траектория мяча
@@ -246,16 +288,53 @@ class TrajectoryPredictor:
             Оценка эффективности (больше = лучше)
         """
         hit_count = 0
+        hit_bricks = set()
+        ball_radius = 8  # Радиус мяча
 
         for point in trajectory:
+            if not hasattr(point, "x") or not hasattr(point, "y"):
+                continue
+
             # Проверяем пересечение с каждым кубиком
             for brick in bricks:
+                brick_id = id(brick)
+                if brick_id in hit_bricks:
+                    continue
+
+                # Точные границы кубика
+                brick_left = getattr(
+                    brick, "left", brick.x if hasattr(brick, "x") else 0
+                )
+                brick_right = getattr(
+                    brick, "right", brick_left + getattr(brick, "width", 60)
+                )
+                brick_top = getattr(brick, "top", brick.y if hasattr(brick, "y") else 0)
+                brick_bottom = getattr(
+                    brick, "bottom", brick_top + getattr(brick, "height", 20)
+                )
+
+                # Точная проверка пересечения мяча (с учетом радиуса) с границами кубика
                 if (
-                    brick.left <= point.x <= brick.right
-                    and brick.top <= point.y <= brick.bottom
+                    brick_left - ball_radius <= point.x <= brick_right + ball_radius
+                    and brick_top - ball_radius <= point.y <= brick_bottom + ball_radius
                 ):
-                    hit_count += 1
-                    break  # Считаем только первое попадание в кубик
+                    # Дополнительная проверка: мяч действительно попадает в кубик
+                    center_in_brick = (
+                        brick_left <= point.x <= brick_right
+                        and brick_top <= point.y <= brick_bottom
+                    )
+
+                    # Проверяем расстояние от центра мяча до ближайшей точки кубика
+                    closest_x = max(brick_left, min(point.x, brick_right))
+                    closest_y = max(brick_top, min(point.y, brick_bottom))
+                    distance_to_brick = math.sqrt(
+                        (point.x - closest_x) ** 2 + (point.y - closest_y) ** 2
+                    )
+
+                    if center_in_brick or distance_to_brick <= ball_radius:
+                        hit_count += 1
+                        hit_bricks.add(brick_id)
+                        break  # Считаем только первое попадание в кубик
 
         return hit_count
 
@@ -283,3 +362,46 @@ class TrajectoryPredictor:
         # Рисуем точки траектории
         # for point in trajectory[::5]:  # Рисуем каждую 5-ю точку
         #     pygame.draw.circle(screen, color, (int(point.x), int(point.y)), 3)
+    
+    def _create_cache_key(self, game_state: GameState, max_points: int) -> str:
+        """Создает ключ кэша для траектории"""
+        # Используем ключевые параметры состояния игры
+        ball_x = round(game_state.ball_position.x / 5) * 5  # Округляем для группировки
+        ball_y = round(game_state.ball_position.y / 5) * 5
+        vel_x = round(game_state.ball_velocity.x)
+        vel_y = round(game_state.ball_velocity.y)
+        return f"traj_{ball_x}_{ball_y}_{vel_x}_{vel_y}_{max_points}"
+    
+    def _create_intersection_cache_key(self, game_state: GameState, paddle_y: float) -> str:
+        """Создает ключ кэша для пересечения с платформой"""
+        ball_x = round(game_state.ball_position.x / 5) * 5
+        ball_y = round(game_state.ball_position.y / 5) * 5
+        vel_x = round(game_state.ball_velocity.x)
+        vel_y = round(game_state.ball_velocity.y)
+        paddle_y_rounded = round(paddle_y / 5) * 5
+        return f"intersect_{ball_x}_{ball_y}_{vel_x}_{vel_y}_{paddle_y_rounded}"
+    
+    def _create_after_bounce_cache_key(self, game_state: GameState, bounce_point: Point, bounce_x: float) -> str:
+        """Создает ключ кэша для траектории после отскока"""
+        bounce_x_rounded = round(bounce_point.x / 5) * 5
+        bounce_y_rounded = round(bounce_point.y / 5) * 5
+        bounce_x_pos = round(bounce_x / 5) * 5
+        vel_y = round(game_state.ball_velocity.y)
+        return f"after_bounce_{bounce_x_rounded}_{bounce_y_rounded}_{bounce_x_pos}_{vel_y}"
+    
+    def _cache_result(self, cache_dict: dict, key: str, value: Any) -> None:
+        """Сохраняет результат в кэш с ограничением размера"""
+        # Если кэш переполнен, удаляем старые записи
+        if len(cache_dict) >= self._cache_max_size:
+            # Удаляем 20% старых записей
+            keys_to_remove = list(cache_dict.keys())[:self._cache_max_size // 5]
+            for k in keys_to_remove:
+                del cache_dict[k]
+        
+        cache_dict[key] = value
+    
+    def clear_cache(self) -> None:
+        """Очищает все кэши"""
+        self._trajectory_cache.clear()
+        self._intersection_cache.clear()
+        self._after_bounce_cache.clear()

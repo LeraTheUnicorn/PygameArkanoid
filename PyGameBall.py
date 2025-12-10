@@ -62,6 +62,11 @@ BRICK_OFFSET_TOP = 60
 
 MAX_LIVES = 3  # Максимальное количество жизней
 
+# Зона разделения - область между кубиками и платформой
+# Платформа должна двигаться только когда мяч находится в этой зоне и движется вниз
+SEPARATION_ZONE_TOP = 226  # Верхняя граница зоны разделения
+SEPARATION_ZONE_BOTTOM = 540  # Нижняя граница зоны разделения (высота платформы)
+
 
 def generate_tone_sound(
     frequency: float, duration: float, sample_rate: int = 44100, volume: float = 0.3
@@ -1371,16 +1376,29 @@ def main() -> None:
                         if ball.get_speed() > 20:
                             base_speed = int(base_speed * (ball.get_speed() / 20.0))
 
-                    # Используем AI систему для автоматического управления
-                    movement = ai_player.move_paddle_towards(
-                        paddle.rect.centerx, int(base_speed)
+                    # КРИТИЧНО: Платформа двигается только когда мяч в зоне разделения и движется вниз
+                    # Правила работы:
+                    # 1. Мяч улетает (вверх) - платформа стоит на месте
+                    # 2. Мяч в зоне кубиков (выше зоны разделения) - платформа стоит на месте
+                    # 3. Мяч падает вниз и вошел в зону разделения - платформа двигается к точке падения
+                    ball_in_separation_zone = (
+                        SEPARATION_ZONE_TOP <= ball.rect.centery <= SEPARATION_ZONE_BOTTOM
+                        and ball.vel_y > 0  # Мяч движется вниз
                     )
-                    # Получаем скорректированную скорость от AI (с учетом адаптации)
-                    adjusted_speed = ai_player.get_adjusted_paddle_speed(
-                        int(base_speed)
-                    )
-                    # Применяем движение с правильной скоростью
-                    paddle.rect.x += movement * adjusted_speed
+                    
+                    if ball_in_separation_zone:
+                        # Используем AI систему для автоматического управления
+                        movement = ai_player.move_paddle_towards(
+                            paddle.rect.centerx, int(base_speed)
+                        )
+                        # Получаем скорректированную скорость от AI (с учетом адаптации)
+                        adjusted_speed = ai_player.get_adjusted_paddle_speed(
+                            int(base_speed)
+                        )
+                        # Применяем движение с правильной скоростью
+                        paddle.rect.x += movement * adjusted_speed
+                    # Если мяч не в зоне разделения - платформа остается на месте (movement = 0)
+                    
                     # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
                     paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
                     min_center_x = paddle_half_width
@@ -1938,10 +1956,71 @@ def main() -> None:
                     # КРИТИЧНО: Проверяем потерю мяча ПОСЛЕ проверки столкновения с платформой
                     # Если мяч ниже верхней границы платформы И не было столкновения - он потерян
                     if ball.rect.bottom > paddle.rect.top and not ball_hits_paddle_top:
-                        # КРИТИЧНО: Логируем потерю мяча
+                        # КРИТИЧНО: Подробное логирование потери мяча для диагностики
                         if auto_mode or training_mode:
                             if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Мяч потерян (ball.rect.bottom={ball.rect.bottom} > paddle.rect.top={paddle.rect.top})! lives_left={lives_left}")
+                                # Получаем информацию о состоянии для диагностики
+                                ball_x = ball.rect.centerx
+                                ball_y = ball.rect.centery
+                                ball_bottom = ball.rect.bottom
+                                paddle_x = paddle.rect.centerx
+                                paddle_top = paddle.rect.top
+                                paddle_left = paddle.rect.left
+                                paddle_right = paddle.rect.right
+                                ball_vel_x = ball.vel_x
+                                ball_vel_y = ball.vel_y
+                                ball_speed = ball.get_speed()
+                                
+                                # Получаем информацию от AI о целевой позиции
+                                optimal_x = ai_player.get_optimal_paddle_position() if hasattr(ai_player, 'get_optimal_paddle_position') else paddle_x
+                                distance_to_optimal = abs(paddle_x - optimal_x) if optimal_x is not None else 0
+                                
+                                # Получаем информацию о зонах
+                                separation_zone_start = ai_player.separation_zone_tracker.get("separation_zone_start", 226) if hasattr(ai_player, 'separation_zone_tracker') else 226
+                                paddle_zone_start = ai_player.separation_zone_tracker.get("paddle_zone_start", 540) if hasattr(ai_player, 'separation_zone_tracker') else 540
+                                
+                                # Получаем информацию о скорости платформы
+                                base_speed = PADDLE_SPEED
+                                adjusted_speed = ai_player.get_adjusted_paddle_speed(base_speed) if hasattr(ai_player, 'get_adjusted_paddle_speed') else base_speed
+                                
+                                # Рассчитываем, где должна была быть платформа
+                                ball_was_in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start
+                                
+                                # Рассчитываем расстояние от мяча до платформы по горизонтали
+                                horizontal_distance = abs(ball_x - paddle_x)
+                                
+                                # Определяем, в какую зону относительно платформы находится мяч
+                                # ВАЖНО: Это НЕ означает, что мяч ударился о платформу!
+                                # Это показывает, где находится мяч относительно платформы
+                                paddle_zone_size = PADDLE_WIDTH / 3
+                                ball_offset_from_paddle_center = ball_x - paddle_x
+                                if ball_offset_from_paddle_center < -paddle_zone_size:
+                                    ball_zone = "LEFT (слева от платформы)"
+                                elif ball_offset_from_paddle_center > paddle_zone_size:
+                                    ball_zone = "RIGHT (справа от платформы)"
+                                else:
+                                    ball_zone = "CENTER (над платформой)"
+                                
+                                # Проверяем, действительно ли мяч попал в платформу
+                                ball_hit_paddle = (paddle_left <= ball_x <= paddle_right and 
+                                                  ball_bottom >= paddle_top and 
+                                                  ball_bottom <= paddle_top + 5)
+                                
+                                print(f"[BALL LOST] ========== ДИАГНОСТИКА ПОТЕРИ МЯЧА ==========")
+                                print(f"  Мяч: pos=({ball_x:.1f}, {ball_y:.1f}) bottom={ball_bottom:.1f} vel=({ball_vel_x:.1f}, {ball_vel_y:.1f}) speed={ball_speed:.1f}")
+                                print(f"  Платформа: center_x={paddle_x:.1f} top={paddle_top:.1f} left={paddle_left:.1f} right={paddle_right:.1f}")
+                                print(f"  Расстояние: horizontal={horizontal_distance:.1f}px vertical={ball_bottom - paddle_top:.1f}px")
+                                print(f"  Мяч относительно платформы: {ball_zone} (offset={ball_offset_from_paddle_center:.1f}px)")
+                                print(f"  Мяч ударился о платформу: {ball_hit_paddle} (если False - мяч пролетел мимо)")
+                                print(f"  Целевая позиция AI: optimal_x={optimal_x:.1f} distance_to_optimal={distance_to_optimal:.1f}px")
+                                print(f"  Скорость платформы: base={base_speed} adjusted={adjusted_speed}")
+                                print(f"  Зоны: separation_start={separation_zone_start} paddle_start={paddle_zone_start} ball_was_in_zone={ball_was_in_separation_zone}")
+                                print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.get('target_position_set', False) if hasattr(ai_player, 'separation_zone_tracker') else False}")
+                                if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get('target_position'):
+                                    target_pos = ai_player.separation_zone_tracker.get('target_position')
+                                    print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
+                                print(f"  Жизни: {lives_left}")
+                                print(f"========================================================")
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
                         # Мяч ниже верхней границы платформы и не отскочил - он потерян
