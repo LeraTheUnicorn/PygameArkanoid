@@ -2780,8 +2780,8 @@ class AIPlayer:
                     return 0
                 
                 # КРИТИЧНО: В зоне разделения останавливаемся только если ОЧЕНЬ близко к цели
-                # Уменьшено до 2 пикселей для более точного позиционирования
-                if distance_to_target <= 2:
+                # Увеличено до 10 пикселей для предотвращения дрожания
+                if distance_to_target <= 10:
                     self.separation_zone_tracker["paddle_reached_target"] = True
                     # КРИТИЧНО: Логируем для диагностики
                     import sys
