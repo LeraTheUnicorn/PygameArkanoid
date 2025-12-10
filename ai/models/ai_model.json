@@ -3840,7 +3840,7 @@
     "27_3_27_3_28_4": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "30_3_30_3_31_4": {
       "accuracy_scores": [],
@@ -6225,7 +6225,7 @@
     "20_26_20_27_20_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 11
+      "pattern_frequency": 12
     },
     "1_26_0_27_0_27": {
       "accuracy_scores": [],
@@ -6500,7 +6500,7 @@
     "14_26_14_27_14_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 16
+      "pattern_frequency": 17
     },
     "33_26_33_27_34_27": {
       "accuracy_scores": [],
@@ -6570,7 +6570,7 @@
     "39_26_39_27_40_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 4
+      "pattern_frequency": 6
     },
     "20_9_20_9_20_10": {
       "accuracy_scores": [],
@@ -6580,7 +6580,7 @@
     "28_26_28_27_29_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "30_7_30_8_30_8": {
       "accuracy_scores": [],
@@ -6940,7 +6940,7 @@
     "20_26_20_27_21_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 4
+      "pattern_frequency": 5
     },
     "10_26_10_27_10_27": {
       "accuracy_scores": [],
@@ -7220,7 +7220,7 @@
     "10_7_10_7_10_8": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 4
+      "pattern_frequency": 6
     },
     "2_27_3_27_3_27": {
       "accuracy_scores": [],
@@ -7335,7 +7335,7 @@
     "34_8_34_8_34_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 5
+      "pattern_frequency": 9
     },
     "24_7_24_7_23_7": {
       "accuracy_scores": [],
@@ -7360,7 +7360,7 @@
     "14_8_14_9_14_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 4
+      "pattern_frequency": 5
     },
     "13_7_13_7_13_8": {
       "accuracy_scores": [],
@@ -7710,7 +7710,7 @@
     "15_8_15_9_16_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "22_7_22_7_23_8": {
       "accuracy_scores": [],
@@ -7750,7 +7750,7 @@
     "12_26_12_27_11_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "1_26_2_27_2_27": {
       "accuracy_scores": [],
@@ -7765,7 +7765,7 @@
     "28_26_27_27_27_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 25
+      "pattern_frequency": 27
     },
     "11_26_11_27_10_27": {
       "accuracy_scores": [],
@@ -8100,7 +8100,7 @@
     "25_26_25_27_24_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "38_26_39_27_39_27": {
       "accuracy_scores": [],
@@ -8335,7 +8335,7 @@
     "16_5_16_6_16_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 4
+      "pattern_frequency": 5
     },
     "35_26_35_27_36_27": {
       "accuracy_scores": [],
@@ -8780,7 +8780,7 @@
     "31_4_30_4_30_5": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "25_2_25_3_24_4": {
       "accuracy_scores": [],
@@ -9600,7 +9600,7 @@
     "17_5_16_5_16_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "28_26_29_27_29_27": {
       "accuracy_scores": [],
@@ -17290,7 +17290,7 @@
     "33_5_34_6_34_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "36_6_36_6_37_7": {
       "accuracy_scores": [],
@@ -19135,7 +19135,7 @@
     "7_26_8_27_8_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 5
+      "pattern_frequency": 7
     },
     "23_9_23_10_24_10": {
       "accuracy_scores": [],
@@ -19150,7 +19150,7 @@
     "24_5_24_6_24_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 5
+      "pattern_frequency": 6
     },
     "3_8_3_9_4_9": {
       "accuracy_scores": [],
@@ -19465,7 +19465,7 @@
     "31_6_30_6_30_7": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "12_27_12_27_11_27": {
       "accuracy_scores": [],
@@ -19660,7 +19660,7 @@
     "20_5_20_6_20_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 5
+      "pattern_frequency": 6
     },
     "27_4_27_4_27_5": {
       "accuracy_scores": [],
@@ -19825,7 +19825,7 @@
     "14_5_14_6_15_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 4
     },
     "23_27_23_27_24_27": {
       "accuracy_scores": [],
@@ -19840,7 +19840,7 @@
     "18_7_18_7_18_8": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "4_27_4_27_4_27": {
       "accuracy_scores": [],
@@ -19960,7 +19960,7 @@
     "26_5_26_6_26_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "16_9_16_10_17_10": {
       "accuracy_scores": [],
@@ -20205,7 +20205,7 @@
     "38_27_39_27_39_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 5
     },
     "24_10_23_10_23_11": {
       "accuracy_scores": [],
@@ -20700,7 +20700,7 @@
     "17_5_16_5_16_5": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "14_27_14_27_15_27": {
       "accuracy_scores": [],
@@ -20745,7 +20745,7 @@
     "10_26_11_27_11_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "20_6_20_6_19_7": {
       "accuracy_scores": [],
@@ -21305,7 +21305,7 @@
     "14_5_14_6_14_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "23_27_24_27_24_27": {
       "accuracy_scores": [],
@@ -21345,7 +21345,7 @@
     "6_6_6_6_6_7": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 5
     },
     "8_27_9_27_9_27": {
       "accuracy_scores": [],
@@ -21700,7 +21700,7 @@
     "25_5_24_6_24_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "20_5_20_5_20_6": {
       "accuracy_scores": [],
@@ -21750,7 +21750,7 @@
     "34_5_34_6_34_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "27_5_27_6_26_6": {
       "accuracy_scores": [],
@@ -22145,42 +22145,42 @@
     "32_8_31_9_31_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 5
     },
     "10_4_10_5_10_5": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "12_5_12_6_12_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "16_4_16_5_17_5": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "18_5_18_6_19_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "20_4_20_5_21_5": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "26_2_27_3_27_3": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "31_2_31_3_32_3": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 3
     },
     "31_4_30_5_30_5": {
       "accuracy_scores": [],
@@ -22251,12 +22251,142 @@
       "accuracy_scores": [],
       "success_rates": [],
       "pattern_frequency": 1
+    },
+    "13_7_13_7_14_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "26_7_26_8_26_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_6_24_7_23_7": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "22_7_21_8_21_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "26_2_26_3_27_3": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "26_4_25_4_25_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "15_7_14_7_14_8": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "31_5_30_5_30_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "28_5_28_6_27_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "6_26_7_27_7_27": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "21_6_21_6_22_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "13_9_13_10_14_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_5_24_5_23_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "22_5_21_6_21_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 2
+    },
+    "19_5_19_6_18_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "9_26_10_27_10_27": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "3_5_3_6_4_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "6_5_6_5_6_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "8_5_9_6_9_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "10_5_10_6_11_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "13_5_13_5_14_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "16_5_17_6_17_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "23_5_23_6_24_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "27_5_27_6_28_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "30_5_30_6_31_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "34_5_34_6_35_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
     }
   },
   "success_factors": {
     "ball_speed": {
-      "total_cases": 18933,
-      "successful_cases": 18427,
+      "total_cases": 19174,
+      "successful_cases": 18651,
       "factor_values": [
         8,
         8,
@@ -22270,68 +22400,6 @@
         8,
         8,
         8,
-        5,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        5,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
         8,
         8,
         8,
@@ -22402,37 +22470,116 @@
         8,
         8,
         8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
         5,
         8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        5,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        5,
         8
       ]
     },
     "bricks_remaining": {
-      "total_cases": 18933,
-      "successful_cases": 18427,
+      "total_cases": 19174,
+      "successful_cases": 18651,
       "factor_values": [
-        49,
-        48,
-        48,
-        47,
-        49,
-        48,
-        48,
-        47,
-        46,
-        46,
-        45,
-        44,
-        0,
-        49,
-        49,
-        48,
-        47,
-        46,
-        45,
-        44,
-        43,
-        42,
         42,
         41,
         40,
@@ -22463,7 +22610,6 @@
         15,
         14,
         13,
-        12,
         12,
         11,
         10,
@@ -22472,58 +22618,21 @@
         7,
         6,
         5,
+        5,
         4,
+        3,
         0,
         49,
         49,
         48,
+        49,
+        48,
         47,
         46,
-        46,
-        45,
         45,
         44,
         43,
         42,
-        41,
-        40,
-        39,
-        38,
-        37,
-        36,
-        35,
-        34,
-        33,
-        32,
-        31,
-        30,
-        29,
-        28,
-        27,
-        26,
-        25,
-        24,
-        23,
-        22,
-        21,
-        20,
-        19,
-        18,
-        17,
-        16,
-        15,
-        14,
-        13,
-        0,
-        49,
-        49,
-        48,
-        47,
-        47,
-        46,
-        45,
-        44,
-        43,
         42,
         41,
         40,
@@ -22555,15 +22664,153 @@
         14,
         13,
         12,
+        11,
+        10,
+        9,
+        9,
+        8,
         0,
         49,
+        49,
+        48,
+        49,
+        48,
+        47,
+        46,
+        45,
+        44,
+        43,
+        42,
+        42,
+        41,
+        40,
+        39,
+        38,
+        37,
+        36,
+        35,
+        34,
+        33,
+        32,
+        31,
+        30,
+        29,
+        28,
+        27,
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        0,
+        49,
+        48,
+        47,
+        46,
+        45,
+        45,
+        44,
+        43,
+        42,
+        41,
+        41,
+        40,
+        39,
+        38,
+        37,
+        36,
+        35,
+        34,
+        33,
+        32,
+        31,
+        30,
+        29,
+        28,
+        27,
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        0,
         49
       ]
     },
     "paddle_distance": {
-      "total_cases": 18933,
-      "successful_cases": 18427,
+      "total_cases": 19174,
+      "successful_cases": 18651,
       "factor_values": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -22714,19 +22961,144 @@
       ]
     },
     "prediction_confidence": {
-      "total_cases": 18933,
-      "successful_cases": 18427,
+      "total_cases": 19174,
+      "successful_cases": 18651,
       "factor_values": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
         1.0,
         1.0,
         0.0,
         1.0,
         1.0,
         1.0,
-        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
         1.0,
         1.0,
         0.0,
+        1.0,
+        0.5,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
         1.0,
         1.0,
         0.5,
@@ -22735,94 +23107,9 @@
         1.0,
         1.0,
         1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
         0.0,
         1.0,
         1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        0.5,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        0.0,
-        1.0,
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        0.5,
-        1.0,
-        0.0,
         1.0,
         1.0,
         0.0,
@@ -22862,17 +23149,16 @@
         1.0,
         1.0,
         0.5,
-        1.0,
-        0.0
+        1.0
       ]
     }
   },
   "historical_performance": [],
   "learning_stats": {
-    "total_learning_iterations": 18933,
-    "successful_adaptations": 18427,
-    "failed_adaptations": 506,
-    "average_improvement": 0.9733496058784061
+    "total_learning_iterations": 19174,
+    "successful_adaptations": 18651,
+    "failed_adaptations": 523,
+    "average_improvement": 0.9727549217804854
   },
   "success_prediction_model": null,
   "paddle_speed_factors": {
@@ -23061,14 +23347,10 @@
         1.0,
         1.0,
         1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
         1.0
       ],
-      "success_cases": 46,
-      "total_cases": 49
+      "success_cases": 42,
+      "total_cases": 44
     },
     "10": {
       "speed_multipliers": [
@@ -23258,23 +23540,11 @@
         1.0,
         1.0,
         1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
         1.0
       ],
-      "success_cases": 76,
-      "total_cases": 82
+      "success_cases": 44,
+      "total_cases": 47
     }
   },
-  "user_prompt_destruction_control": "",
-  "model_metrics": {
-    "last_accuracy": 1.0,
-    "training_samples": 91,
-    "test_samples": 23,
-    "features_count": 1
-  }
+  "user_prompt_destruction_control": ""
 }
