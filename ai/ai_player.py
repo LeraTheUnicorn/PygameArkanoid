@@ -2787,7 +2787,19 @@ class AIPlayer:
                                     
                                     if use_direct_position:
                                         # Точка падения близко к стене - используем точку падения напрямую
-                                        zone_center_x = predicted_x
+                                        # КРИТИЧНО: Если мяч очень близко (менее 3 кадров), платформа должна доезжать до края зоны
+                                        # Край платформы должен касаться стены для максимального покрытия
+                                        if time_to_paddle < 3:
+                                            # Мяч очень близко - доезжаем до края зоны
+                                            if predicted_x > screen_width / 2:
+                                                # Мяч справа - край платформы касается правой стены
+                                                zone_center_x = screen_width - self.paddle_width // 2
+                                            else:
+                                                # Мяч слева - край платформы касается левой стены
+                                                zone_center_x = self.paddle_width // 2
+                                        else:
+                                            # Мяч не очень близко - используем точку падения напрямую
+                                            zone_center_x = predicted_x
                                         selected_zone = "EDGE"
                                     else:
                                         # КРИТИЧНО: Правильная логика позиционирования для попадания в ЦЕНТР зоны
@@ -3069,6 +3081,25 @@ class AIPlayer:
                             # Мяч очень близко - ВСЕГДА пересчитываем цель для актуального predicted_x
                             new_optimal = self.get_optimal_paddle_position()
                             if new_optimal is not None:
+                                # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров),
+                                # платформа должна доезжать до края зоны (край платформы касается стены)
+                                if is_edge_zone and time_to_paddle < 3:
+                                    # Проверяем, близко ли predicted_x к стене
+                                    screen_width = self.screen_width
+                                    
+                                    # Получаем predicted_x из новой оптимальной позиции
+                                    # Если новая позиция близка к краю экрана, доезжаем до края зоны
+                                    if new_optimal > screen_width / 2:
+                                        # Мяч справа - край платформы касается правой стены
+                                        edge_target = screen_width - self.paddle_width // 2
+                                        # Всегда используем edge_target для правого края, когда мяч очень близко
+                                        new_optimal = edge_target
+                                    else:
+                                        # Мяч слева - край платформы касается левой стены
+                                        edge_target = self.paddle_width // 2
+                                        # Всегда используем edge_target для левого края, когда мяч очень близко
+                                        new_optimal = edge_target
+                                
                                 # Обновляем целевую позицию на актуальный predicted_x
                                 self.separation_zone_tracker["target_position"] = int(new_optimal)
                                 self.separation_zone_tracker["target_position_set"] = True
@@ -3076,17 +3107,54 @@ class AIPlayer:
                                 self.separation_zone_tracker["paddle_reached_target"] = False
                                 target_pos = int(new_optimal)
                                 distance_to_target = abs(current_x - target_pos)
+                            else:
+                                # Если не удалось пересчитать, используем текущую цель
+                                target_pos = self.separation_zone_tracker.get("target_position")
+                                if target_pos is None:
+                                    target_pos = current_x
+                                distance_to_target = abs(current_x - target_pos)
                             
                             # Продолжаем движение к актуальной цели, даже если близко к старой цели
                             # Для EDGE зоны используем меньший порог (2px), для остальных - 3px
-                            min_threshold = 2 if is_edge_zone else 3
-                            if distance_to_target > min_threshold:
-                                pass  # Пропускаем проверку tolerance, продолжаем движение
+                            # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров), НЕ останавливаемся до достижения края
+                            if is_edge_zone and time_to_paddle < 3:
+                                # В EDGE зоне и очень близко - продолжаем движение до края зоны
+                                # Проверяем, достигли ли мы края зоны
+                                screen_width = self.screen_width
+                                # Определяем, к какому краю нужно двигаться
+                                saved_target = self.separation_zone_tracker.get("target_position")
+                                target_to_check = target_pos if target_pos is not None else (saved_target if saved_target is not None else current_x)
+                                
+                                if target_to_check > screen_width / 2:
+                                    # Правый край - проверяем, достигли ли мы правого края
+                                    right_edge = screen_width - self.paddle_width // 2
+                                    if abs(current_x - right_edge) > 2:
+                                        pass  # Продолжаем движение к правому краю
+                                    else:
+                                        # Достигли правого края - останавливаемся
+                                        if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                            self.separation_zone_tracker["paddle_reached_target"] = True
+                                        return 0
+                                else:
+                                    # Левый край - проверяем, достигли ли мы левого края
+                                    left_edge = self.paddle_width // 2
+                                    if abs(current_x - left_edge) > 2:
+                                        pass  # Продолжаем движение к левому краю
+                                    else:
+                                        # Достигли левого края - останавливаемся
+                                        if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                            self.separation_zone_tracker["paddle_reached_target"] = True
+                                        return 0
                             else:
-                                # Очень близко к актуальной цели - останавливаемся
-                                if not self.separation_zone_tracker.get("paddle_reached_target", False):
-                                    self.separation_zone_tracker["paddle_reached_target"] = True
-                                return 0
+                                # Не EDGE зона или мяч не очень близко - используем обычную логику
+                                min_threshold = 2 if is_edge_zone else 3
+                                if distance_to_target > min_threshold:
+                                    pass  # Пропускаем проверку tolerance, продолжаем движение
+                                else:
+                                    # Очень близко к актуальной цели - останавливаемся
+                                    if not self.separation_zone_tracker.get("paddle_reached_target", False):
+                                        self.separation_zone_tracker["paddle_reached_target"] = True
+                                    return 0
                         elif distance_to_target <= tolerance:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
