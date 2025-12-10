@@ -2685,9 +2685,9 @@ class AIPlayer:
                         distance_to_target = abs(current_x - target_pos)
                         
                         # ПРАВИЛО 3.1: Если платформа ОЧЕНЬ близко к цели - НЕ двигаемся
-                        # КРИТИЧНО: Уменьшено до 1 пикселя для максимальной точности
-                        # Используем гистерезис: если уже достигли цели, увеличиваем до 3 пикселей
-                        tolerance = 3 if self.separation_zone_tracker.get("paddle_reached_target", False) else 1
+                        # КРИТИЧНО: Увеличено до 10 пикселей для предотвращения дрожания
+                        # Используем гистерезис: если уже достигли цели, увеличиваем до 15 пикселей
+                        tolerance = 15 if self.separation_zone_tracker.get("paddle_reached_target", False) else 10
                         if distance_to_target <= tolerance:
                             # Устанавливаем флаг, что платформа достигла цели
                             if not self.separation_zone_tracker.get("paddle_reached_target", False):
