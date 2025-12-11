@@ -7,6 +7,8 @@ import math
 import random
 import os
 import json
+import logging
+import sys
 from typing import List, Optional, Dict, Any
 
 import pygame
@@ -28,6 +30,9 @@ class AIPlayer:
     - LearningSystem для обучения на основе опыта
     - PerformanceLogger для логирования и аналитики
     """
+    
+    # Логгер для класса
+    _logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -244,22 +249,14 @@ class AIPlayer:
         Активирует AIPlayer для управления игрой.
         """
         self.is_active = True
-        # Не выводим в exe файле
-        import sys
-
-        if not getattr(sys, "frozen", False):
-            print("[AI DEBUG] AIPlayer активирован. Начинаем управление игрой...")
+        self._logger.info("AIPlayer активирован. Начинаем управление игрой...")
 
     def deactivate(self) -> None:
         """
         Деактивирует AIPlayer.
         """
         self.is_active = False
-        # Не выводим в exe файле
-        import sys
-
-        if not getattr(sys, "frozen", False):
-            print("[AI DEBUG] AIPlayer деактивирован.")
+        self._logger.info("AIPlayer деактивирован.")
 
     # ==========================
     # Обновление состояния игры
@@ -467,7 +464,7 @@ class AIPlayer:
 
             self.targeting_system["visible_targets"] = visible_targets
         except Exception as e:
-            print(f"Ошибка при обновлении видимых целей: {e}")
+            self._logger.warning(f"Ошибка при обновлении видимых целей: {e}", exc_info=True)
             self.targeting_system["visible_targets"] = []
 
     # ==========================
@@ -545,12 +542,10 @@ class AIPlayer:
                 fixed_position = self.separation_zone_tracker.get("target_position")
                 if fixed_position is not None:
                     # КРИТИЧНО: Логируем возврат зафиксированной позиции для отслеживания
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        import random
-                        if random.random() < 0.1:  # Логируем 10% кадров
-                            print(f"[POSITION RETURN] ФЛАГ: Возвращаем зафиксированную позицию БЕЗ пересчета! "
-                                  f"target_position={fixed_position:.1f}, ball_y={ball_y:.1f}")
+                    import random
+                    if random.random() < 0.1:  # Логируем 10% кадров
+                        self._logger.debug(f"[POSITION RETURN] ФЛАГ: Возвращаем зафиксированную позицию БЕЗ пересчета! "
+                                          f"target_position={fixed_position:.1f}, ball_y={ball_y:.1f}")
                     
                     # КРИТИЧНО: Проверяем, не изменилась ли позиция (нарушение правила)
                     # Если позиция изменилась без отскока от стены - это нарушение
@@ -672,18 +667,15 @@ class AIPlayer:
                                     # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                                     old_pos = self.separation_zone_tracker.get("target_position")
                                     import sys
-                                    if not getattr(sys, "frozen", False):
-                                        print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (few_bricks)! "
-                                              f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
-                                              f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
+                                    self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (few_bricks)! "
+                                                         f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
+                                                         f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
                                     self.separation_zone_tracker["game_restart_required"] = True
                                 else:
                                     self.separation_zone_tracker["target_position"] = int(optimal_position)
                                     self.separation_zone_tracker["target_position_set"] = True
-                                    import sys
-                                    if not getattr(sys, "frozen", False):
-                                        print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (few_bricks)! "
-                                              f"target_position={int(optimal_position):.1f}")
+                                    self._logger.debug(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (few_bricks)! "
+                                                       f"target_position={int(optimal_position):.1f}")
                             
                             # Логируем передвижение платформы (используем лог из промпта)
                             if user_rules.get("use_movement_log", True):  # По умолчанию включено
@@ -820,18 +812,15 @@ class AIPlayer:
                                     # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                                     old_pos = self.separation_zone_tracker.get("target_position")
                                     import sys
-                                    if not getattr(sys, "frozen", False):
-                                        print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (brick_coords)! "
-                                              f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
-                                              f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
+                                    self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (brick_coords)! "
+                                                         f"Старая позиция={old_pos:.1f}, Новая позиция={int(optimal_position):.1f}, "
+                                                         f"Разница={abs(old_pos - int(optimal_position)):.1f}px")
                                     self.separation_zone_tracker["game_restart_required"] = True
                                 else:
                                     self.separation_zone_tracker["target_position"] = int(optimal_position)
                                     self.separation_zone_tracker["target_position_set"] = True
-                                    import sys
-                                    if not getattr(sys, "frozen", False):
-                                        print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (brick_coords)! "
-                                              f"target_position={int(optimal_position):.1f}")
+                                    self._logger.debug(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (brick_coords)! "
+                                                       f"target_position={int(optimal_position):.1f}")
                             
                             # Логируем передвижение (всегда для анализа)
                             self._log_paddle_movement(
@@ -861,19 +850,15 @@ class AIPlayer:
                         if self.separation_zone_tracker.get("target_position_set", False):
                             # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                             old_pos = self.separation_zone_tracker.get("target_position")
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (простое движение)! "
-                                      f"Старая позиция={old_pos:.1f}, Новая позиция={base_position:.1f}, "
-                                      f"Разница={abs(old_pos - base_position):.1f}px")
+                            self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (простое движение)! "
+                                                 f"Старая позиция={old_pos:.1f}, Новая позиция={base_position:.1f}, "
+                                                 f"Разница={abs(old_pos - base_position):.1f}px")
                             self.separation_zone_tracker["game_restart_required"] = True
                         else:
                             self.separation_zone_tracker["target_position"] = base_position
                             self.separation_zone_tracker["target_position_set"] = True
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                print(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (простое движение)! "
-                                      f"target_position={base_position:.1f}")
+                            self._logger.debug(f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые (простое движение)! "
+                                               f"target_position={base_position:.1f}")
                     
                     # Логируем даже простое движение для полного анализа
                     self._log_paddle_movement(
@@ -908,7 +893,7 @@ class AIPlayer:
                 return int(self._track_ball_position())
 
         except Exception as e:
-            print(f"Ошибка при расчете оптимальной позиции: {e}")
+            self._logger.error(f"Ошибка при расчете оптимальной позиции: {e}", exc_info=True)
             return int(self.current_game_state.paddle_position.x)
 
     # ==========================
@@ -3786,8 +3771,7 @@ class AIPlayer:
             # Не выводим в exe файле
             import sys
 
-            if not getattr(sys, "frozen", False):
-                print(f"Ошибка при движении платформы: {e}")
+            self._logger.error(f"Ошибка при движении платформы: {e}", exc_info=True)
             return self._fallback_movement(current_x)
 
     def _fallback_movement(self, current_x: int) -> int:
