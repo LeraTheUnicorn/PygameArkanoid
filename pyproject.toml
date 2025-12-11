@@ -4,7 +4,7 @@ version = "2.3.0"  # Poetry формат: X.Y.Z (соответствует vers
 description = "Игра Арканоид"
 authors = ["Developer <dadbarn@gmail.com>"]
 readme = "README.MD"
-packages = [{include = "PygameArkanoid"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -14,6 +14,8 @@ scikit-learn = "^1.7.2"  # Установлено: 1.7.2, совместимо �
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"  # Установлено: 8.4.2, обновлено с ^7.0.0
+mypy = "^1.10.0"
+pyright = "^1.1.360"
 
 [build-system]
 requires = [

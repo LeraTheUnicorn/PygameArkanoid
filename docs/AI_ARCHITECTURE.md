@@ -11,7 +11,7 @@
 ```python
 class AIPlayer:
     - trajectory_predictor: TrajectoryPredictor
-    - position_optimizer: PositionOptimizer  
+    - position_optimizer: PositionOptimizer
     - learning_system: LearningSystem
     - performance_logger: PerformanceLogger
     - game_state: GameState
@@ -218,24 +218,52 @@ pygame.Rect сериализация:
 ## Файловая структура
 
 ```
-PyGameBall.py              # Основной файл игры
-ai/
-├── __init__.py
-├── ai_player.py           # Основной класс AIPlayer
-├── trajectory_predictor.py # Предсказание траектории
-├── position_optimizer.py  # Оптимизация позиции
-├── learning_system.py     # Система обучения
-├── performance_logger.py  # Логирование
-└── models/
-    └── ai_model.json      # Обученная модель
-
-logs/
-└── gameplay_log_YYYY-MM-DD.json  # Логи игр
-
-tests/
-├── test_ai_system.py     # Тесты AI системы
-├── test_json_encoder.py  # Тесты JSON encoder
-└── test_loop_prevention.py  # Тесты системы предотвращения зацикливания
+.
+├── PyGameBall.py              # Основной файл игры
+├── pyproject.toml             # Конфигурация Poetry
+├── poetry.lock                # Зафиксированные версии зависимостей
+├── install_dependencies.bat   # Скрипт для установки зависимостей
+├── README.MD                  # Основная документация
+├── src/                       # Основной исходный код
+│   ├── game/                  # Основная логика игры
+│   │   ├── PyGameBall.py      # Основной файл игры
+│   │   ├── highscores.py      # Система рекордов
+│   │   └── settings.py        # Настройки игры
+│   └── ai/                    # AI система
+│       ├── ai_player.py       # Основной класс AIPlayer
+│       ├── trajectory_predictor.py # Предсказание траектории
+│       ├── position_optimizer.py  # Оптимизация позиции
+│       ├── learning_system.py     # Система обучения
+│       ├── performance_logger.py  # Логирование
+│       └── models/            # Обученные модели
+│           └── ai_model.json  # Обученная модель
+├── ai/                        # AI система (дубликат)
+│   ├── ai_player.py           # Основной класс AIPlayer
+│   ├── trajectory_predictor.py # Предсказание траектории
+│   ├── position_optimizer.py  # Оптимизация позиции
+│   ├── learning_system.py     # Система обучения
+│   ├── performance_logger.py  # Логирование
+│   └── models/                # Обученные модели
+│       └── ai_model.json      # Обученная модель
+├── resources/                 # Ресурсы
+│   ├── audio/                 # Звуковые файлы
+│   ├── data/                  # Данные
+│   │   ├── highscores.json    # Рекорды
+│   │   └── settings.json      # Настройки
+│   ├── icons/                 # Иконки
+│   └── images/                # Изображения
+├── docs/                      # Документация
+│   ├── AI_ARCHITECTURE.md     # Архитектура AI
+│   ├── AI_ISSUES_AND_SOLUTIONS.md # Анализ проблем AI
+│   ├── INSTALL_GUIDE.md       # Руководство по установке
+│   └── ...                    # Другая документация
+├── tests/                     # Тесты
+│   ├── test_ai_system.py      # Тесты AI системы
+│   ├── test_json_encoder.py   # Тесты JSON encoder
+│   └── ...                    # Другие тесты
+└── scripts/                   # Скрипты
+    ├── build_exe.py           # Сборка исполняемого файла
+    └── build_msi.py           # Сборка MSI инсталлятора
 ```
 
 ## Интеграция с игрой

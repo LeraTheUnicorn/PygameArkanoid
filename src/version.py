@@ -10,9 +10,10 @@
 import os
 import re
 from pathlib import Path
+from typing import Tuple
 
 # Путь к текущему файлу
-_VERSION_FILE = Path(__file__)
+_VERSION_FILE: Path = Path(__file__)
 
 # Версия в формате X.Y.ZZZZ
 # X - мажорная версия (революционные изменения)
@@ -20,12 +21,12 @@ _VERSION_FILE = Path(__file__)
 # ZZZZ - 4-значный индекс сборки (увеличивается автоматически при каждом запуске)
 
 # Начальные значения (будут обновлены при загрузке)
-VERSION_MAJOR = 2
-VERSION_MINOR = 3
-VERSION_BUILD = 102
-VERSION = "2.3.0017"
-VERSION_FULL = VERSION
-VERSION_BUILD_STRING = "2.3.0017"
+VERSION_MAJOR: int = 2
+VERSION_MINOR: int = 3
+VERSION_BUILD: int = 102
+VERSION: str = "2.3.0017"
+VERSION_FULL: str = VERSION
+VERSION_BUILD_STRING: str = "2.3.0017"
 
 
 def _load_version_from_file():

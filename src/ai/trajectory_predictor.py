@@ -11,17 +11,17 @@ from .game_state import Point, GameState
 class TrajectoryPredictor:
     """Класс для предсказания траектории мяча"""
 
-    def __init__(self, screen_width: int = 800, screen_height: int = 600):
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.gravity = 0.5  # Гравитация для более реалистичной траектории
-        
+    def __init__(self, screen_width: int = 800, screen_height: int = 600) -> None:
+        self.screen_width: int = screen_width
+        self.screen_height: int = screen_height
+        self.gravity: float = 0.5  # Гравитация для более реалистичной траектории
+
         # Кэш для результатов расчетов траекторий
         # Ключ: хеш состояния игры, Значение: результат расчета
-        self._trajectory_cache = {}
-        self._intersection_cache = {}
-        self._after_bounce_cache = {}
-        self._cache_max_size = 100  # Максимальный размер кэша
+        self._trajectory_cache: dict[str, List[Point]] = {}
+        self._intersection_cache: dict[str, Optional[Point]] = {}
+        self._after_bounce_cache: dict[str, List[Point]] = {}
+        self._cache_max_size: int = 100  # Максимальный размер кэша
 
     def predict_trajectory(
         self, game_state: GameState, max_points: int = 50
@@ -211,8 +211,8 @@ class TrajectoryPredictor:
         relative_offset = max(-1.0, min(1.0, relative_offset))
 
         # Рассчитываем новую горизонтальную скорость
-        max_horizontal_speed = game_state.ball_speed - 1
-        new_vel_x = int(relative_offset * max_horizontal_speed)
+        max_horizontal_speed: int = game_state.ball_speed - 1
+        new_vel_x: float = relative_offset * max_horizontal_speed
 
         # Добавляем случайность для избежания слишком предсказуемого поведения
         if abs(relative_offset) < 0.2:
@@ -244,11 +244,11 @@ class TrajectoryPredictor:
 
         # Если нет кубиков, просто направляем в центр
         if not game_state.remaining_bricks:
-            return intersection_point.x
+            return float(intersection_point.x)
 
         # Ищем лучшую позицию для попадания в кубики
-        best_position = intersection_point.x
-        best_score = -1
+        best_position: float = float(intersection_point.x)
+        best_score: int = -1
 
         # Проверяем несколько позиций вокруг предсказанной точки
         for offset in range(-50, 51, 10):  # Проверяем позиции с шагом 10 пикселей
@@ -263,7 +263,7 @@ class TrajectoryPredictor:
             )
 
             # Оцениваем, сколько кубиков попадет в траекторию
-            score = self._evaluate_trajectory_effectiveness(
+            score: int = self._evaluate_trajectory_effectiveness(
                 after_bounce_trajectory, game_state.remaining_bricks
             )
 
@@ -287,9 +287,9 @@ class TrajectoryPredictor:
         Returns:
             Оценка эффективности (больше = лучше)
         """
-        hit_count = 0
-        hit_bricks = set()
-        ball_radius = 8  # Радиус мяча
+        hit_count: int = 0
+        hit_bricks: set[int] = set()
+        ball_radius: int = 8  # Радиус мяча
 
         for point in trajectory:
             if not hasattr(point, "x") or not hasattr(point, "y"):
@@ -297,19 +297,19 @@ class TrajectoryPredictor:
 
             # Проверяем пересечение с каждым кубиком
             for brick in bricks:
-                brick_id = id(brick)
+                brick_id: int = id(brick)
                 if brick_id in hit_bricks:
                     continue
 
                 # Точные границы кубика
-                brick_left = getattr(
+                brick_left: float = getattr(
                     brick, "left", brick.x if hasattr(brick, "x") else 0
                 )
-                brick_right = getattr(
+                brick_right: float = getattr(
                     brick, "right", brick_left + getattr(brick, "width", 60)
                 )
-                brick_top = getattr(brick, "top", brick.y if hasattr(brick, "y") else 0)
-                brick_bottom = getattr(
+                brick_top: float = getattr(brick, "top", brick.y if hasattr(brick, "y") else 0)
+                brick_bottom: float = getattr(
                     brick, "bottom", brick_top + getattr(brick, "height", 20)
                 )
 
@@ -319,15 +319,15 @@ class TrajectoryPredictor:
                     and brick_top - ball_radius <= point.y <= brick_bottom + ball_radius
                 ):
                     # Дополнительная проверка: мяч действительно попадает в кубик
-                    center_in_brick = (
+                    center_in_brick: bool = (
                         brick_left <= point.x <= brick_right
                         and brick_top <= point.y <= brick_bottom
                     )
 
                     # Проверяем расстояние от центра мяча до ближайшей точки кубика
-                    closest_x = max(brick_left, min(point.x, brick_right))
-                    closest_y = max(brick_top, min(point.y, brick_bottom))
-                    distance_to_brick = math.sqrt(
+                    closest_x: float = max(brick_left, min(point.x, brick_right))
+                    closest_y: float = max(brick_top, min(point.y, brick_bottom))
+                    distance_to_brick: float = math.sqrt(
                         (point.x - closest_x) ** 2 + (point.y - closest_y) ** 2
                     )
 
@@ -339,8 +339,8 @@ class TrajectoryPredictor:
         return hit_count
 
     def visualize_trajectory(
-        self, screen: pygame.Surface, trajectory: List[Point], color=(255, 255, 0)
-    ):
+        self, screen: pygame.Surface, trajectory: List[Point], color: Tuple[int, int, int] = (255, 255, 0)
+    ) -> None:
         """
         Визуализирует траекторию на экране (для отладки)
 
@@ -389,15 +389,15 @@ class TrajectoryPredictor:
         vel_y = round(game_state.ball_velocity.y)
         return f"after_bounce_{bounce_x_rounded}_{bounce_y_rounded}_{bounce_x_pos}_{vel_y}"
     
-    def _cache_result(self, cache_dict: dict, key: str, value: Any) -> None:
+    def _cache_result(self, cache_dict: dict[str, Any], key: str, value: Any) -> None:
         """Сохраняет результат в кэш с ограничением размера"""
         # Если кэш переполнен, удаляем старые записи
         if len(cache_dict) >= self._cache_max_size:
             # Удаляем 20% старых записей
-            keys_to_remove = list(cache_dict.keys())[:self._cache_max_size // 5]
+            keys_to_remove: list[str] = list(cache_dict.keys())[:self._cache_max_size // 5]
             for k in keys_to_remove:
                 del cache_dict[k]
-        
+
         cache_dict[key] = value
     
     def clear_cache(self) -> None:

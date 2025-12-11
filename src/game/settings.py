@@ -6,7 +6,7 @@
 import json
 import os
 import sys
-from typing import Dict
+from typing import Dict, Optional
 
 
 def get_game_directory():

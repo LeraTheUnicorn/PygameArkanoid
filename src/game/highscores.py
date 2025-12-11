@@ -6,11 +6,11 @@
 import json
 import os
 import sys
-from typing import List, Dict
+from typing import List, Dict, Any, Tuple
 from datetime import datetime
 
 
-def get_game_directory():
+def get_game_directory() -> str:
     """
     Определяет каталог игры.
     Для разработки: local_game_files в корне проекта
@@ -18,15 +18,15 @@ def get_game_directory():
     """
     # Для разработки (запуск из IDE) всегда используем local_game_files
     if not getattr(sys, "frozen", False):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        local_game_dir = os.path.join(current_dir, "local_game_files")
+        current_dir: str = os.path.dirname(os.path.abspath(__file__))
+        local_game_dir: str = os.path.join(current_dir, "local_game_files")
         return local_game_dir
 
     # Для exe файлов пытаемся использовать LOCALAPPDATA
     try:
-        localappdata = os.environ.get("LOCALAPPDATA")
+        localappdata: str | None = os.environ.get("LOCALAPPDATA")
         if localappdata:
-            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+            game_dir: str = os.path.join(localappdata, "Games", "Arkanoid")
             return game_dir
     except:
         pass
@@ -35,10 +35,10 @@ def get_game_directory():
     return os.path.dirname(sys.executable)
 
 
-def get_highscores_file_path():
+def get_highscores_file_path() -> str:
     """Возвращает полный путь к файлу рекордов"""
-    game_dir = get_game_directory()
-    resources_dir = os.path.join(game_dir, "resources")
+    game_dir: str = get_game_directory()
+    resources_dir: str = os.path.join(game_dir, "resources")
 
     # Создаем каталог, если он не существует
     try:
@@ -64,8 +64,8 @@ HIGHSCORES_FILE = get_highscores_file_path()
 
 
 class HighScoreManager:
-    def __init__(self):
-        self.highscores = []
+    def __init__(self) -> None:
+        self.highscores: List[Dict[str, Any]] = []
         self.load_highscores()
 
     def load_highscores(self) -> None:
@@ -155,7 +155,7 @@ class HighScoreManager:
     def sort_highscores(self) -> None:
         """Сортирует рекорды: сначала по очкам (по убыванию), затем по времени (по возрастанию), затем по имени"""
 
-        def sort_key(item):
+        def sort_key(item: Dict[str, Any]) -> Tuple[int, int, str]:
             return (-item["score"], item["time_seconds"], item["player_name"])
 
         self.highscores.sort(key=sort_key)
@@ -163,7 +163,7 @@ class HighScoreManager:
         # Обрезаем до топ-10 (это нужно только для совместимости, основная логика в add_score)
         self.highscores = self.highscores[:10]
 
-    def get_top_scores(self) -> List[Dict]:
+    def get_top_scores(self) -> List[Dict[str, Any]]:
         """Возвращает топ-10 рекордов"""
         return self.highscores[:10]
 
