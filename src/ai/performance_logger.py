@@ -10,6 +10,7 @@ import pygame
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from .game_state import GameState, Point
+from .platform_utils import is_frozen
 
 
 def get_ai_directory() -> str:
@@ -19,7 +20,7 @@ def get_ai_directory() -> str:
     Для exe: каталог установки Windows или директория exe файла
     """
     # Для разработки (запуск из IDE) всегда используем ai в корне проекта
-    if not getattr(sys, "frozen", False):
+    if not is_frozen():
         current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         ai_dir = os.path.join(current_dir, "ai")
         return ai_dir
@@ -132,14 +133,14 @@ class PerformanceLogger:
                 for mtime, file_path in session_files[:-1]:
                     try:
                         os.remove(file_path)
-                        if not getattr(sys, "frozen", False):
+                        if not is_frozen():
                             print(f"[LOG] Удален старый session лог при старте: {os.path.basename(file_path)}")
                     except Exception as e:
-                        if not getattr(sys, "frozen", False):
+                        if not is_frozen():
                             print(f"[LOG] Не удалось удалить старый лог {file_path}: {e}")
         except Exception as e:
             # Не блокируем выполнение при ошибке очистки
-            if not getattr(sys, "frozen", False):
+            if not is_frozen():
                 print(f"[LOG] Ошибка при очистке старых session логов: {e}")
     
     def _generate_session_id(self) -> str:
@@ -171,7 +172,7 @@ class PerformanceLogger:
                 self.save_session_log()
             except Exception as e:
                 # Не блокируем выполнение при ошибке сохранения
-                if not getattr(sys, "frozen", False):
+                if not is_frozen():
                     print(f"[WARNING] Ошибка автосохранения лога: {e}")
 
     def log_game_start(self, game_state: GameState):
@@ -480,10 +481,10 @@ class PerformanceLogger:
                     for mtime, file_path in session_files[:-1]:
                         try:
                             os.remove(file_path)
-                            if not getattr(sys, "frozen", False):
+                            if not is_frozen():
                                 print(f"[LOG] Удален старый session лог: {os.path.basename(file_path)}")
                         except Exception as e:
-                            if not getattr(sys, "frozen", False):
+                            if not is_frozen():
                                 print(f"[LOG] Не удалось удалить лог {file_path}: {e}")
                 
                 # КРИТИЧНО: После обработки удаляем все session файлы (включая последний)
@@ -492,13 +493,13 @@ class PerformanceLogger:
                     try:
                         if os.path.exists(file_path):
                             os.remove(file_path)
-                            if not getattr(sys, "frozen", False):
+                            if not is_frozen():
                                 print(f"[LOG] Удален session лог после обработки: {os.path.basename(file_path)}")
                     except Exception as e:
-                        if not getattr(sys, "frozen", False):
+                        if not is_frozen():
                             print(f"[LOG] Не удалось удалить лог {file_path}: {e}")
             except Exception as e:
-                if not getattr(sys, "frozen", False):
+                if not is_frozen():
                     print(f"[LOG] Ошибка при очистке session логов: {e}")
             
             # КРИТИЧНО: Удаляем старые analysis файлы, оставляя только последний (самый новый)
@@ -521,17 +522,17 @@ class PerformanceLogger:
                     for mtime, file_path in analysis_files[:-1]:
                         try:
                             os.remove(file_path)
-                            if not getattr(sys, "frozen", False):
+                            if not is_frozen():
                                 print(f"[LOG] Удален старый analysis файл: {os.path.basename(file_path)}")
                         except Exception as e:
-                            if not getattr(sys, "frozen", False):
+                            if not is_frozen():
                                 print(f"[LOG] Не удалось удалить analysis файл {file_path}: {e}")
             except Exception as e:
-                if not getattr(sys, "frozen", False):
+                if not is_frozen():
                     print(f"[LOG] Ошибка при очистке analysis файлов: {e}")
                 
         except Exception as e:
-            if not getattr(sys, "frozen", False):
+            if not is_frozen():
                 print(f"[LOG] Ошибка при анализе логов: {e}")
 
     def save_game_result(self, game_result: Dict[str, Any]):

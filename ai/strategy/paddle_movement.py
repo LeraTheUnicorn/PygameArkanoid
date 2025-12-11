@@ -217,12 +217,30 @@ class PaddleMovementStrategy:
         if not self.target_tracker.is_target_set():
             return None
 
+        # КРИТИЧНО: Проверяем, не потерян ли мяч
+        if not self.current_game_state:
+            return None
+        
+        paddle_y = self.current_game_state.paddle_position.y
+        ball_lost = ball_y > paddle_y
+        
+        if ball_lost:
+            # Мяч потерян - не двигаемся
+            return None
+
         separation_zone_start = zones["separation_zone_start"]
         paddle_zone_start = zones["paddle_zone_start"]
         in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
+        # КРИТИЧНО: Платформа должна двигаться к зафиксированной цели,
+        # даже если мяч временно не в зоне разделения (например, близко к платформе)
+        # НО только если мяч не потерян и не в зоне кубиков
         if not in_separation_zone:
-            return None
+            # Если мяч в зоне кубиков (выше зоны разделения) - не двигаемся
+            if ball_y < separation_zone_start:
+                return None
+            # Если мяч близко к платформе (ниже зоны разделения, но не потерян) - продолжаем движение к цели
+            # Это позволяет платформе завершить движение к зафиксированной позиции
 
         current_target = self.target_tracker.get_target_position()
         if current_target is None:
@@ -249,6 +267,14 @@ class PaddleMovementStrategy:
         distance_to_target = abs(current_x - target_pos)
         tolerance = 15  # Равен скорости движения платформы
 
+        # КРИТИЧНО: Логируем для диагностики проблем с движением
+        if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр
+            self._logger.debug(
+                f"[FIXED TARGET] current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+                f"distance={distance_to_target:.1f}, tolerance={tolerance}, "
+                f"in_separation_zone={in_separation_zone}, ball_y={ball_y:.1f}"
+            )
+
         if distance_to_target > tolerance:
             movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
             if movement != 0:
@@ -257,6 +283,11 @@ class PaddleMovementStrategy:
                 self._log_paddle_movement(current_x, target_pos, "moving_to_fixed_target", 1.0)
                 return movement
         else:
+            # КРИТИЧНО: Логируем, почему не двигаемся (достигли цели)
+            if self._should_log_debug(interval_multiplier=1):
+                self._logger.debug(
+                    f"[FIXED TARGET] Достигли цели! distance={distance_to_target:.1f} <= tolerance={tolerance}"
+                )
             return 0
 
     def _set_new_target(

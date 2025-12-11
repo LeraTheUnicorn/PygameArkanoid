@@ -22,7 +22,7 @@ import time
 import numpy as np
 import sys
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 
 # Импортируем pygame с ограниченным подавлением предупреждений
 with suppress_pkg_resources_warnings():
@@ -554,6 +554,15 @@ def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -
                 print(f"[VICTORY SPLASH] Размер экрана: {screen_width}x{screen_height} (НЕ МЕНЯЕМ!)")
                 print(f"[VICTORY SPLASH] Загружаем GIF через PIL: {image_path}")
             
+            # Определяем правильный фильтр для изменения размера (совместимость с разными версиями Pillow)
+            # Pillow >= 9.0.0 использует Image.Resampling.LANCZOS, старые версии - Image.LANCZOS
+            if hasattr(Image, 'Resampling'):
+                lanczos_filter = Image.Resampling.LANCZOS
+            else:
+                # Для старых версий Pillow используем getattr для безопасного доступа
+                # Совместимость со старыми версиями Pillow, где LANCZOS это int
+                lanczos_filter: Any = getattr(Image, 'LANCZOS', 1)  # type: ignore[no-redef]  # 1 - это числовая константа LANCZOS
+            
             # Загружаем GIF с помощью PIL
             with Image.open(image_path) as im:
                 # Получаем длительность кадров из метаданных
@@ -565,7 +574,7 @@ def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -
                 
                 for i, frame in enumerate(ImageSequence.Iterator(im)):
                     # Копируем кадр и изменяем размер до размера экрана
-                    resized_frame = frame.copy().resize((screen_width, screen_height), Image.LANCZOS)
+                    resized_frame = frame.copy().resize((screen_width, screen_height), lanczos_filter)
                     
                     # Получаем длительность кадра
                     duration = frame.info.get("duration", default_duration)

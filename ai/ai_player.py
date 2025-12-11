@@ -390,6 +390,43 @@ class AIPlayer:
     _instance_counter = 0  # Счетчик для создания уникальных имен логгеров
     
     @classmethod
+    def _cleanup_old_logs(cls, logs_dir: str) -> None:
+        """
+        Очищает старые логи ai_player_X.log при запуске программы.
+        Это предотвращает накопление больших файлов логов.
+        
+        Args:
+            logs_dir: Директория с логами
+        """
+        try:
+            if not os.path.exists(logs_dir):
+                return
+            
+            log_files = []
+            for file in os.listdir(logs_dir):
+                if file.startswith("ai_player_") and file.endswith(".log"):
+                    file_path = os.path.join(logs_dir, file)
+                    try:
+                        mtime = os.path.getmtime(file_path)
+                        log_files.append((mtime, file_path))
+                    except Exception:
+                        log_files.append((0, file_path))
+            
+            # Удаляем все старые логи ai_player_X.log
+            for mtime, file_path in log_files:
+                try:
+                    os.remove(file_path)
+                    if not is_frozen():
+                        print(f"[LOG] Удален старый лог при старте: {os.path.basename(file_path)}")
+                except Exception as e:
+                    if not is_frozen():
+                        print(f"[LOG] Не удалось удалить старый лог {file_path}: {e}")
+        except Exception as e:
+            # Не блокируем выполнение при ошибке очистки
+            if not is_frozen():
+                print(f"[LOG] Ошибка при очистке старых логов: {e}")
+    
+    @classmethod
     def _setup_logging(cls, debug_mode: bool) -> logging.Logger:
         """
         Настраивает и возвращает логгер для экземпляра AIPlayer.
@@ -417,6 +454,10 @@ class AIPlayer:
             except (OSError, PermissionError):
                 logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
                 os.makedirs(logs_dir, exist_ok=True)
+            
+            # Очищаем старые логи при первом запуске (когда создается первый экземпляр)
+            if cls._instance_counter == 1:
+                cls._cleanup_old_logs(logs_dir)
             
             # Создаем файловый handler вместо StreamHandler
             log_file = os.path.join(logs_dir, f"ai_player_{cls._instance_counter}.log")

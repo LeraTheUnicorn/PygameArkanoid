@@ -49,59 +49,106 @@ poetry run python PyGameBall.py
 
 ```bash
 .
-├── PyGameBall.py              # Основной файл игры
+├── PyGameBall.py              # Основной файл игры (точка входа)
 ├── game_config.py             # Централизованная конфигурация (константы)
 ├── game_models.py             # Модели данных (Ball, Paddle, GameState)
 ├── game_views.py              # Представления для отрисовки (MVC)
 ├── game_controllers.py        # Контроллеры игровой логики (MVC)
 ├── dirty_rects.py             # Система оптимизации отрисовки
 ├── di_container.py            # Контейнер Dependency Injection
-├── ARCHITECTURE_MIGRATION.md  # Руководство по миграции на новую архитектуру
+├── highscores.py              # Система рекордов
+├── settings.py                # Настройки игры
+├── version.py                 # Версия игры
 ├── pyproject.toml             # Конфигурация Poetry
 ├── poetry.lock                # Зафиксированные версии зависимостей
 ├── install_dependencies.bat   # Скрипт для установки зависимостей
 ├── README.MD                  # Основная документация
-├── src/                       # Основной исходный код
-│   ├── game/                  # Основная логика игры
-│   │   ├── PyGameBall.py      # Основной файл игры
-│   │   ├── highscores.py       # Система рекордов
-│   │   └── settings.py        # Настройки игры
-│   └── ai/                    # AI система
-│       ├── ai_player.py       # Основной класс AIPlayer
-│       ├── trajectory_predictor.py # Предсказание траектории
-│       ├── position_optimizer.py  # Оптимизация позиции
-│       ├── learning_system.py     # Система обучения
-│       ├── performance_logger.py  # Логирование
-│       └── models/            # Обученные модели
-│           └── ai_model.json  # Обученная модель
-├── ai/                        # AI система (дубликат)
+│
+├── ai/                        # AI система (основная директория)
 │   ├── ai_player.py           # Основной класс AIPlayer
+│   ├── game_state.py          # Состояние игры для AI
 │   ├── trajectory_predictor.py # Предсказание траектории
 │   ├── position_optimizer.py  # Оптимизация позиции
 │   ├── learning_system.py     # Система обучения
-│   ├── performance_logger.py  # Логирование
+│   ├── performance_logger.py  # Логирование производительности
+│   ├── log_analyzer.py        # Анализатор логов
+│   ├── debug_logger.py        # Отладочное логирование
+│   ├── config.py              # Конфигурация AI
+│   ├── exceptions.py          # Исключения AI
+│   ├── platform_utils.py      # Утилиты для работы с платформами
+│   ├── strategy/              # Стратегии движения
+│   │   ├── paddle_movement.py # Стратегия движения платформы
+│   │   ├── target_tracker.py  # Отслеживание целей
+│   │   └── zone_handler.py    # Обработка зон
+│   ├── targeting/             # Система прицеливания
+│   │   ├── target_selector.py # Выбор целей
+│   │   └── position_calculator.py # Расчет позиций
+│   ├── logs/                  # Логи AI
+│   │   ├── ai_player_*.log    # Логи движений (автоочистка при запуске)
+│   │   ├── session_*.json     # Логи сессий (очистка старых)
+│   │   └── all_game_results.json # Результаты всех игр
 │   └── models/                # Обученные модели
-│       └── ai_model.json      # Обученная модель
-├── resources/                 # Ресурсы
+│       └── ai_model.json      # Обученная модель ML
+│
+├── resources/                 # Ресурсы игры
 │   ├── audio/                 # Звуковые файлы
-│   ├── data/                  # Данные
+│   │   └── Night_Prowler.ogg  # Фоновая музыка
+│   ├── data/                  # Данные игры
 │   │   ├── highscores.json    # Рекорды
 │   │   └── settings.json      # Настройки
 │   ├── icons/                 # Иконки
-│   └── images/                # Изображения
+│   │   └── game.ico           # Иконка игры
+│   ├── images/                # Изображения
+│   ├── icon.ico               # Основная иконка
+│   └── icon.png               # Иконка PNG
+│
+├── src/                       # Дополнительный исходный код
+│   ├── game/                  # Альтернативная структура игры
+│   │   └── ...                # Копии основных файлов
+│   └── ai/                    # Альтернативная структура AI
+│       └── ...                # Копии файлов AI
+│
 ├── docs/                      # Документация
 │   ├── AI_ARCHITECTURE.md     # Архитектура AI
+│   ├── AI_ARCHITECTURE_DIAGRAM.md # Диаграмма архитектуры
 │   ├── AI_ISSUES_AND_SOLUTIONS.md # Анализ проблем AI
+│   ├── ARCHITECTURE_MIGRATION.md  # Руководство по миграции
 │   ├── INSTALL_GUIDE.md       # Руководство по установке
+│   ├── INSTALLER_GUIDE.md     # Руководство по созданию инсталлятора
+│   ├── TRAJECTORY_CLUSTERING_AND_METRICS.md # Метрики траекторий
 │   └── ...                    # Другая документация
+│
 ├── tests/                     # Тесты
-│   ├── test_ai_system.py      # Тесты AI системы
+│   ├── test_ai_integration.py # Интеграционные тесты AI
+│   ├── test_ai_player_validation.py # Валидация AI
+│   ├── test_training_mode.py  # Тесты режима обучения
+│   ├── test_adaptive_speed.py # Тесты адаптивной скорости
+│   ├── test_game_startup.py   # Тесты запуска игры
+│   ├── test_interface_improvements.py # Тесты интерфейса
+│   ├── test_settings_improved.py # Тесты настроек
 │   ├── test_json_encoder.py   # Тесты JSON encoder
 │   └── ...                    # Другие тесты
-└── scripts/                   # Скрипты
+│
+└── scripts/                   # Скрипты сборки
     ├── build_exe.py           # Сборка исполняемого файла
-    └── build_msi.py           # Сборка MSI инсталлятора
+    ├── build_msi.py           # Сборка MSI инсталлятора
+    ├── create_installer.iss   # Скрипт Inno Setup
+    ├── create_msi.py          # Создание MSI пакета
+    └── compile_installer.bat  # Компиляция инсталлятора
 ```
+
+### Основные директории
+
+- **Корень проекта** - содержит основные файлы игры и точки входа
+- **`ai/`** - модульная AI система с разделением на стратегии и прицеливание
+  - `strategy/` - стратегии движения платформы
+  - `targeting/` - система выбора и расчета целей
+  - `logs/` - логи работы AI (автоматически очищаются при запуске)
+  - `models/` - обученные модели машинного обучения
+- **`resources/`** - все игровые ресурсы (звуки, данные, иконки)
+- **`docs/`** - подробная документация по архитектуре и использованию
+- **`tests/`** - комплексные тесты всех компонентов системы
+- **`scripts/`** - инструменты для сборки и распространения игры
 
 ## 🏗️ Архитектура проекта
 

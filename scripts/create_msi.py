@@ -10,12 +10,13 @@ import sys
 import subprocess
 import shutil
 from pathlib import Path
+from typing import Optional
 
 # Определяем корень проекта
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def check_wix_installation():
+def check_wix_installation() -> bool:
     """Проверяет наличие WiX Toolset"""
     try:
         # Проверяем wix.exe
@@ -27,7 +28,7 @@ def check_wix_installation():
         return False
 
 
-def get_current_version():
+def get_current_version() -> str:
     """Получает текущую версию из version.py"""
     try:
         sys.path.insert(0, project_root)
@@ -39,7 +40,7 @@ def get_current_version():
         return "2.3.0000"
 
 
-def create_wix_files():
+def create_wix_files() -> Optional[Path]:
     """Создает файлы WiX для MSI сборки"""
 
     # Создаем директории для WiX
@@ -175,7 +176,7 @@ def create_wix_files():
     return wix_dir
 
 
-def build_msi():
+def build_msi() -> bool:
     """Собирает MSI файл с помощью WiX"""
     version = get_current_version()
     build_dir = os.path.join(project_root, "build")
@@ -191,7 +192,7 @@ def build_msi():
         print("Exe файл не найден. Создаю exe файл...")
         try:
             # Создаем exe файл с помощью build_exe.py
-            result = subprocess.run(
+            subprocess.run(
                 [
                     sys.executable,
                     os.path.join(project_root, "scripts", "build_exe.py"),
@@ -250,7 +251,7 @@ def build_msi():
     return True
 
 
-def main():
+def main() -> bool:
     print("=== Создание MSI инсталлятора для Arkanoid ===")
 
     if not check_wix_installation():

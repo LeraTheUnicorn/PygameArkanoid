@@ -403,6 +403,18 @@ files = [
 ]
 
 [[package]]
+name = "pyglet"
+version = "2.1.11"
+description = "pyglet is a cross-platform games and multimedia package."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pyglet-2.1.11-py3-none-any.whl", hash = "sha256:fa0f4fdf366cfc5040aeb462416910b0db2fa374b7d620b7a432178ca3fa8af1"},
+    {file = "pyglet-2.1.11.tar.gz", hash = "sha256:8285d0af7d0ab443232a81df4d941e0d5c48c18a23ec770b3e5c59a222f5d56e"},
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -622,4 +634,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "4f3c4b760f7d97ab615b3adda4ff714a1a9e89301a871bede95e45d041fdd104"
+content-hash = "76f4ef038ea094b00f6750b26082261a80f0e99a293679a38478a3e5ff77f40a"

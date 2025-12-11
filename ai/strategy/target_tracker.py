@@ -4,10 +4,12 @@
 Содержит класс TargetTracker для управления состоянием целевой позиции.
 """
 
-from typing import Optional
+from typing import Optional, Any, TYPE_CHECKING
 
-from ..game_state import GameState
 from ..config import AIConfig
+
+if TYPE_CHECKING:
+    from ..ai_player import SeparationZoneTracker
 
 
 class TargetTracker:
@@ -16,7 +18,7 @@ class TargetTracker:
     def __init__(
         self,
         config: AIConfig,
-        separation_zone_tracker: Any,  # SeparationZoneTracker dataclass
+        separation_zone_tracker: "SeparationZoneTracker",
     ):
         """
         Инициализация TargetTracker.
@@ -80,7 +82,7 @@ class TargetTracker:
         Returns:
             True, если позиция установлена
         """
-        return self.separation_zone_tracker.target_position_set
+        return bool(self.separation_zone_tracker.target_position_set)
 
     def check_wall_bounce(self, current_vel_x: float) -> bool:
         """
@@ -96,7 +98,7 @@ class TargetTracker:
         if saved_vel_x is None:
             return False
 
-        return abs(current_vel_x - saved_vel_x) > self.config.ball.velocity_tolerance
+        return bool(abs(current_vel_x - saved_vel_x) > self.config.ball.velocity_tolerance)
 
     def update_saved_velocity(self, vel_x: float) -> None:
         """
