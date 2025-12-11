@@ -18,15 +18,15 @@ def get_game_directory() -> str:
     """
     # Для разработки (запуск из IDE) всегда используем local_game_files
     if not getattr(sys, "frozen", False):
-        current_dir: str = os.path.dirname(os.path.abspath(__file__))
-        local_game_dir: str = os.path.join(current_dir, "local_game_files")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        local_game_dir = os.path.join(current_dir, "local_game_files")
         return local_game_dir
 
     # Для exe файлов пытаемся использовать LOCALAPPDATA
     try:
-        localappdata: str | None = os.environ.get("LOCALAPPDATA")
+        localappdata = os.environ.get("LOCALAPPDATA")
         if localappdata:
-            game_dir: str = os.path.join(localappdata, "Games", "Arkanoid")
+            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
             return game_dir
     except:
         pass
@@ -37,8 +37,8 @@ def get_game_directory() -> str:
 
 def get_highscores_file_path() -> str:
     """Возвращает полный путь к файлу рекордов"""
-    game_dir: str = get_game_directory()
-    resources_dir: str = os.path.join(game_dir, "resources")
+    game_dir = get_game_directory()
+    resources_dir = os.path.join(game_dir, "resources")
 
     # Создаем каталог, если он не существует
     try:
@@ -60,7 +60,7 @@ def get_highscores_file_path() -> str:
 
 
 # Путь к файлу рекордов (теперь с полным путем)
-HIGHSCORES_FILE = get_highscores_file_path()
+HIGHSCORES_FILE: str = get_highscores_file_path()
 
 
 class HighScoreManager:
@@ -74,6 +74,8 @@ class HighScoreManager:
             if os.path.exists(HIGHSCORES_FILE):
                 with open(HIGHSCORES_FILE, "r", encoding="utf-8") as f:
                     self.highscores = json.load(f)
+                    if not isinstance(self.highscores, list):
+                        self.highscores = []
         except (json.JSONDecodeError, IOError):
             self.highscores = []
 
@@ -155,7 +157,7 @@ class HighScoreManager:
     def sort_highscores(self) -> None:
         """Сортирует рекорды: сначала по очкам (по убыванию), затем по времени (по возрастанию), затем по имени"""
 
-        def sort_key(item: Dict[str, Any]) -> Tuple[int, int, str]:
+        def sort_key(item: Dict[str, Any]) -> tuple[int, int, str]:
             return (-item["score"], item["time_seconds"], item["player_name"])
 
         self.highscores.sort(key=sort_key)

@@ -16,7 +16,7 @@ class PositionOptimizer:
         self.screen_height = screen_height
         self.paddle_safety_margin = 20  # Безопасный отступ от краев экрана
 
-    def find_optimal_position(self, game_state: GameState, trajectory_predictor) -> int:
+    def find_optimal_position(self, game_state: GameState, trajectory_predictor: Any) -> int:
         """
         Находит оптимальную позицию платформы
 
@@ -270,7 +270,7 @@ class PositionOptimizer:
         return brick_distance <= paddle_reach
 
     def optimize_for_multiple_shots(
-        self, game_state: GameState, trajectory_predictor
+        self, game_state: GameState, trajectory_predictor: Any
     ) -> int:
         """
         Оптимизирует позицию для серии выстрелов (продвинутый алгоритм)
@@ -301,7 +301,7 @@ class PositionOptimizer:
         return best_position
 
     def _evaluate_position_for_sequence(
-        self, game_state: GameState, paddle_x: int, trajectory_predictor
+        self, game_state: GameState, paddle_x: int, trajectory_predictor: Any
     ) -> float:
         """
         Оценивает позицию для серии выстрелов
@@ -338,7 +338,7 @@ class PositionOptimizer:
         return total_score
 
     def _calculate_optimal_bounce_position(
-        self, game_state: GameState, brick: pygame.Rect, trajectory_predictor
+        self, game_state: GameState, brick: pygame.Rect, trajectory_predictor: Any
     ) -> Optional[float]:
         """
         Рассчитывает оптимальную позицию отскока для попадания в кубик

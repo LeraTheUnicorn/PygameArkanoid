@@ -4,7 +4,7 @@
 
 import pygame
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 import time
 
 
@@ -15,16 +15,16 @@ class Point:
     x: float
     y: float
 
-    def __add__(self, other):
+    def __add__(self, other: "Point") -> "Point":
         return Point(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other):
+    def __sub__(self, other: "Point") -> "Point":
         return Point(self.x - other.x, self.y - other.y)
 
-    def __mul__(self, scalar):
+    def __mul__(self, scalar: float) -> "Point":
         return Point(self.x * scalar, self.y * scalar)
 
-    def distance_to(self, other) -> float:
+    def distance_to(self, other: "Point") -> float:
         """Вычисляет расстояние до другой точки"""
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
 
@@ -46,13 +46,13 @@ class GameState:
 
     # Дополнительная информация
     ball_speed: int
-    last_action_result: Optional[dict] = None
+    last_action_result: Optional[Dict[str, Any]] = None
     predicted_trajectory: Optional[List[Point]] = None
     optimal_paddle_position: Optional[int] = None
 
     @classmethod
     def create_from_game_objects(
-        cls, ball, paddle, bricks, score: int, start_time: int
+        cls, ball: Any, paddle: Any, bricks: List[pygame.Rect], score: int, start_time: int
     ) -> "GameState":
         """Создает состояние игры на основе объектов pygame"""
         ball_point = Point(ball.rect.centerx, ball.rect.centery)
@@ -147,7 +147,7 @@ class GameState:
 
         return Point(x_intersection, paddle_y)
 
-    def update_from_result(self, action_result: dict):
+    def update_from_result(self, action_result: Dict[str, Any]) -> None:
         """Обновляет состояние на основе результата действия"""
         self.last_action_result = action_result
 

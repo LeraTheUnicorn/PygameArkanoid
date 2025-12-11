@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 
 
-def get_ai_directory():
+def get_ai_directory() -> str:
     """
     Определяет каталог для AI файлов (логи и модели).
     Для разработки: ai в корне проекта
@@ -66,7 +66,7 @@ class LearningSystem:
             model_path = os.path.join(models_dir, "ai_model.json")
         
         self.model_path = model_path
-        self.learning_data = {
+        self.learning_data: Dict[str, Any] = {
             "strategy_weights": {
                 "aggressive": 0.5,
                 "conservative": 0.5,
@@ -101,7 +101,7 @@ class LearningSystem:
         # Загружаем существующую модель если она есть
         self.load_model()
 
-    def update_strategy(self, action_result: Dict[str, Any]):
+    def update_strategy(self, action_result: Dict[str, Any]) -> None:
         """
         Обновляет стратегию на основе результата действия
 
@@ -150,13 +150,16 @@ class LearningSystem:
         self._update_learning_stats(success)
 
         # Периодически обучаем модель предсказания успеха
-        if self.learning_data["learning_stats"]["total_learning_iterations"] % 100 == 0:
-            self._train_success_prediction_model()
+        learning_stats = self.learning_data.get("learning_stats", {})
+        if isinstance(learning_stats, dict):
+            total_iterations = learning_stats.get("total_learning_iterations", 0)
+            if total_iterations % 100 == 0:
+                self._train_success_prediction_model()
 
         # Сохраняем модель
         self.save_model()
 
-    def _reinforce_successful_strategy(self, action_result: Dict[str, Any]):
+    def _reinforce_successful_strategy(self, action_result: Dict[str, Any]) -> None:
         """Усиливает успешную стратегию"""
         confidence = action_result.get("confidence", 0.5)
         reinforcement_factor = 0.1 * confidence  # Усиление пропорционально уверенности
@@ -169,7 +172,7 @@ class LearningSystem:
                 1.0, current_weight + reinforcement_factor
             )
 
-    def _penalize_failed_strategy(self, action_result: Dict[str, Any]):
+    def _penalize_failed_strategy(self, action_result: Dict[str, Any]) -> None:
         """Наказывает неуспешную стратегию"""
         confidence = action_result.get("confidence", 0.5)
         penalty_factor = 0.05 * confidence  # Штраф пропорционально уверенности

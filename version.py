@@ -10,9 +10,10 @@
 import os
 import re
 from pathlib import Path
+from typing import Tuple
 
 # Путь к текущему файлу
-_VERSION_FILE = Path(__file__)
+_VERSION_FILE: Path = Path(__file__)
 
 # Версия в формате X.Y.ZZZZ
 # X - мажорная версия (революционные изменения)
@@ -20,15 +21,15 @@ _VERSION_FILE = Path(__file__)
 # ZZZZ - 4-значный индекс сборки (увеличивается автоматически при каждом запуске)
 
 # Начальные значения (будут обновлены при загрузке)
-VERSION_MAJOR = 2
-VERSION_MINOR = 3
-VERSION_BUILD = 155
-VERSION = "2.3.0017"
-VERSION_FULL = VERSION
-VERSION_BUILD_STRING = "2.3.0017"
+VERSION_MAJOR: int = 2
+VERSION_MINOR: int = 3
+VERSION_BUILD: int = 161
+VERSION: str = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_BUILD:04d}"
+VERSION_FULL: str = VERSION
+VERSION_BUILD_STRING: str = VERSION
 
 
-def _load_version_from_file():
+def _load_version_from_file() -> None:
     """Загружает версию из файла и увеличивает BUILD номер"""
     global VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD, VERSION, VERSION_FULL, VERSION_BUILD_STRING
 
@@ -59,14 +60,14 @@ def _load_version_from_file():
             content = re.sub(
                 r"VERSION_BUILD\s*=\s*\d+", f"VERSION_BUILD = {VERSION_BUILD}", content
             )
-            content = re.sub(r'VERSION\s*=\s*"[^"]+"', f'VERSION = "2.3.0017"', content)
+            content = re.sub(r'VERSION\s*=\s*"[^"]+"', f'VERSION = "{VERSION}"', content)
             content = re.sub(
                 r'VERSION_BUILD_STRING\s*=\s*"[^"]+"',
-                f'VERSION_BUILD_STRING = "2.3.0017"',
+                f'VERSION_BUILD_STRING = "{VERSION_BUILD_STRING}"',
                 content,
             )
             content = re.sub(
-                r'VERSION_FULL\s*=\s*"[^"]+"', f'VERSION_FULL = "2.3.0017"', content
+                r'VERSION_FULL\s*=\s*"[^"]+"', f'VERSION_FULL = "{VERSION_FULL}"', content
             )
 
             # Сохраняем обновленный файл
@@ -96,21 +97,21 @@ def _load_version_from_file():
 _load_version_from_file()
 
 
-def get_version():
+def get_version() -> str:
     """Возвращает текущую версию"""
     return VERSION
 
 
-def get_version_tuple():
+def get_version_tuple() -> Tuple[int, int, int]:
     """Возвращает версию как кортеж (major, minor, build)"""
     return (VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD)
 
 
-def get_version_string():
+def get_version_string() -> str:
     """Возвращает версию как строку в формате X.Y.ZZZZ"""
     return VERSION_BUILD_STRING
 
 
-def get_version_for_poetry():
+def get_version_for_poetry() -> str:
     """Возвращает версию в формате Poetry (X.Y.Z, где Z = BUILD)"""
     return f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_BUILD}"

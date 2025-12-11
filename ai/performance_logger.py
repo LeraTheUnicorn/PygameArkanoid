@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional
 from .game_state import GameState, Point
 
 
-def get_ai_directory():
+def get_ai_directory() -> str:
     """
     Определяет каталог для AI файлов (логи и модели).
     Для разработки: ai в корне проекта
@@ -52,7 +52,7 @@ def get_ai_directory():
 class CustomJSONEncoder(json.JSONEncoder):
     """Кастомный JSON encoder для сериализации Point и других объектов"""
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, Point):
             return {"x": obj.x, "y": obj.y}
         elif isinstance(obj, pygame.Rect):

@@ -15,7 +15,7 @@ import pygame
 import json
 
 
-def test_point_serialization():
+def test_point_serialization() -> bool:
     """Тестирует сериализацию Point объектов"""
     print("Testing Point serialization...")
 
@@ -39,7 +39,7 @@ def test_point_serialization():
         return False
 
 
-def test_rect_serialization():
+def test_rect_serialization() -> bool:
     """Тестирует сериализацию pygame.Rect объектов"""
     print("\nTesting pygame.Rect serialization...")
 
@@ -63,7 +63,7 @@ def test_rect_serialization():
         return False
 
 
-def test_mixed_data():
+def test_mixed_data() -> bool:
     """Тестирует сериализацию смешанных данных"""
     print("\nTesting mixed data serialization...")
 
@@ -98,7 +98,7 @@ def test_mixed_data():
         return False
 
 
-def main():
+def main() -> bool:
     """Основная функция тестирования"""
     print("=== JSON Encoder Test Suite ===\n")
 

@@ -105,7 +105,7 @@ class LogAnalyzer:
         
         # Анализ причин движения
         for movement in self.movements:
-            reason = movement.get("reason", "unknown")
+            reason: str = movement.get("reason", "unknown")
             analysis["movement_reasons"][reason] += 1
         
         # Выявление проблемных позиций
@@ -124,7 +124,7 @@ class LogAnalyzer:
         problematic = []
         
         # Группируем движения по позициям
-        position_stats = defaultdict(lambda: {"count": 0, "low_confidence": 0, "distances": []})
+        position_stats: Dict[int, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "low_confidence": 0, "distances": []})
         
         for movement in self.movements:
             from_pos = movement.get("from_position", 0)
@@ -160,7 +160,7 @@ class LogAnalyzer:
     
     def _find_frequent_errors(self) -> List[Dict[str, Any]]:
         """Выявляет частые ошибки позиционирования"""
-        errors = []
+        errors: List[Dict[str, Any]] = []
         
         # Анализируем движения с низкой уверенностью
         low_confidence_movements = [
@@ -172,7 +172,7 @@ class LogAnalyzer:
             return errors
         
         # Группируем по причинам
-        error_patterns = defaultdict(lambda: {"count": 0, "avg_confidence": [], "positions": []})
+        error_patterns: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "avg_confidence": [], "positions": []})
         
         for movement in low_confidence_movements:
             reason = movement.get("reason", "unknown")
@@ -197,7 +197,7 @@ class LogAnalyzer:
     
     def _find_common_positions(self, positions: List[int]) -> List[int]:
         """Находит наиболее частые позиции"""
-        position_counts = defaultdict(int)
+        position_counts: Dict[int, int] = defaultdict(int)
         for pos in positions:
             # Округляем до ближайших 20 пикселей
             rounded_pos = (pos // 20) * 20
@@ -340,7 +340,7 @@ class LogAnalyzer:
         return report_text
 
 
-def main():
+def main() -> None:
     """Основная функция для запуска анализатора из командной строки"""
     import sys
     

@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def test_imports():
+def test_imports() -> bool:
     print("Testing imports...")
 
     try:
@@ -36,7 +36,7 @@ def test_imports():
     return True
 
 
-def test_ai_init():
+def test_ai_init() -> bool:
     print("\nTesting AI initialization...")
 
     try:
@@ -51,7 +51,7 @@ def test_ai_init():
         return False
 
 
-def main():
+def main() -> bool:
     print("=== Game Initialization Test ===")
 
     tests = [test_imports, test_ai_init]

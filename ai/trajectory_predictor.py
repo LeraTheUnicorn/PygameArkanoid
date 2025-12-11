@@ -3,7 +3,7 @@
 """
 
 import pygame
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional, Any, Dict
 import math
 from .game_state import Point, GameState
 
@@ -11,17 +11,17 @@ from .game_state import Point, GameState
 class TrajectoryPredictor:
     """Класс для предсказания траектории мяча"""
 
-    def __init__(self, screen_width: int = 800, screen_height: int = 600):
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.gravity = 0.5  # Гравитация для более реалистичной траектории
+    def __init__(self, screen_width: int = 800, screen_height: int = 600) -> None:
+        self.screen_width: int = screen_width
+        self.screen_height: int = screen_height
+        self.gravity: float = 0.5  # Гравитация для более реалистичной траектории
         
         # Кэш для результатов расчетов траекторий
         # Ключ: хеш состояния игры, Значение: результат расчета
-        self._trajectory_cache = {}
-        self._intersection_cache = {}
-        self._after_bounce_cache = {}
-        self._cache_max_size = 100  # Максимальный размер кэша
+        self._trajectory_cache: Dict[str, List[Point]] = {}
+        self._intersection_cache: Dict[str, Optional[Point]] = {}
+        self._after_bounce_cache: Dict[str, List[Point]] = {}
+        self._cache_max_size: int = 100  # Максимальный размер кэша
 
     def predict_trajectory(
         self, game_state: GameState, max_points: int = 50
@@ -339,8 +339,8 @@ class TrajectoryPredictor:
         return hit_count
 
     def visualize_trajectory(
-        self, screen: pygame.Surface, trajectory: List[Point], color=(255, 255, 0)
-    ):
+        self, screen: pygame.Surface, trajectory: List[Point], color: Tuple[int, int, int] = (255, 255, 0)
+    ) -> None:
         """
         Визуализирует траекторию на экране (для отладки)
 
@@ -389,7 +389,7 @@ class TrajectoryPredictor:
         vel_y = round(game_state.ball_velocity.y)
         return f"after_bounce_{bounce_x_rounded}_{bounce_y_rounded}_{bounce_x_pos}_{vel_y}"
     
-    def _cache_result(self, cache_dict: dict, key: str, value: Any) -> None:
+    def _cache_result(self, cache_dict: Dict[str, Any], key: str, value: Any) -> None:
         """Сохраняет результат в кэш с ограничением размера"""
         # Если кэш переполнен, удаляем старые записи
         if len(cache_dict) >= self._cache_max_size:

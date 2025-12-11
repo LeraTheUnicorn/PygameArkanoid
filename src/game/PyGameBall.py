@@ -16,7 +16,7 @@ import numpy as np
 import sys
 import os
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple, Optional, Any
 
 import pygame
 from highscores import HighScoreManager
@@ -24,7 +24,7 @@ from settings import SettingsManager
 from ai.ai_player import AIPlayer
 
 
-def resource_path(relative_path):
+def resource_path(relative_path: str) -> str:
     """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
@@ -39,28 +39,33 @@ def resource_path(relative_path):
 
 # Настройки игры
 # Размеры экрана
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
+SCREEN_WIDTH: int = 800
+SCREEN_HEIGHT: int = 600
+FPS: int = 60
 
 # Размеры и скорость платформы
-PADDLE_WIDTH = 120
-PADDLE_HEIGHT = 15
-PADDLE_SPEED = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
+PADDLE_WIDTH: int = 120
+PADDLE_HEIGHT: int = 15
+PADDLE_SPEED: int = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
 
 # Размеры и скорость мяча
-BALL_SIZE = 16
-BALL_SPEED_DEFAULT = 5  # Значение по умолчанию
+BALL_SIZE: int = 16
+BALL_SPEED_DEFAULT: int = 5  # Значение по умолчанию
 
 # Параметры кубиков
-BRICK_ROWS = 5
-BRICK_COLS = 10
-BRICK_WIDTH = 60
-BRICK_HEIGHT = 20
-BRICK_PADDING = 10
-BRICK_OFFSET_TOP = 60
+BRICK_ROWS: int = 5
+BRICK_COLS: int = 10
+BRICK_WIDTH: int = 60
+BRICK_HEIGHT: int = 20
+BRICK_PADDING: int = 10
+BRICK_OFFSET_TOP: int = 60
 
-MAX_LIVES = 3  # Максимальное количество жизней
+MAX_LIVES: int = 3  # Максимальное количество жизней
+
+# Зона разделения - область между кубиками и платформой
+# Платформа должна двигаться только когда мяч находится в этой зоне и движется вниз
+SEPARATION_ZONE_TOP: int = 226  # Верхняя граница зоны разделения
+SEPARATION_ZONE_BOTTOM: int = 540  # Нижняя граница зоны разделения (высота платформы)
 
 
 def generate_tone_sound(
@@ -607,7 +612,7 @@ class Ball:
     def set_speed(
         self,
         speed: int,
-        settings_manager: SettingsManager = None,
+        settings_manager: Optional[SettingsManager] = None,
         auto_mode: bool = False,
     ) -> None:
         """
@@ -639,7 +644,7 @@ class Ball:
                 settings_manager.set_ball_speed(speed, auto_mode)
 
     def increase_speed(
-        self, settings_manager: SettingsManager = None, auto_mode: bool = False
+        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
     ) -> None:
         """Увеличивает скорость на 1 (максимум зависит от режима)"""
         max_speed = 25 if auto_mode else 10
@@ -647,7 +652,7 @@ class Ball:
             self.set_speed(self.current_speed + 1, settings_manager, auto_mode)
 
     def decrease_speed(
-        self, settings_manager: SettingsManager = None, auto_mode: bool = False
+        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
     ) -> None:
         """Уменьшает скорость на 1 (минимум 1)"""
         if self.current_speed > 1:
@@ -692,7 +697,7 @@ def draw_hud(
     ball: Ball,
     auto_mode: bool = False,
     training_mode: bool = False,
-    ai_player=None,
+    ai_player: Optional[AIPlayer] = None,
 ) -> None:
     # Добавляем индикатор авторежима или режима обучения
     if auto_mode or training_mode:
@@ -712,10 +717,10 @@ def render_colored_hint(
     screen: pygame.Surface,
     font: pygame.font.Font,
     text: str,
-    pos: tuple,
-    base_color=(200, 200, 200),
-    key_color=(255, 255, 0),
-) -> None:
+    pos: Tuple[int, int],
+    base_color: Tuple[int, int, int] = (200, 200, 200),
+    key_color: Tuple[int, int, int] = (255, 255, 0),
+) -> int:
     """Отображает подсказку с выделенными ключевыми словами цветом"""
     words = text.split()
     x, y = pos
@@ -869,7 +874,7 @@ def show_settings_window(
     return sound_enabled
 
 
-def _print_training_summary(ai_player, training_rounds: int) -> None:
+def _print_training_summary(ai_player: AIPlayer, training_rounds: int) -> None:
     """
     Выводит итоговую статистику обучения в консоль.
 
@@ -1300,6 +1305,15 @@ def main() -> None:
                     if frame_counter <= 3 and not getattr(sys, "frozen", False):
                         print(f"[AI DEBUG] update_game_state завершен")
                     
+                    # КРИТИЧНО: Проверяем нарушение правила фиксации позиции
+                    if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get("game_restart_required", False):
+                        # Нарушение правила - перезапускаем игру
+                        if not getattr(sys, "frozen", False):
+                            print(f"[CRITICAL ERROR] Перезапуск игры из-за нарушения правила фиксации позиции!")
+                        game_over = True
+                        # Сбрасываем флаг
+                        ai_player.separation_zone_tracker["game_restart_required"] = False
+                    
                     # В режиме обучения обновляем статистику и управляем скоростью мяча
                     if training_mode:
                         # Обновляем статистику обучения
@@ -1371,23 +1385,51 @@ def main() -> None:
                         if ball.get_speed() > 20:
                             base_speed = int(base_speed * (ball.get_speed() / 20.0))
 
-                    # Используем AI систему для автоматического управления
-                    movement = ai_player.move_paddle_towards(
-                        paddle.rect.centerx, int(base_speed)
+                    # КРИТИЧНО: Платформа начинает движение когда мяч в зоне разделения
+                    # Правила работы:
+                    # 1. Мяч улетает (вверх) - платформа стоит на месте
+                    # 2. Мяч в зоне кубиков (выше зоны разделения) - платформа стоит на месте
+                    # 3. Мяч падает вниз и вошел в зону разделения - платформа начинает движение к точке падения
+                    ball_falling_down = ball.vel_y > 0  # Мяч движется вниз
+                    ball_in_separation_zone = (
+                        SEPARATION_ZONE_TOP <= ball.rect.centery <= SEPARATION_ZONE_BOTTOM
+                        and ball.vel_y > 0  # Мяч движется вниз
                     )
-                    # Получаем скорректированную скорость от AI (с учетом адаптации)
-                    adjusted_speed = ai_player.get_adjusted_paddle_speed(
-                        int(base_speed)
-                    )
-                    # Применяем движение с правильной скоростью
-                    paddle.rect.x += movement * adjusted_speed
-                    # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
-                    paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
-                    min_center_x = paddle_half_width
-                    max_center_x = SCREEN_WIDTH - paddle_half_width
-                    paddle.rect.centerx = max(
-                        min_center_x, min(max_center_x, paddle.rect.centerx)
-                    )
+                    
+                    # Начинаем движение когда мяч в зоне разделения
+                    if ball_in_separation_zone:
+                        # Используем AI систему для автоматического управления
+                        movement = ai_player.move_paddle_towards(
+                            paddle.rect.centerx, int(base_speed)
+                        )
+                        # Получаем скорректированную скорость от AI (с учетом адаптации)
+                        adjusted_speed = ai_player.get_adjusted_paddle_speed(
+                            int(base_speed)
+                        )
+                        
+                        # КРИТИЧНО: Используем адаптивную скорость для предотвращения перескакивания через цель
+                        # Получаем целевую позицию от AI
+                        target_pos = ai_player.separation_zone_tracker.get("target_position")
+                        if target_pos is not None:
+                            distance_to_target = abs(paddle.rect.centerx - target_pos)
+                            # Если платформа близко к цели (distance < speed), уменьшаем скорость
+                            # Это предотвращает перескакивание через цель и дергание
+                            if distance_to_target < adjusted_speed:
+                                # Двигаемся только на расстояние до цели, не больше
+                                adjusted_speed = max(1, int(distance_to_target))
+                        
+                        # КРИТИЧНО: Используем centerx для движения, чтобы избежать конфликта с x
+                        # Применяем движение с адаптивной скоростью
+                        new_center_x = paddle.rect.centerx + movement * adjusted_speed
+                        
+                        # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
+                        paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
+                        min_center_x = paddle_half_width
+                        max_center_x = SCREEN_WIDTH - paddle_half_width
+                        paddle.rect.centerx = max(
+                            min_center_x, min(max_center_x, new_center_x)
+                        )
+                    # Если мяч не в зоне разделения - платформа остается на месте (movement = 0)
 
                     # Отладочная информация (выводим периодически)
                     if pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
@@ -1938,10 +1980,71 @@ def main() -> None:
                     # КРИТИЧНО: Проверяем потерю мяча ПОСЛЕ проверки столкновения с платформой
                     # Если мяч ниже верхней границы платформы И не было столкновения - он потерян
                     if ball.rect.bottom > paddle.rect.top and not ball_hits_paddle_top:
-                        # КРИТИЧНО: Логируем потерю мяча
+                        # КРИТИЧНО: Подробное логирование потери мяча для диагностики
                         if auto_mode or training_mode:
                             if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Мяч потерян (ball.rect.bottom={ball.rect.bottom} > paddle.rect.top={paddle.rect.top})! lives_left={lives_left}")
+                                # Получаем информацию о состоянии для диагностики
+                                ball_x = ball.rect.centerx
+                                ball_y = ball.rect.centery
+                                ball_bottom = ball.rect.bottom
+                                paddle_x = paddle.rect.centerx
+                                paddle_top = paddle.rect.top
+                                paddle_left = paddle.rect.left
+                                paddle_right = paddle.rect.right
+                                ball_vel_x = ball.vel_x
+                                ball_vel_y = ball.vel_y
+                                ball_speed = ball.get_speed()
+                                
+                                # Получаем информацию от AI о целевой позиции
+                                optimal_x = ai_player.get_optimal_paddle_position() if hasattr(ai_player, 'get_optimal_paddle_position') else paddle_x
+                                distance_to_optimal = abs(paddle_x - optimal_x) if optimal_x is not None else 0
+                                
+                                # Получаем информацию о зонах
+                                separation_zone_start = ai_player.separation_zone_tracker.get("separation_zone_start", 226) if hasattr(ai_player, 'separation_zone_tracker') else 226
+                                paddle_zone_start = ai_player.separation_zone_tracker.get("paddle_zone_start", 540) if hasattr(ai_player, 'separation_zone_tracker') else 540
+                                
+                                # Получаем информацию о скорости платформы
+                                base_speed = PADDLE_SPEED
+                                adjusted_speed = ai_player.get_adjusted_paddle_speed(base_speed) if hasattr(ai_player, 'get_adjusted_paddle_speed') else base_speed
+                                
+                                # Рассчитываем, где должна была быть платформа
+                                ball_was_in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start
+                                
+                                # Рассчитываем расстояние от мяча до платформы по горизонтали
+                                horizontal_distance = abs(ball_x - paddle_x)
+                                
+                                # Определяем, в какую зону относительно платформы находится мяч
+                                # ВАЖНО: Это НЕ означает, что мяч ударился о платформу!
+                                # Это показывает, где находится мяч относительно платформы
+                                paddle_zone_size = PADDLE_WIDTH / 3
+                                ball_offset_from_paddle_center = ball_x - paddle_x
+                                if ball_offset_from_paddle_center < -paddle_zone_size:
+                                    ball_zone = "LEFT (слева от платформы)"
+                                elif ball_offset_from_paddle_center > paddle_zone_size:
+                                    ball_zone = "RIGHT (справа от платформы)"
+                                else:
+                                    ball_zone = "CENTER (над платформой)"
+                                
+                                # Проверяем, действительно ли мяч попал в платформу
+                                ball_hit_paddle = (paddle_left <= ball_x <= paddle_right and 
+                                                  ball_bottom >= paddle_top and 
+                                                  ball_bottom <= paddle_top + 5)
+                                
+                                print(f"[BALL LOST] ========== ДИАГНОСТИКА ПОТЕРИ МЯЧА ==========")
+                                print(f"  Мяч: pos=({ball_x:.1f}, {ball_y:.1f}) bottom={ball_bottom:.1f} vel=({ball_vel_x:.1f}, {ball_vel_y:.1f}) speed={ball_speed:.1f}")
+                                print(f"  Платформа: center_x={paddle_x:.1f} top={paddle_top:.1f} left={paddle_left:.1f} right={paddle_right:.1f}")
+                                print(f"  Расстояние: horizontal={horizontal_distance:.1f}px vertical={ball_bottom - paddle_top:.1f}px")
+                                print(f"  Мяч относительно платформы: {ball_zone} (offset={ball_offset_from_paddle_center:.1f}px)")
+                                print(f"  Мяч ударился о платформу: {ball_hit_paddle} (если False - мяч пролетел мимо)")
+                                print(f"  Целевая позиция AI: optimal_x={optimal_x:.1f} distance_to_optimal={distance_to_optimal:.1f}px")
+                                print(f"  Скорость платформы: base={base_speed} adjusted={adjusted_speed}")
+                                print(f"  Зоны: separation_start={separation_zone_start} paddle_start={paddle_zone_start} ball_was_in_zone={ball_was_in_separation_zone}")
+                                print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.get('target_position_set', False) if hasattr(ai_player, 'separation_zone_tracker') else False}")
+                                if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get('target_position'):
+                                    target_pos = ai_player.separation_zone_tracker.get('target_position')
+                                    print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
+                                print(f"  Жизни: {lives_left}")
+                                print(f"========================================================")
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
                         # Мяч ниже верхней границы платформы и не отскочил - он потерян
@@ -2164,8 +2267,8 @@ def main() -> None:
                             ai_player.empty_bounce_tracker["ceiling_bounces"] = 0
 
                         # Обучаем AI на результате попадания в кубик
-                        if auto_mode:
-                            # destroyed_brick определена выше в этом же блоке (строка 1784)
+                        if auto_mode or training_mode:
+                            # destroyed_brick определена выше в этом же блоке (строка 2237)
                             try:
                                 ai_result = {
                                     "action_type": "brick_hit",
@@ -2178,7 +2281,7 @@ def main() -> None:
                                     "ball_speed": ball.get_speed(),
                                 }
                                 ai_player.learn_from_result(ai_result)
-                            except UnboundLocalError as e:
+                            except Exception as e:
                                 if not getattr(sys, "frozen", False):
                                     print(f"[ERROR] Ошибка при обучении AI: {e}")
                                     import traceback

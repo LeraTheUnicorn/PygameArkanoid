@@ -6,10 +6,10 @@
 import json
 import os
 import sys
-from typing import Dict
+from typing import Dict, Any
 
 
-def get_game_directory():
+def get_game_directory() -> str:
     """
     Определяет каталог игры.
     При запуске из студии разработки использует local_game_files,
@@ -27,7 +27,7 @@ def get_game_directory():
     return os.path.dirname(sys.executable)
 
 
-def get_settings_file_path():
+def get_settings_file_path() -> str:
     """Возвращает полный путь к файлу настроек"""
     game_dir = get_game_directory()
     resources_dir = os.path.join(game_dir, "resources")
@@ -48,12 +48,12 @@ def get_settings_file_path():
 
 
 # Путь к файлу настроек
-SETTINGS_FILE = get_settings_file_path()
+SETTINGS_FILE: str = get_settings_file_path()
 
 
 class SettingsManager:
-    def __init__(self):
-        self.settings = {
+    def __init__(self) -> None:
+        self.settings: Dict[str, Any] = {
             "ball_speed": 15
         }  # Скорость мяча по умолчанию (среднее для авторежима 1-30)
         self.load_settings()
@@ -64,7 +64,7 @@ class SettingsManager:
         try:
             if os.path.exists(SETTINGS_FILE):
                 with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                    loaded_settings = json.load(f)
+                    loaded_settings: Dict[str, Any] = json.load(f)
                     self.settings.update(loaded_settings)
         except (json.JSONDecodeError, IOError):
             # Если файл поврежден, используем значения по умолчанию
@@ -80,7 +80,8 @@ class SettingsManager:
 
     def get_ball_speed(self) -> int:
         """Возвращает скорость мяча"""
-        return self.settings["ball_speed"]
+        speed = self.settings.get("ball_speed", 15)
+        return int(speed) if isinstance(speed, (int, float)) else 15
 
     def set_ball_speed(self, speed: int, auto_mode: bool = False) -> None:
         """

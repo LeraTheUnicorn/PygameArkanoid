@@ -16,7 +16,7 @@ import numpy as np
 import sys
 import os
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple, Optional, Any
 
 import pygame
 from highscores import HighScoreManager
@@ -24,7 +24,7 @@ from settings import SettingsManager
 from ai.ai_player import AIPlayer
 
 
-def resource_path(relative_path):
+def resource_path(relative_path: str) -> str:
     """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
@@ -39,33 +39,33 @@ def resource_path(relative_path):
 
 # Настройки игры
 # Размеры экрана
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
+SCREEN_WIDTH: int = 800
+SCREEN_HEIGHT: int = 600
+FPS: int = 60
 
 # Размеры и скорость платформы
-PADDLE_WIDTH = 120
-PADDLE_HEIGHT = 15
-PADDLE_SPEED = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
+PADDLE_WIDTH: int = 120
+PADDLE_HEIGHT: int = 15
+PADDLE_SPEED: int = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
 
 # Размеры и скорость мяча
-BALL_SIZE = 16
-BALL_SPEED_DEFAULT = 5  # Значение по умолчанию
+BALL_SIZE: int = 16
+BALL_SPEED_DEFAULT: int = 5  # Значение по умолчанию
 
 # Параметры кубиков
-BRICK_ROWS = 5
-BRICK_COLS = 10
-BRICK_WIDTH = 60
-BRICK_HEIGHT = 20
-BRICK_PADDING = 10
-BRICK_OFFSET_TOP = 60
+BRICK_ROWS: int = 5
+BRICK_COLS: int = 10
+BRICK_WIDTH: int = 60
+BRICK_HEIGHT: int = 20
+BRICK_PADDING: int = 10
+BRICK_OFFSET_TOP: int = 60
 
-MAX_LIVES = 3  # Максимальное количество жизней
+MAX_LIVES: int = 3  # Максимальное количество жизней
 
 # Зона разделения - область между кубиками и платформой
 # Платформа должна двигаться только когда мяч находится в этой зоне и движется вниз
-SEPARATION_ZONE_TOP = 226  # Верхняя граница зоны разделения
-SEPARATION_ZONE_BOTTOM = 540  # Нижняя граница зоны разделения (высота платформы)
+SEPARATION_ZONE_TOP: int = 226  # Верхняя граница зоны разделения
+SEPARATION_ZONE_BOTTOM: int = 540  # Нижняя граница зоны разделения (высота платформы)
 
 
 def generate_tone_sound(
@@ -612,7 +612,7 @@ class Ball:
     def set_speed(
         self,
         speed: int,
-        settings_manager: SettingsManager = None,
+        settings_manager: Optional[SettingsManager] = None,
         auto_mode: bool = False,
     ) -> None:
         """
@@ -644,7 +644,7 @@ class Ball:
                 settings_manager.set_ball_speed(speed, auto_mode)
 
     def increase_speed(
-        self, settings_manager: SettingsManager = None, auto_mode: bool = False
+        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
     ) -> None:
         """Увеличивает скорость на 1 (максимум зависит от режима)"""
         max_speed = 25 if auto_mode else 10
@@ -652,7 +652,7 @@ class Ball:
             self.set_speed(self.current_speed + 1, settings_manager, auto_mode)
 
     def decrease_speed(
-        self, settings_manager: SettingsManager = None, auto_mode: bool = False
+        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
     ) -> None:
         """Уменьшает скорость на 1 (минимум 1)"""
         if self.current_speed > 1:
@@ -697,7 +697,7 @@ def draw_hud(
     ball: Ball,
     auto_mode: bool = False,
     training_mode: bool = False,
-    ai_player=None,
+    ai_player: Optional[AIPlayer] = None,
 ) -> None:
     # Добавляем индикатор авторежима или режима обучения
     if auto_mode or training_mode:
@@ -717,10 +717,10 @@ def render_colored_hint(
     screen: pygame.Surface,
     font: pygame.font.Font,
     text: str,
-    pos: tuple,
-    base_color=(200, 200, 200),
-    key_color=(255, 255, 0),
-) -> None:
+    pos: Tuple[int, int],
+    base_color: Tuple[int, int, int] = (200, 200, 200),
+    key_color: Tuple[int, int, int] = (255, 255, 0),
+) -> int:
     """Отображает подсказку с выделенными ключевыми словами цветом"""
     words = text.split()
     x, y = pos
@@ -874,7 +874,7 @@ def show_settings_window(
     return sound_enabled
 
 
-def _print_training_summary(ai_player, training_rounds: int) -> None:
+def _print_training_summary(ai_player: AIPlayer, training_rounds: int) -> None:
     """
     Выводит итоговую статистику обучения в консоль.
 
