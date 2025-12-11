@@ -459,6 +459,279 @@ def show_highscores(
     return sound_enabled, False  # Возвращаемся, не выходя из игры
 
 
+def trigger_instant_victory(
+    screen: pygame.Surface,
+    font: pygame.font.Font,
+    big_font: pygame.font.Font,
+    score: int,
+    player_name: str,
+    game_time_seconds: int,
+    highscore_manager: "HighScoreManager",
+    settings_manager: "SettingsManager",
+    ball: "Ball",
+    auto_mode: bool = False,
+) -> tuple[bool, bool, bool]:
+    """
+    Показывает заставку победы и экран результатов.
+    Используется для немедленной победы (например, при тройном нажатии "1").
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        font: Шрифт для обычного текста
+        big_font: Шрифт для заголовков
+        score: Финальный счет игрока
+        player_name: Имя игрока
+        game_time_seconds: Время игры в секундах
+        highscore_manager: Менеджер рекордов
+        settings_manager: Менеджер настроек игры
+        ball: Объект мяча
+        auto_mode: Флаг авторежима
+        
+    Returns:
+        Кортеж из 3 элементов:
+        - Состояние звука (bool)
+        - Флаг перезапуска игры (bool)
+        - Флаг выхода из игры (bool)
+    """
+    # Показываем заставку победы
+    if not getattr(sys, "frozen", False):
+        print("[TRIGGER VICTORY] Вызываем show_victory_splash...")
+    try:
+        show_victory_splash(screen, duration_seconds=5.0)
+        if not getattr(sys, "frozen", False):
+            print("[TRIGGER VICTORY] show_victory_splash завершена")
+    except Exception as e:
+        if not getattr(sys, "frozen", False):
+            print(f"[TRIGGER VICTORY] ОШИБКА в show_victory_splash: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Показываем экран результатов
+    return show_game_results(
+        screen,
+        font,
+        big_font,
+        score,
+        player_name,
+        game_time_seconds,
+        highscore_manager,
+        settings_manager,
+        ball,
+        auto_mode,
+    )
+
+
+def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -> None:
+    # Сохраняем исходный размер экрана в начале функции
+    initial_screen_size = screen.get_size()
+    if not getattr(sys, "frozen", False):
+        print(f"[VICTORY SPLASH] Начальный размер экрана при входе в функцию: {initial_screen_size}")
+    """
+    Показывает заставку победы с анимированным изображением.
+    Использует Pyglet для загрузки анимированного GIF.
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        duration_seconds: Длительность показа заставки в секундах (по умолчанию 5)
+    """
+    if not getattr(sys, "frozen", False):
+        print(f"[VICTORY SPLASH] Начало функции show_victory_splash, длительность: {duration_seconds} сек")
+    
+    # Загружаем изображение
+    image_path = resource_path("resources/images/d2.gif")
+    
+    if not getattr(sys, "frozen", False):
+        print(f"[VICTORY SPLASH] Путь к изображению: {image_path}")
+    
+    try:
+        # Используем PIL для загрузки и изменения размера GIF (НЕ МЕНЯЕМ размер окна!)
+        try:
+            from PIL import Image, ImageSequence
+            
+            # Получаем размеры экрана (НЕ МЕНЯЕМ их!)
+            screen_width, screen_height = screen.get_size()
+            if not getattr(sys, "frozen", False):
+                print(f"[VICTORY SPLASH] Размер экрана: {screen_width}x{screen_height} (НЕ МЕНЯЕМ!)")
+                print(f"[VICTORY SPLASH] Загружаем GIF через PIL: {image_path}")
+            
+            # Загружаем GIF с помощью PIL
+            with Image.open(image_path) as im:
+                # Получаем длительность кадров из метаданных
+                default_duration = im.info.get("duration", 100)
+                
+                # Изменяем размер каждого кадра до размера экрана (800x600)
+                frames = []
+                frame_durations = []
+                
+                for i, frame in enumerate(ImageSequence.Iterator(im)):
+                    # Копируем кадр и изменяем размер до размера экрана
+                    resized_frame = frame.copy().resize((screen_width, screen_height), Image.LANCZOS)
+                    
+                    # Получаем длительность кадра
+                    duration = frame.info.get("duration", default_duration)
+                    frame_durations.append(duration)
+                    
+                    # Конвертируем PIL Image в pygame Surface
+                    # Конвертируем в RGBA для поддержки прозрачности
+                    if resized_frame.mode != 'RGBA':
+                        resized_frame = resized_frame.convert('RGBA')
+                    
+                    # Получаем данные изображения
+                    img_data = resized_frame.tobytes()
+                    
+                    # Создаем pygame Surface
+                    try:
+                        frame_surface = pygame.image.fromstring(
+                            img_data, (screen_width, screen_height), 'RGBA'
+                        )
+                    except (AttributeError, TypeError):
+                        # Fallback для новых версий pygame
+                        frame_surface = pygame.image.frombuffer(
+                            img_data, (screen_width, screen_height), 'RGBA'
+                        )
+                    frame_surface = frame_surface.convert_alpha()
+                    
+                    frames.append(frame_surface)
+                    
+                    if i < 3 and not getattr(sys, "frozen", False):
+                        print(f"[VICTORY SPLASH] Кадр {i}: длительность {duration} мс, размер {frame_surface.get_size()}")
+            
+            if len(frames) == 0:
+                raise ValueError("Не удалось загрузить кадры анимации")
+            
+            # Изображение уже имеет размер экрана, координаты (0, 0)
+            x = 0
+            y = 0
+            
+            if not getattr(sys, "frozen", False):
+                print(f"[VICTORY SPLASH] Загружено кадров: {len(frames)}, размер каждого: {screen_width}x{screen_height}")
+            
+            # Время начала показа
+            start_time = time.time()
+            clock = pygame.time.Clock()
+            frame_index = 0
+            frame_accumulator = 0.0
+            last_frame_time = time.time()
+            
+            # Показываем заставку в течение указанного времени
+            if not getattr(sys, "frozen", False):
+                print(f"[VICTORY SPLASH] Длительность показа: {duration_seconds} сек")
+                if len(frames) > 1:
+                    print(f"[VICTORY SPLASH] Длительности кадров (мс): {frame_durations[:5]}...")  # Показываем первые 5
+            
+            # Если только один кадр, просто показываем его
+            if len(frames) == 1:
+                while time.time() - start_time < duration_seconds:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            return
+                    screen.fill((0, 0, 0))
+                    screen.blit(frames[0], (x, y))
+                    pygame.display.flip()
+                    clock.tick(30)
+            else:
+                # Анимация с несколькими кадрами
+                while time.time() - start_time < duration_seconds:
+                    # Обрабатываем события (чтобы окно не зависало)
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            return
+                    
+                    # Вычисляем время, прошедшее с последнего кадра
+                    current_frame_time = time.time()
+                    delta_time = current_frame_time - last_frame_time
+                    last_frame_time = current_frame_time
+                    frame_accumulator += delta_time
+                    
+                    # Переключаем кадры анимации на основе длительности кадра
+                    frame_duration_sec = frame_durations[frame_index] / 1000.0
+                    # Минимальная длительность кадра - 30 FPS (33 мс)
+                    if frame_duration_sec < 0.033:
+                        frame_duration_sec = 0.033
+                    
+                    # Если накопилось достаточно времени, переключаем кадр
+                    if frame_accumulator >= frame_duration_sec:
+                        old_index = frame_index
+                        frame_index = (frame_index + 1) % len(frames)
+                        frame_accumulator -= frame_duration_sec
+                        
+                        # Отладочный вывод для первых нескольких переключений
+                        if old_index < 5 and not getattr(sys, "frozen", False):
+                            print(f"[VICTORY SPLASH] Кадр изменен: {old_index} -> {frame_index}")
+                    
+                    # Очищаем экран
+                    screen.fill((0, 0, 0))
+                    
+                    # Рисуем текущий кадр (уже размером с экран)
+                    screen.blit(frames[frame_index], (x, y))
+                    
+                    # Обновляем экран
+                    pygame.display.flip()
+                    
+                    # Ограничиваем FPS для плавной анимации
+                    clock.tick(30)
+                    
+        except (ImportError, Exception) as e:
+            # Если PIL не установлен или произошла ошибка, используем pygame для загрузки первого кадра
+            if not getattr(sys, "frozen", False):
+                print(f"[VICTORY SPLASH] Ошибка при загрузке через PIL: {e}, используем pygame для статического изображения")
+            # Загружаем статическое изображение через pygame (только первый кадр)
+            try:
+                image = pygame.image.load(image_path)
+                if not getattr(sys, "frozen", False):
+                    print(f"[VICTORY SPLASH] Изображение загружено через pygame, размер: {image.get_size()}")
+                
+                # Получаем размеры экрана (НЕ МЕНЯЕМ их!)
+                screen_width, screen_height = screen.get_size()
+                
+                # Конвертируем изображение в формат, поддерживающий smoothscale
+                if image.get_bitsize() not in (24, 32):
+                    image = image.convert()
+                
+                # Растягиваем изображение до размера экрана
+                try:
+                    image = pygame.transform.smoothscale(image, (screen_width, screen_height))
+                except ValueError:
+                    # Если smoothscale не работает, используем обычный scale
+                    image = pygame.transform.scale(image, (screen_width, screen_height))
+                
+                # Координаты (0, 0) - изображение уже размером с экран
+                x = 0
+                y = 0
+                
+                # Показываем статическое изображение
+                start_time = time.time()
+                clock = pygame.time.Clock()
+                
+                while time.time() - start_time < duration_seconds:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            return
+                    
+                    screen.fill((0, 0, 0))
+                    screen.blit(image, (x, y))
+                    pygame.display.flip()
+                    clock.tick(30)
+                    
+            except Exception as e2:
+                # Если даже pygame не может загрузить, просто выходим и переходим к результатам
+                if not getattr(sys, "frozen", False):
+                    print(f"[VICTORY SPLASH] Критическая ошибка: не удалось загрузить изображение: {e2}")
+                    import traceback
+                    traceback.print_exc()
+                # Выходим из функции, чтобы сразу перейти к экрану результатов
+                return
+                
+    except Exception as e:
+        # Если не удалось загрузить изображение, просто выходим и переходим к результатам
+        if not getattr(sys, "frozen", False):
+            print(f"[VICTORY SPLASH] ОШИБКА при загрузке изображения победы: {e}")
+            import traceback
+            traceback.print_exc()
+        # Выходим из функции, чтобы сразу перейти к экрану результатов
+        return
+
+
 def show_game_results(
     screen: pygame.Surface,
     font: pygame.font.Font,
@@ -1206,6 +1479,11 @@ def main() -> None:
 
         # Счетчик кадров для обновления скорости в режиме обучения
         frame_counter = 0
+        
+        # Отслеживание тройного нажатия "1" для немедленной победы
+        key_1_press_count = 0
+        key_1_last_press_time = 0.0
+        KEY_1_RESET_TIME = 2.0  # Время в секундах для сброса счетчика
 
         # КРИТИЧНО: Обновляем состояние игры для AI перед входом в основной цикл
         if auto_mode or training_mode:
@@ -1256,6 +1534,84 @@ def main() -> None:
                     elif event.key == pygame.K_DOWN:
                         # Уменьшение скорости мяча
                         ball.decrease_speed(settings_manager, auto_mode)
+                    elif event.key == pygame.K_1 or event.key == ord('1'):
+                        # Обработка тройного нажатия "1" для немедленной победы
+                        current_time = time.time()
+                        # Если прошло больше времени сброса, сбрасываем счетчик
+                        if current_time - key_1_last_press_time > KEY_1_RESET_TIME:
+                            key_1_press_count = 0
+                        
+                        key_1_press_count += 1
+                        key_1_last_press_time = current_time
+                        
+                        # Если нажали три раза подряд
+                        if key_1_press_count >= 3:
+                            # Очищаем кирпичи для победы
+                            bricks = []
+                            key_1_press_count = 0  # Сбрасываем счетчик
+                            if not getattr(sys, "frozen", False):
+                                print(f"[CHEAT] Активирована немедленная победа (тройное нажатие '1')")
+                                print(f"[CHEAT] auto_mode={auto_mode}, training_mode={training_mode}, lives_left={lives_left}")
+                            
+                            # Устанавливаем победу и показываем заставку только в обычном режиме
+                            if not auto_mode and not training_mode and lives_left > 0:
+                                if not getattr(sys, "frozen", False):
+                                    print("[CHEAT] Условия выполнены, вызываем trigger_instant_victory...")
+                                game_over = True
+                                game_time_seconds = int(time.time() - game_start_time)
+                                
+                                # Используем отдельный метод для показа заставки и результатов
+                                try:
+                                    sound_enabled, restart_game, exit_game = trigger_instant_victory(
+                                        screen,
+                                        font,
+                                        big_font,
+                                        score,
+                                        player_name,
+                                        game_time_seconds,
+                                        highscore_manager,
+                                        settings_manager,
+                                        ball,
+                                        auto_mode,
+                                    )
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[CHEAT] trigger_instant_victory завершена: restart_game={restart_game}, exit_game={exit_game}")
+                                except Exception as e:
+                                    if not getattr(sys, "frozen", False):
+                                        print(f"[CHEAT] ОШИБКА в trigger_instant_victory: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                    # Продолжаем выполнение даже при ошибке
+                                    restart_game = False
+                                    exit_game = False
+                                
+                                # Обработка выхода или перезапуска
+                                if exit_game:
+                                    pygame.quit()
+                                    return
+                                
+                                if restart_game:
+                                    # Перезапускаем игру
+                                    paddle = Paddle()
+                                    ball = Ball()
+                                    ball_speed = settings_manager.get_ball_speed()
+                                    ball.set_speed(ball_speed)
+                                    ball.reset(paddle.rect)
+                                    ball.vel_y = 0
+                                    bricks = build_bricks()
+                                    score = 0
+                                    lives_left = MAX_LIVES
+                                    game_over = False
+                                    game_started = False
+                                    ai_player = AIPlayer(
+                                        SCREEN_WIDTH,
+                                        SCREEN_HEIGHT,
+                                        debug_mode=False,
+                                    )
+                                    ai_player.activate()
+                                    game_start_time = time.time()
+                                    key_1_press_count = 0  # Сбрасываем счетчик
+                                    key_1_last_press_time = 0.0
 
             keys = pygame.key.get_pressed()
             
@@ -1398,18 +1754,49 @@ def main() -> None:
                     # 1. Мяч улетает (вверх) - платформа стоит на месте
                     # 2. Мяч в зоне кубиков (выше зоны разделения) - платформа стоит на месте
                     # 3. Мяч падает вниз и вошел в зону разделения - платформа начинает движение к точке падения
+                    # 4. Если целевая позиция уже установлена - платформа продолжает движение к ней,
+                    #    даже если мяч временно не в зоне разделения (например, близко к платформе)
                     # Мяч движется вниз (ball.vel_y > 0)
                     ball_in_separation_zone = (
                         SEPARATION_ZONE_TOP <= ball.rect.centery <= SEPARATION_ZONE_BOTTOM
                         and ball.vel_y > 0  # Мяч движется вниз
                     )
                     
-                    # Начинаем движение когда мяч в зоне разделения
-                    if ball_in_separation_zone:
+                    # Проверяем, установлена ли целевая позиция
+                    target_position_set = (
+                        hasattr(ai_player, 'separation_zone_tracker') and
+                        hasattr(ai_player.separation_zone_tracker, 'target_position_set') and
+                        ai_player.separation_zone_tracker.target_position_set
+                    )
+                    
+                    # Проверяем, что мяч не потерян (не ниже платформы)
+                    ball_not_lost = ball.rect.bottom <= paddle.rect.top
+                    
+                    # Начинаем движение когда мяч в зоне разделения ИЛИ если целевая позиция уже установлена
+                    # (это позволяет платформе завершить движение к цели, даже если мяч близко к платформе)
+                    # НО только если мяч не потерян
+                    should_move = (ball_in_separation_zone or target_position_set) and ball_not_lost
+                    
+                    # КРИТИЧНО: Логируем для диагностики проблем с движением
+                    if should_move and pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
+                        if not getattr(sys, "frozen", False):
+                            print(f"[PADDLE MOVEMENT DEBUG] ball_in_separation_zone={ball_in_separation_zone}, "
+                                  f"target_position_set={target_position_set}, ball_not_lost={ball_not_lost}, "
+                                  f"ball_y={ball.rect.centery:.1f}, paddle_x={paddle.rect.centerx:.1f}")
+                    
+                    if should_move:
                         # Используем AI систему для автоматического управления
                         movement = ai_player.move_paddle_towards(
                             paddle.rect.centerx, int(base_speed)
                         )
+                        
+                        # КРИТИЧНО: Логируем результат движения для диагностики
+                        if movement == 0 and target_position_set and pygame.time.get_ticks() % 1000 < 16:
+                            if not getattr(sys, "frozen", False):
+                                target_pos = ai_player.separation_zone_tracker.target_position if hasattr(ai_player, 'separation_zone_tracker') else None
+                                distance = abs(paddle.rect.centerx - target_pos) if target_pos is not None else 0
+                                print(f"[PADDLE MOVEMENT WARNING] movement=0, но target_position_set=True! "
+                                      f"paddle_x={paddle.rect.centerx:.1f}, target_pos={target_pos}, distance={distance:.1f}")
                         # Получаем скорректированную скорость от AI (с учетом адаптации)
                         adjusted_speed = ai_player.get_adjusted_paddle_speed(
                             int(base_speed)
@@ -2686,6 +3073,11 @@ def main() -> None:
                                 }
                                 ai_player.learn_from_result(ai_result)
                                 ai_player.on_game_end(True, score)
+
+                            # Показываем заставку победы только в обычном режиме (с вводом имени)
+                            # и если у игрока остались жизни (победа)
+                            if not auto_mode and not training_mode and lives_left > 0:
+                                show_victory_splash(screen, duration_seconds=5.0)
 
                             # В любом режиме показываем экран результатов
                             sound_enabled, restart_game, exit_game = show_game_results(
