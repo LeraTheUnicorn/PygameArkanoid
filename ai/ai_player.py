@@ -2754,9 +2754,7 @@ class AIPlayer:
         """
         if not self.current_game_state or not self.is_active:
             # КРИТИЧНО: Логируем, почему платформа не двигается
-            import sys
-            if not getattr(sys, "frozen", False):
-                print(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
+            self._logger.debug(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
             return self._fallback_movement(current_x)
 
         try:
@@ -2795,9 +2793,7 @@ class AIPlayer:
                 # КРИТИЧНО: Логируем для диагностики (периодически)
                 import random
                 if random.random() < 0.05:  # 5% кадров
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
+                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_in_bricks_zone", 1.0)
                 return 0
             
@@ -2811,9 +2807,7 @@ class AIPlayer:
                 # КРИТИЧНО: Логируем для диагностики (периодически)
                 import random
                 if random.random() < 0.05:  # 5% кадров
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
+                    self._logger.debug(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle", 1.0)
                 return 0
             
@@ -2841,10 +2835,10 @@ class AIPlayer:
                 else:
                     optimal_x = self.get_optimal_paddle_position()
                 distance_to_target = abs(current_x - optimal_x) if optimal_x is not None else 0
-                print(f"[BALL TRACKING] ball=({ball_x:.1f},{ball_y:.1f}) vel=({ball_vel_x:.1f},{ball_vel_y:.1f}) speed={ball_speed:.1f} | "
-                      f"paddle_x={current_x:.1f} optimal_x={optimal_x:.1f} dist_to_target={distance_to_target:.1f} | "
-                      f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
-                      f"time_to_paddle={time_to_paddle:.2f} frames")
+                self._logger.debug(f"[BALL TRACKING] ball=({ball_x:.1f},{ball_y:.1f}) vel=({ball_vel_x:.1f},{ball_vel_y:.1f}) speed={ball_speed:.1f} | "
+                                   f"paddle_x={current_x:.1f} optimal_x={optimal_x:.1f} dist_to_target={distance_to_target:.1f} | "
+                                   f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
+                                   f"time_to_paddle={time_to_paddle:.2f} frames")
             
             # ПРАВИЛО 3: Если целевая позиция установлена - используем её БЕЗ пересчета
             # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз при входе мяча в зону разделения
@@ -2863,7 +2857,7 @@ class AIPlayer:
                     # Если vel_x изменился (мяч отскочил от стены) - сбрасываем цель
                     if saved_vel_x is not None and abs(current_vel_x - saved_vel_x) > 0.1:
                         # Мяч отскочил от стены - траектория изменилась, нужно пересчитать цель
-                        print(f"[TARGET RESET] Мяч отскочил от стены! Старая vel_x={saved_vel_x:.1f}, Новая vel_x={current_vel_x:.1f}")
+                        self._logger.debug(f"[TARGET RESET] Мяч отскочил от стены! Старая vel_x={saved_vel_x:.1f}, Новая vel_x={current_vel_x:.1f}")
                         self.separation_zone_tracker["target_position_set"] = False
                         self.separation_zone_tracker["target_position"] = None
                         self.separation_zone_tracker["paddle_moved_after_set"] = False
@@ -2893,13 +2887,11 @@ class AIPlayer:
                         tolerance = 15  # Равен скорости движения платформы - предотвращает дергание
                         
                         # КРИТИЧНО: Логируем движение к зафиксированной позиции для отслеживания
-                        import sys
-                        if not getattr(sys, "frozen", False):
-                            import random
-                            if random.random() < 0.1:  # Логируем 10% кадров
-                                print(f"[MOVING TO FIXED] ФЛАГ: Движение к зафиксированной позиции! "
-                                      f"current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
-                                      f"distance={distance_to_target:.1f}px, tolerance={tolerance}")
+                        import random
+                        if random.random() < 0.1:  # Логируем 10% кадров
+                            self._logger.debug(f"[MOVING TO FIXED] ФЛАГ: Движение к зафиксированной позиции! "
+                                               f"current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+                                               f"distance={distance_to_target:.1f}px, tolerance={tolerance}")
                         
                         # Двигаемся к зафиксированной позиции
                         if distance_to_target > tolerance:
@@ -3137,10 +3129,10 @@ class AIPlayer:
                                     else:
                                         actual_zone_center = zone_center_x  # центр центральной зоны
                                     
-                                    print(f"[ZONE SELECTION] predicted_x={predicted_x:.1f} -> zone={selected_zone} "
-                                          f"paddle_center={zone_center_x:.1f} actual_zone_center={actual_zone_center:.1f} "
-                                          f"current_paddle={current_paddle_x:.1f} distance_to_zone={distance_to_zone_center:.1f}px "
-                                          f"time_to_paddle={time_to_paddle:.2f} frames")
+                                    self._logger.debug(f"[ZONE SELECTION] predicted_x={predicted_x:.1f} -> zone={selected_zone} "
+                                                       f"paddle_center={zone_center_x:.1f} actual_zone_center={actual_zone_center:.1f} "
+                                                       f"current_paddle={current_paddle_x:.1f} distance_to_zone={distance_to_zone_center:.1f}px "
+                                                       f"time_to_paddle={time_to_paddle:.2f} frames")
                                     
                                     # Ограничиваем границами экрана
                                     # КРИТИЧНО: Если мяч в EDGE зоне и очень близко (менее 3 кадров),
@@ -3182,8 +3174,8 @@ class AIPlayer:
                                                 optimal_x = old_target
                                                 # Логируем, что мы НЕ обновляем цель, хотя new_optimal отличается
                                                 if abs(new_optimal_x - old_target) > 10:  # Только если разница значительная
-                                                    print(f"[POSITION CHANGE BLOCKED] Платформа близко к цели (distance={distance_to_old_target:.1f} <= {tolerance_check}), "
-                                                          f"НОВУЮ цель НЕ устанавливаем! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, Разница={abs(new_optimal_x - old_target):.1f}px")
+                                                    self._logger.debug(f"[POSITION CHANGE BLOCKED] Платформа близко к цели (distance={distance_to_old_target:.1f} <= {tolerance_check}), "
+                                                                       f"НОВУЮ цель НЕ устанавливаем! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, Разница={abs(new_optimal_x - old_target):.1f}px")
                                             else:
                                                 # Платформа еще далеко от цели - проверяем, не изменилась ли траектория кардинально
                                                 # Увеличиваем порог до 50px минимум, чтобы не реагировать на мелкие изменения
@@ -3192,11 +3184,9 @@ class AIPlayer:
                                                 # НЕ обновляем позицию, даже если траектория "изменилась кардинально"
                                                 # Это нарушение правила - используем старую позицию
                                                 optimal_x = old_target
-                                                import sys
-                                                if not getattr(sys, "frozen", False):
-                                                    if abs(new_optimal_x - old_target) > threshold:
-                                                        print(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию ({old_target:.1f} -> {new_optimal_x:.1f}) "
-                                                              f"БЕЗ отскока от стены! Используем старую позицию.")
+                                                if abs(new_optimal_x - old_target) > threshold:
+                                                    self._logger.warning(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию ({old_target:.1f} -> {new_optimal_x:.1f}) "
+                                                                        f"БЕЗ отскока от стены! Используем старую позицию.")
                                         else:
                                             # Платформа далеко от старой цели - используем сглаживание
                                             # НО: увеличиваем порог для обновления, чтобы не дёргаться
@@ -3207,29 +3197,25 @@ class AIPlayer:
                                                 # Разница слишком маленькая - не обновляем, даже если платформа далеко
                                                 optimal_x = old_target
                                                 if distance_to_old_target > 50:  # Только логируем если платформа действительно далеко
-                                                    print(f"[POSITION CHANGE BLOCKED] Разница между целями слишком маленькая (target_difference={target_difference:.1f} <= 50), "
-                                                          f"НЕ обновляем цель при сглаживании! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, distance_to_old={distance_to_old_target:.1f}")
+                                                    self._logger.debug(f"[POSITION CHANGE BLOCKED] Разница между целями слишком маленькая (target_difference={target_difference:.1f} <= 50), "
+                                                                       f"НЕ обновляем цель при сглаживании! Старая={old_target:.1f}, Новая={new_optimal_x:.1f}, distance_to_old={distance_to_old_target:.1f}")
                                             else:
                                                 # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз и НЕ меняется до отскока от стены
                                                 # НЕ используем сглаживание - это нарушение правила
                                                 # Всегда используем старую позицию
                                                 optimal_x = old_target
-                                                import sys
-                                                if not getattr(sys, "frozen", False):
-                                                    if abs(new_optimal_x - old_target) > 50:
-                                                        print(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию через сглаживание "
-                                                              f"({old_target:.1f} -> {new_optimal_x:.1f}) БЕЗ отскока от стены! Используем старую позицию.")
+                                                if abs(new_optimal_x - old_target) > 50:
+                                                    self._logger.warning(f"[CRITICAL ERROR] НАРУШЕНИЕ ПРАВИЛА: Попытка изменить позицию через сглаживание "
+                                                                        f"({old_target:.1f} -> {new_optimal_x:.1f}) БЕЗ отскока от стены! Используем старую позицию.")
                                     else:
                                         # ПРАВИЛО 4: Устанавливаем целевую позицию впервые
                                         # КРИТИЧНО: Проверяем, не была ли позиция уже установлена (нарушение правила)
                                         if self.separation_zone_tracker.get("target_position_set", False):
                                             # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                                             old_pos = self.separation_zone_tracker.get("target_position")
-                                            import sys
-                                            if not getattr(sys, "frozen", False):
-                                                print(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
-                                                      f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
-                                                      f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
+                                            self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
+                                                                 f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
+                                                                 f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
                                             self.separation_zone_tracker["game_restart_required"] = True
                                             # Используем старую позицию
                                             optimal_x = old_pos
@@ -3396,11 +3382,9 @@ class AIPlayer:
                                 if not self.separation_zone_tracker.get("paddle_reached_target", False):
                                     self.separation_zone_tracker["paddle_reached_target"] = True
                                 # КРИТИЧНО: Логируем для диагностики
-                                import sys
                                 import random
                                 if random.random() < 0.2:  # 20% кадров
-                                    if not getattr(sys, "frozen", False):
-                                        print(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
+                                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
                                 self._log_paddle_movement(current_x, current_x, "paddle_reached_target", 1.0)
                                 return 0
                         
@@ -3412,9 +3396,7 @@ class AIPlayer:
                         if not self.separation_zone_tracker.get("paddle_moved_after_set", False):
                             self.separation_zone_tracker["paddle_moved_after_set"] = True
                             # КРИТИЧНО: Логируем начало движения
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: Начинаем движение к сохраненной позиции. current_x={current_x}, target_pos={target_pos}, distance={distance_to_target:.1f}")
+                            self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 3.2: Начинаем движение к сохраненной позиции. current_x={current_x}, target_pos={target_pos}, distance={distance_to_target:.1f}")
                             self._log_paddle_movement(current_x, target_pos, "paddle_moving_to_target", 0.9)
                         
                         # КРИТИЧНО: Проверяем, что движение действительно нужно
@@ -3427,9 +3409,7 @@ class AIPlayer:
                         # КРИТИЧНО: Проверяем, что movement не равен 0 (должно быть -1 или 1)
                         if movement == 0:
                             # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
-                            import sys
-                            if not getattr(sys, "frozen", False):
-                                print(f"[PADDLE DEBUG] ПРАВИЛО 3.2: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
+                            self._logger.warning(f"[PADDLE DEBUG] ПРАВИЛО 3.2: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
                             return self._fallback_movement(current_x)
                         
                         # КРИТИЧНО: Логируем движение с информацией о скорости (всегда)
@@ -3445,10 +3425,10 @@ class AIPlayer:
                         frames_to_reach_log = distance_to_move_log / paddle_speed if paddle_speed > 0 else float('inf')
                         will_reach_log = frames_to_reach_log <= time_to_paddle_log if time_to_paddle_log != float('inf') else False
                         
-                        print(f"[PADDLE MOVEMENT] movement={movement} distance={distance_to_target:.1f}px "
-                              f"current_x={current_x:.1f} target={target_pos:.1f} | "
-                              f"paddle_speed={paddle_speed} frames_to_reach={frames_to_reach_log:.1f} "
-                              f"time_to_paddle={time_to_paddle_log:.1f} will_reach={will_reach_log}")
+                        self._logger.debug(f"[PADDLE MOVEMENT] movement={movement} distance={distance_to_target:.1f}px "
+                                           f"current_x={current_x:.1f} target={target_pos:.1f} | "
+                                           f"paddle_speed={paddle_speed} frames_to_reach={frames_to_reach_log:.1f} "
+                                           f"time_to_paddle={time_to_paddle_log:.1f} will_reach={will_reach_log}")
                         
                         self._update_loop_tracking(movement, current_x, target_pos)
                         self._update_smoothness_tracking(movement, current_x)
@@ -3466,11 +3446,9 @@ class AIPlayer:
             # КРИТИЧНО: Проверяем, что мяч НЕ потерян перед установкой целевой позиции
             if in_separation_zone and not self.separation_zone_tracker.get("target_position_set", False) and not ball_lost:
                 # КРИТИЧНО: Логируем установку целевой позиции
-                import sys
                 import random
                 if random.random() < 0.2:  # 20% кадров для диагностики
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
+                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
                 # Устанавливаем целевую позицию один раз
                 optimal_x = self.get_optimal_paddle_position()
                 
@@ -3523,16 +3501,14 @@ class AIPlayer:
                     else:
                         optimal_x = max(zone_center_x, current_x - max_distance)
                     
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        print(f"[TARGET ADJUST] Мяч близко! time_to_paddle={time_to_paddle:.1f}, скорректирована цель с {original_optimal:.1f} на {optimal_x:.1f} (max_distance={max_distance:.1f})")
+                    self._logger.debug(f"[TARGET ADJUST] Мяч близко! time_to_paddle={time_to_paddle:.1f}, скорректирована цель с {original_optimal:.1f} на {optimal_x:.1f} (max_distance={max_distance:.1f})")
                 
                 # Сохраняем целевую позицию
                 current_target = self.separation_zone_tracker.get("target_position")
                 old_target_str = f"{current_target:.1f}" if current_target is not None else "None"
-                print(f"[POSITION CHANGE] ФЛАГ: Платформа устанавливает новую цель (ПРАВИЛО 4)! paddle_x={current_x:.1f}, "
-                      f"старая_цель={old_target_str}, "
-                      f"новая_цель={optimal_x:.1f}, distance_to_target={abs(current_x - optimal_x):.1f}")
+                self._logger.debug(f"[POSITION CHANGE] ФЛАГ: Платформа устанавливает новую цель (ПРАВИЛО 4)! paddle_x={current_x:.1f}, "
+                                   f"старая_цель={old_target_str}, "
+                                   f"новая_цель={optimal_x:.1f}, distance_to_target={abs(current_x - optimal_x):.1f}")
                 self.separation_zone_tracker["target_position"] = int(optimal_x)
                 self.separation_zone_tracker["target_position_set"] = True
                 self.separation_zone_tracker["paddle_moved_after_set"] = False
@@ -3557,25 +3533,20 @@ class AIPlayer:
                     import sys
                     import random
                     if random.random() < 0.2:  # 20% кадров
-                        if not getattr(sys, "frozen", False):
-                            print(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
+                        self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
                     return 0
                 
                 movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
                 # КРИТИЧНО: Проверяем, что movement не равен 0
                 if movement == 0:
                     # Если по какой-то причине movement = 0, но target_pos != current_x, используем fallback
-                    import sys
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
+                    self._logger.warning(f"[PADDLE DEBUG] ПРАВИЛО 4: ОШИБКА: movement=0, но target_pos={target_pos} != current_x={current_x}, using fallback")
                     return self._fallback_movement(current_x)
                 
                 # КРИТИЧНО: Логируем движение
-                import sys
                 import random
                 if random.random() < 0.2:  # 20% кадров
-                    if not getattr(sys, "frozen", False):
-                        print(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
+                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
                 
                 self.separation_zone_tracker["paddle_moved_after_set"] = True
                 self._update_loop_tracking(movement, current_x, target_pos)

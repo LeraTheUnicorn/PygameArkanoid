@@ -22,12 +22,13 @@
 
 ### 3. Замена print() на логирование
 
-- [ ] Импортировать `logging`
-- [ ] Создать `logger = logging.getLogger(__name__)`
-- [ ] Заменить все `print()` на `logger.debug/info/warning/error/critical`
-- [ ] Удалить проверки `if not getattr(sys, "frozen", False): print(...)`
+- [x] Импортировать `logging`
+- [x] Создать `logger = logging.getLogger(__name__)` (через `_setup_logging()`)
+- [ ] Заменить все `print()` на `logger.debug/info/warning/error/critical` (частично: ~100+ осталось)
+- [ ] Удалить проверки `if not getattr(sys, "frozen", False): print(...)` (частично: ~30+ осталось)
 
-**Файлы:** Все места с `print()` (30+ мест)
+**Файлы:** Все места с `print()` (30+ мест)  
+**Прогресс:** Начата замена, выполнено: activate/deactivate, несколько ошибок, несколько отладочных сообщений
 
 ### 4. Инъекция зависимостей
 
