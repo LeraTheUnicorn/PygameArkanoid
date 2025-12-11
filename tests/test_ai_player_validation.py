@@ -174,6 +174,69 @@ def test_debug_mode_validation() -> bool:
         return False
 
 
+def test_dependency_injection() -> bool:
+    """Тестирует инъекцию зависимостей"""
+    print("Testing dependency injection...")
+    
+    try:
+        from ai.ai_player import AIPlayer
+        from ai.trajectory_predictor import TrajectoryPredictor
+        from ai.position_optimizer import PositionOptimizer
+        from ai.learning_system import LearningSystem
+        from ai.performance_logger import PerformanceLogger
+        
+        # Создаем mock-объекты для инъекции
+        mock_trajectory = TrajectoryPredictor(800, 600)
+        mock_optimizer = PositionOptimizer(800, 600)
+        mock_learning = LearningSystem()
+        mock_logger = PerformanceLogger(enable_session_logging=False)
+        
+        # Тест 1: Инъекция всех зависимостей
+        ai1 = AIPlayer(
+            800, 600,
+            debug_mode=False,
+            trajectory_predictor=mock_trajectory,
+            position_optimizer=mock_optimizer,
+            learning_system=mock_learning,
+            performance_logger=mock_logger
+        )
+        assert ai1.trajectory_predictor is mock_trajectory
+        assert ai1.position_optimizer is mock_optimizer
+        assert ai1.learning_system is mock_learning
+        assert ai1.performance_logger is mock_logger
+        print("  PASS: All dependencies injected successfully")
+        
+        # Тест 2: Инъекция части зависимостей (fallback для остальных)
+        ai2 = AIPlayer(
+            800, 600,
+            debug_mode=False,
+            trajectory_predictor=mock_trajectory,
+            learning_system=mock_learning
+        )
+        assert ai2.trajectory_predictor is mock_trajectory
+        assert ai2.learning_system is mock_learning
+        assert ai2.position_optimizer is not None  # Должен быть создан автоматически
+        assert ai2.performance_logger is not None  # Должен быть создан автоматически
+        assert ai2.position_optimizer is not mock_optimizer  # Должен быть новый объект
+        print("  PASS: Partial dependency injection with fallback")
+        
+        # Тест 3: Без инъекции (все создаются автоматически)
+        ai3 = AIPlayer(800, 600, debug_mode=False)
+        assert ai3.trajectory_predictor is not None
+        assert ai3.position_optimizer is not None
+        assert ai3.learning_system is not None
+        assert ai3.performance_logger is not None
+        assert ai3.trajectory_predictor is not mock_trajectory
+        print("  PASS: Default dependency creation works")
+        
+        return True
+    except Exception as e:
+        print(f"  FAIL: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def main() -> bool:
     """Запускает все тесты"""
     print("=== AIPlayer Input Validation Tests ===\n")
@@ -184,6 +247,7 @@ def main() -> bool:
         (test_negative_values, "Negative values"),
         (test_minimum_dimensions, "Minimum dimensions"),
         (test_debug_mode_validation, "Debug mode validation"),
+        (test_dependency_injection, "Dependency injection"),
     ]
     
     passed: int = 0
