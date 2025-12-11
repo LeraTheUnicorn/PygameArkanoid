@@ -42,18 +42,25 @@ class AIPlayer:
             screen_width: Ширина игрового экрана.
             screen_height: Высота игрового экрана.
             debug_mode: Режим отладки с визуализацией.
+
+        Raises:
+            TypeError: Если типы параметров некорректны.
+            ValueError: Если значения параметров некорректны.
         """
+        # Валидация входных данных
+        self._validate_dimensions(screen_width, screen_height)
+        
         # Компоненты системы
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.debug_mode = debug_mode
+        self.debug_mode = bool(debug_mode)
 
         self.trajectory_predictor = TrajectoryPredictor(screen_width, screen_height)
         self.position_optimizer = PositionOptimizer(screen_width, screen_height)
         self.learning_system = LearningSystem()
 
         # Логирование производительности (включено по умолчанию для диагностики)
-        enable_session_logging = os.getenv("AI_ENABLE_SESSION_LOGGING", "1") == "1"
+        enable_session_logging = self._get_env_bool("AI_ENABLE_SESSION_LOGGING", default=True)
         self.performance_logger = PerformanceLogger(
             enable_session_logging=enable_session_logging
         )
@@ -177,6 +184,60 @@ class AIPlayer:
             "saved_ball_vel_x": None,  # Сохраненная скорость vel_x для отслеживания отскоков от стены
             "game_restart_required": False,  # Флаг: требуется перезапуск игры из-за нарушения правила
         }
+
+    def _validate_dimensions(self, screen_width: int, screen_height: int) -> None:
+        """
+        Валидирует размеры экрана.
+        
+        Args:
+            screen_width: Ширина экрана для валидации.
+            screen_height: Высота экрана для валидации.
+        
+        Raises:
+            TypeError: Если типы данных некорректны.
+            ValueError: Если размеры некорректны.
+        """
+        if not isinstance(screen_width, int):
+            raise TypeError(
+                f"screen_width должен быть целым числом, получено: {type(screen_width).__name__}"
+            )
+        if not isinstance(screen_height, int):
+            raise TypeError(
+                f"screen_height должен быть целым числом, получено: {type(screen_height).__name__}"
+            )
+        if screen_width <= 0:
+            raise ValueError(
+                f"screen_width должен быть положительным, получено: {screen_width}"
+            )
+        if screen_height <= 0:
+            raise ValueError(
+                f"screen_height должен быть положительным, получено: {screen_height}"
+            )
+        if screen_width < 400 or screen_height < 300:
+            raise ValueError(
+                f"Минимальные размеры экрана: 400x300, получено: {screen_width}x{screen_height}"
+            )
+
+    @staticmethod
+    def _get_env_bool(key: str, default: bool = True) -> bool:
+        """
+        Безопасно получает булево значение из переменной окружения.
+        
+        Args:
+            key: Имя переменной окружения
+            default: Значение по умолчанию
+        
+        Returns:
+            Булево значение
+        """
+        try:
+            value = os.getenv(key, "").strip().lower()
+            if not value:
+                return default
+            return value in ("1", "true", "yes", "on")
+        except Exception:
+            # В случае ошибки возвращаем значение по умолчанию
+            return default
 
     def activate(self) -> None:
         """
