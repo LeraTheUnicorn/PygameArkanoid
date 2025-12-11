@@ -4,9 +4,15 @@ from version import VERSION, get_version
 
 import os
 import warnings
+from contextlib import contextmanager
 
-# Подавляем предупреждения о pkg_resources от pygame
-warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
+# Контекстный менеджер для ограниченного подавления предупреждений
+@contextmanager
+def suppress_pkg_resources_warnings():
+    """Временно подавляет предупреждения о pkg_resources от pygame в ограниченной области"""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
+        yield
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
@@ -18,7 +24,9 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Any
 
-import pygame  # type: ignore[reportMissingImports]
+# Импортируем pygame с ограниченным подавлением предупреждений
+with suppress_pkg_resources_warnings():
+    import pygame  # type: ignore[reportMissingImports]
 from highscores import HighScoreManager
 from settings import SettingsManager
 from ai.ai_player import AIPlayer
@@ -37,35 +45,26 @@ def resource_path(relative_path: str) -> str:
     return os.path.join(base_path, relative_path)
 
 
-# Настройки игры
-# Размеры экрана
-SCREEN_WIDTH: int = 800
-SCREEN_HEIGHT: int = 600
-FPS: int = 60
-
-# Размеры и скорость платформы
-PADDLE_WIDTH: int = 120
-PADDLE_HEIGHT: int = 15
-PADDLE_SPEED: int = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
-
-# Размеры и скорость мяча
-BALL_SIZE: int = 16
-BALL_SPEED_DEFAULT: int = 5  # Значение по умолчанию
-
-# Параметры кубиков
-BRICK_ROWS: int = 5
-BRICK_COLS: int = 10
-BRICK_WIDTH: int = 60
-BRICK_HEIGHT: int = 20
-BRICK_PADDING: int = 10
-BRICK_OFFSET_TOP: int = 60
-
-MAX_LIVES: int = 3  # Максимальное количество жизней
-
-# Зона разделения - область между кубиками и платформой
-# Платформа должна двигаться только когда мяч находится в этой зоне и движется вниз
-SEPARATION_ZONE_TOP: int = 226  # Верхняя граница зоны разделения
-SEPARATION_ZONE_BOTTOM: int = 540  # Нижняя граница зоны разделения (высота платформы)
+# Импортируем конфигурацию из централизованного файла
+from game_config import (
+    BALL_SIZE,
+    BALL_SPEED_DEFAULT,
+    BRICK_COLS,
+    BRICK_HEIGHT,
+    BRICK_OFFSET_TOP,
+    BRICK_PADDING,
+    BRICK_ROWS,
+    BRICK_WIDTH,
+    FPS,
+    MAX_LIVES,
+    PADDLE_HEIGHT,
+    PADDLE_SPEED,
+    PADDLE_WIDTH,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SEPARATION_ZONE_BOTTOM,
+    SEPARATION_ZONE_TOP,
+)
 
 
 def generate_tone_sound(
@@ -680,16 +679,25 @@ def build_bricks() -> List[pygame.Rect]:
 
 
 def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
-    colors = [
-        (200, 80, 80),
-        (200, 160, 80),
-        (80, 200, 120),
-        (80, 140, 220),
-        (150, 80, 220),
-    ]
+    """
+    Отрисовывает все кирпичи на экране.
+    
+    Каждый ряд кирпичей имеет свой цвет из палитры. Кирпичи отрисовываются
+    с цветной заливкой и темной рамкой.
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        bricks: Список прямоугольников кирпичей для отрисовки
+        
+    Note:
+        Для использования новой архитектуры с оптимизацией отрисовки см. game_views.BricksView
+    """
+    from game_config import BRICK_COLORS, BRICK_BORDER_COLOR
+    
     for idx, brick in enumerate(bricks):
-        pygame.draw.rect(screen, colors[idx // BRICK_COLS % len(colors)], brick)
-        pygame.draw.rect(screen, (30, 30, 30), brick, 2)
+        color = BRICK_COLORS[idx // BRICK_COLS % len(BRICK_COLORS)]
+        pygame.draw.rect(screen, color, brick)
+        pygame.draw.rect(screen, BRICK_BORDER_COLOR, brick, 2)
 
 
 def draw_hud(
