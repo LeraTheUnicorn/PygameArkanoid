@@ -97,9 +97,11 @@ class Ball:
             new_center_y = min_center_y
             self.vel_y *= -1
             self._wall_bounce_count = 0
-        
-        # Обновляем позицию в любом случае
-        self.rect.centery = new_center_y
+            # При столкновении корректируем позицию до границы
+            self.rect.centery = min_center_y
+        else:
+            # Обновляем позицию только когда нет столкновения
+            self.rect.centery = new_center_y
 
         # Защита от зацикливания у стен
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
