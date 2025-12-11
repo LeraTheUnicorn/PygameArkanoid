@@ -31,7 +31,7 @@
 **Прогресс:**
 
 - ✅ Выполнено: activate/deactivate, ошибки, отладочные сообщения в move_paddle_towards
-- ✅ Выполнено: большие блоки метрик (_print_ml_system_metrics, _print_training_parameters)
+- ✅ Выполнено: большие блоки метрик (\_print_ml_system_metrics, \_print_training_parameters)
 - ✅ Выполнено: методы сохранения/загрузки данных обучения
 - ✅ Удалено: все проверки frozen (~22)
 - ✅ Осталось: только 2 закомментированных print() (не активные)
