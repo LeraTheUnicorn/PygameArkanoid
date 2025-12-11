@@ -12,13 +12,13 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщени�
 
 import random
 import time
-import numpy as np
+import numpy as np  # type: ignore[reportMissingImports]
 import sys
 import os
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Any
 
-import pygame
+import pygame  # type: ignore[reportMissingImports]
 from highscores import HighScoreManager
 from settings import SettingsManager
 from ai.ai_player import AIPlayer
@@ -28,7 +28,7 @@ def resource_path(relative_path: str) -> str:
     """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS  # type: ignore[reportAttributeAccessIssue]
     except Exception:
         # В режиме разработки используем директорию, где находится этот файл
         # Это гарантирует правильный путь независимо от рабочей директории
@@ -545,6 +545,9 @@ class Ball:
     )
     vel_y: int = field(default_factory=lambda: -BALL_SPEED_DEFAULT)
     current_speed: int = field(default_factory=lambda: BALL_SPEED_DEFAULT)
+    _last_vel_x: int = field(default=0)
+    _just_bounced: bool = field(default=False)
+    _bounce_frame: int = field(default=0)
 
     def update(self) -> None:
         # КРИТИЧНО: Используем только centerx/centery для избежания конфликтов координат
@@ -1916,13 +1919,12 @@ def main() -> None:
                             ball.vel_x += random.choice([-1, 0, 1])
 
                         # Дополнительная защита от зацикливания - проверяем, не была ли предыдущая скорость слишком малой
-                        if hasattr(ball, "_last_vel_x"):
-                            # Если предыдущая горизонтальная скорость была очень малой, а новая тоже
-                            if abs(ball._last_vel_x) <= 1 and abs(ball.vel_x) <= 1:
-                                # Принудительно меняем направление
-                                ball.vel_x = random.choice(
-                                    [-min_horizontal_speed, min_horizontal_speed]
-                                )
+                        # Если предыдущая горизонтальная скорость была очень малой, а новая тоже
+                        if abs(ball._last_vel_x) <= 1 and abs(ball.vel_x) <= 1:
+                            # Принудительно меняем направление
+                            ball.vel_x = random.choice(
+                                [-min_horizontal_speed, min_horizontal_speed]
+                            )
 
                         # Сохраняем текущую скорость для следующей проверки
                         ball._last_vel_x = ball.vel_x
@@ -2042,7 +2044,8 @@ def main() -> None:
                                 print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.get('target_position_set', False) if hasattr(ai_player, 'separation_zone_tracker') else False}")
                                 if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get('target_position'):
                                     target_pos = ai_player.separation_zone_tracker.get('target_position')
-                                    print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
+                                    if target_pos is not None:
+                                        print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
                                 print(f"  Жизни: {lives_left}")
                                 print(f"========================================================")
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):

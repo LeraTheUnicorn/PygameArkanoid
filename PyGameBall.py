@@ -4,9 +4,15 @@ from version import VERSION, get_version
 
 import os
 import warnings
+from contextlib import contextmanager
 
-# Подавляем предупреждения о pkg_resources от pygame
-warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
+# Контекстный менеджер для ограниченного подавления предупреждений
+@contextmanager
+def suppress_pkg_resources_warnings():
+    """Временно подавляет предупреждения о pkg_resources от pygame в ограниченной области"""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
+        yield
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщение поддержки pygame
 
@@ -18,60 +24,84 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Any
 
-import pygame  # type: ignore[reportMissingImports]
+# Импортируем pygame с ограниченным подавлением предупреждений
+with suppress_pkg_resources_warnings():
+    import pygame  # type: ignore[reportMissingImports]
 from highscores import HighScoreManager
 from settings import SettingsManager
 from ai.ai_player import AIPlayer
 
 
 def resource_path(relative_path: str) -> str:
-    """Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe"""
+    """
+    Получает абсолютный путь к ресурсу, работает как в разработке, так и в exe.
+    
+    Кросс-платформенная функция для получения правильного пути к ресурсам.
+    Использует os.path.join для корректной работы на разных ОС.
+    
+    Args:
+        relative_path: Относительный путь к ресурсу (например, "resources/audio/file.ogg")
+        
+    Returns:
+        Абсолютный путь к ресурсу, нормализованный для текущей ОС
+        
+    Note:
+        В режиме разработки использует директорию файла.
+        В скомпилированном exe (PyInstaller) использует временную папку _MEIPASS.
+    """
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
         base_path = sys._MEIPASS  # type: ignore[reportAttributeAccessIssue]
-    except Exception:
+    except AttributeError:
         # В режиме разработки используем директорию, где находится этот файл
         # Это гарантирует правильный путь независимо от рабочей директории
         base_path = os.path.dirname(os.path.abspath(__file__))
 
-    return os.path.join(base_path, relative_path)
+    # Используем os.path.join для кросс-платформенной совместимости
+    # и нормализуем путь для корректной работы на всех ОС
+    full_path = os.path.join(base_path, relative_path)
+    return os.path.normpath(full_path)
 
 
-# Настройки игры
-# Размеры экрана
-SCREEN_WIDTH: int = 800
-SCREEN_HEIGHT: int = 600
-FPS: int = 60
-
-# Размеры и скорость платформы
-PADDLE_WIDTH: int = 120
-PADDLE_HEIGHT: int = 15
-PADDLE_SPEED: int = 15  # Увеличено с 9 до 15 для лучшей скорости платформы
-
-# Размеры и скорость мяча
-BALL_SIZE: int = 16
-BALL_SPEED_DEFAULT: int = 5  # Значение по умолчанию
-
-# Параметры кубиков
-BRICK_ROWS: int = 5
-BRICK_COLS: int = 10
-BRICK_WIDTH: int = 60
-BRICK_HEIGHT: int = 20
-BRICK_PADDING: int = 10
-BRICK_OFFSET_TOP: int = 60
-
-MAX_LIVES: int = 3  # Максимальное количество жизней
-
-# Зона разделения - область между кубиками и платформой
-# Платформа должна двигаться только когда мяч находится в этой зоне и движется вниз
-SEPARATION_ZONE_TOP: int = 226  # Верхняя граница зоны разделения
-SEPARATION_ZONE_BOTTOM: int = 540  # Нижняя граница зоны разделения (высота платформы)
+# Импортируем конфигурацию из централизованного файла
+from game_config import (
+    BALL_SIZE,
+    BALL_SPEED_DEFAULT,
+    BRICK_COLS,
+    BRICK_HEIGHT,
+    BRICK_OFFSET_TOP,
+    BRICK_PADDING,
+    BRICK_ROWS,
+    BRICK_WIDTH,
+    FPS,
+    MAX_LIVES,
+    PADDLE_HEIGHT,
+    PADDLE_SPEED,
+    PADDLE_WIDTH,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SEPARATION_ZONE_BOTTOM,
+    SEPARATION_ZONE_TOP,
+)
 
 
 def generate_tone_sound(
     frequency: float, duration: float, sample_rate: int = 44100, volume: float = 0.3
 ) -> pygame.mixer.Sound:
-    """Генерирует короткий тональный звук для звуковых эффектов"""
+    """
+    Генерирует короткий тональный звук для звуковых эффектов.
+    
+    Создает синусоидальную волну с гармониками и затуханием для более естественного звука.
+    
+    Args:
+        frequency: Частота звука в герцах
+        duration: Длительность звука в секундах
+        sample_rate: Частота дискретизации (по умолчанию 44100 Гц)
+        volume: Громкость звука от 0.0 до 1.0 (по умолчанию 0.3)
+        
+    Returns:
+        pygame.mixer.Sound объект со сгенерированным звуком
+    """
     frames = int(duration * sample_rate)
     t = np.linspace(0, duration, frames)
 
@@ -97,15 +127,29 @@ def generate_tone_sound(
 
 
 def is_valid_player_name_char(char: str) -> bool:
-    """Проверяет, является ли символ допустимым для имени игрока"""
-    if not char:  # Проверяем пустые строки
+    """
+    Проверяет, является ли символ допустимым для имени игрока.
+    
+    Args:
+        char: Символ для проверки
+        
+    Returns:
+        True если символ допустим (латинские или кириллические буквы), False иначе
+    """
+    if not char or len(char) != 1:  # Проверяем пустые строки и многосимвольные строки
         return False
-    # Разрешаем только буквы
-    return char.isalpha()
+    # Разрешаем только буквы (латинские и кириллические)
+    # isalpha() поддерживает Unicode, включая кириллицу
+    return char.isalpha() and not char.isspace()
 
 
 def generate_paddle_sound() -> pygame.mixer.Sound:
-    """Генерирует 16-битный звук отскока от платформы (всегда одинаковый)"""
+    """
+    Генерирует звук отскока от платформы.
+    
+    Returns:
+        pygame.mixer.Sound объект со звуком отскока (нота E4, 330 Гц)
+    """
     return generate_tone_sound(330, 0.15, volume=0.4)  # E4 - 330 Гц
 
 
@@ -115,7 +159,26 @@ def get_player_name(
     big_font: pygame.font.Font,
     highscore_manager: HighScoreManager,
 ) -> tuple[str, bool, bool, bool, bool]:
-    """Возвращает имя игрока, введенное с клавиатуры, состояние звука, флаг выхода из игры, флаг авторежима и флаг режима обучения"""
+    """
+    Получает имя игрока через ввод с клавиатуры.
+    
+    Отображает экран ввода имени с возможностью переключения режимов игры.
+    Поддерживает валидацию ввода (только буквы).
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        font: Шрифт для обычного текста
+        big_font: Шрифт для заголовков
+        highscore_manager: Менеджер рекордов для отображения таблицы
+        
+    Returns:
+        Кортеж из 5 элементов:
+        - Имя игрока (str)
+        - Состояние звука (bool)
+        - Флаг выхода из игры (bool)
+        - Флаг авторежима (bool, активируется клавишей 0)
+        - Флаг режима обучения (bool, активируется клавишей 8)
+    """
     input_text = ""
     input_active = True
     sound_enabled = True
@@ -275,15 +338,23 @@ def show_highscores(
     Если exit_on_esc=True, то ESC выходит из игры полностью, иначе возвращает False.
     """
     # Создаем моноширинный шрифт для правильного отображения таблицы
-    try:
-        mono_font = pygame.font.SysFont("consolas", 18)  # Моноширинный шрифт Windows
-    except:
+    # Используем список резервных шрифтов для кросс-платформенной совместимости
+    mono_font_names = ["consolas", "courier new", "courier", "monospace", "liberation mono"]
+    mono_font = None
+    
+    for font_name in mono_font_names:
         try:
-            mono_font = pygame.font.SysFont(
-                "courier", 18
-            )  # Альтернативный моноширинный шрифт
+            mono_font = pygame.font.SysFont(font_name, 18)
+            break
+        except (OSError, ValueError):
+            continue
+    
+    # Если ни один системный шрифт не доступен, используем встроенный моноширинный шрифт pygame
+    if mono_font is None:
+        try:
+            mono_font = pygame.font.Font(pygame.font.get_default_font(), 18)
         except:
-            mono_font = font  # Если не получилось, используем обычный шрифт
+            mono_font = font  # Последний резерв - используем обычный шрифт
 
     # Состояние звука
     sound_enabled = True
@@ -400,7 +471,30 @@ def show_game_results(
     ball: "Ball",
     auto_mode: bool = False,
 ) -> tuple[bool, bool, bool]:
-    """Отображает экран с результатами игры и таблицей рекордов. Возвращает (состояние_звука, перезапуск_игры, выход_из_игры)."""
+    """
+    Отображает экран с результатами игры и таблицей рекордов.
+    
+    Показывает финальный счет, время игры, таблицу рекордов и позволяет
+    игроку перезапустить игру или выйти.
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        font: Шрифт для обычного текста
+        big_font: Шрифт для заголовков
+        score: Финальный счет игрока
+        player_name: Имя игрока
+        game_time_seconds: Время игры в секундах
+        highscore_manager: Менеджер рекордов для сохранения и отображения
+        settings_manager: Менеджер настроек игры
+        ball: Объект мяча для доступа к настройкам
+        auto_mode: Флаг авторежима
+        
+    Returns:
+        Кортеж из 3 элементов:
+        - Состояние звука (bool)
+        - Флаг перезапуска игры (bool)
+        - Флаг выхода из игры (bool)
+    """
     game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
 
     # Добавляем результат в рекорды и проверяем, попал ли он в топ-10
@@ -448,7 +542,6 @@ def show_game_results(
                         sound_enabled = True
                 elif event.key == pygame.K_UP:
                     # Открытие окна настроек
-                    paused = True
                     sound_enabled = show_settings_window(
                         screen,
                         font,
@@ -458,7 +551,6 @@ def show_game_results(
                         sound_enabled,
                         auto_mode,
                     )
-                    paused = False
 
         # Отрисовка экрана результатов
         screen.fill((10, 10, 30))
@@ -550,14 +642,12 @@ class Ball:
     _bounce_frame: int = field(default=0)
 
     def update(self) -> None:
-        # КРИТИЧНО: Используем только centerx/centery для избежания конфликтов координат
-        # Обновляем координаты через centerx/centery, а не через x/y
+        # Используем centerx/centery для согласованности координат
         ball_radius = BALL_SIZE // 2  # 8 пикселей
         min_center_x = ball_radius
         max_center_x = SCREEN_WIDTH - ball_radius
         min_center_y = ball_radius
         
-        # Обновляем координаты центра мяча
         new_center_x = self.rect.centerx + self.vel_x
         new_center_y = self.rect.centery + self.vel_y
         
@@ -605,7 +695,7 @@ class Ball:
 
     def reset(self, paddle_rect: pygame.Rect) -> None:
         """Сброс мяча на платформу с текущей скоростью"""
-        # КРИТИЧНО: Используем только centerx/centery для согласованности координат
+        # Используем centerx/centery для согласованности координат
         ball_radius = BALL_SIZE // 2
         self.rect.centerx = paddle_rect.centerx
         self.rect.centery = paddle_rect.top - ball_radius - 5  # Мяч должен быть минимум на 5 пикселей выше платформы
@@ -667,10 +757,19 @@ class Ball:
 
 
 def build_bricks() -> List[pygame.Rect]:
+    """
+    Создает сетку кирпичей для игры.
+    
+    Returns:
+        Список pygame.Rect объектов, представляющих кирпичи на экране
+        
+    Note:
+        Для использования новой архитектуры см. game_controllers.GameController.build_bricks()
+    """
     bricks = []
     start_x = (
         SCREEN_WIDTH - (BRICK_COLS * BRICK_WIDTH + (BRICK_COLS - 1) * BRICK_PADDING)
-    ) // 2
+        ) // 2
     for row in range(BRICK_ROWS):
         for col in range(BRICK_COLS):
             x = start_x + col * (BRICK_WIDTH + BRICK_PADDING)
@@ -680,16 +779,25 @@ def build_bricks() -> List[pygame.Rect]:
 
 
 def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
-    colors = [
-        (200, 80, 80),
-        (200, 160, 80),
-        (80, 200, 120),
-        (80, 140, 220),
-        (150, 80, 220),
-    ]
+    """
+    Отрисовывает все кирпичи на экране.
+    
+    Каждый ряд кирпичей имеет свой цвет из палитры. Кирпичи отрисовываются
+    с цветной заливкой и темной рамкой.
+    
+    Args:
+        screen: Поверхность pygame для отрисовки
+        bricks: Список прямоугольников кирпичей для отрисовки
+        
+    Note:
+        Для использования новой архитектуры с оптимизацией отрисовки см. game_views.BricksView
+    """
+    from game_config import BRICK_COLORS, BRICK_BORDER_COLOR
+    
     for idx, brick in enumerate(bricks):
-        pygame.draw.rect(screen, colors[idx // BRICK_COLS % len(colors)], brick)
-        pygame.draw.rect(screen, (30, 30, 30), brick, 2)
+        color = BRICK_COLORS[idx // BRICK_COLS % len(BRICK_COLORS)]
+        pygame.draw.rect(screen, color, brick)
+        pygame.draw.rect(screen, BRICK_BORDER_COLOR, brick, 2)
 
 
 def draw_hud(
@@ -1214,8 +1322,7 @@ def main() -> None:
         if not getattr(sys, "frozen", False):
             print(f"[AI DEBUG] Вход в основной цикл игры, running={running}, game_started={game_started}")
         
-        # КРИТИЧНО: НЕ очищаем экран здесь - это делается в основном цикле
-        # Очистка экрана в основном цикле гарантирует, что игра отрисовывается сразу
+        # Очистка экрана выполняется в основном цикле для корректной отрисовки
 
         while running:
             frame_counter += 1
@@ -2245,18 +2352,22 @@ def main() -> None:
                                         game_start_time = time.time()
                         continue  # Пропускаем остальную обработку кадра
 
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем столкновения с кубиками...")
-                    try:
-                        hit_index = ball.rect.collidelist(bricks)
+                    # Оптимизация: проверяем столкновения только если есть кирпичи
+                    # и мяч находится в области кирпичей (выше зоны разделения)
+                    hit_index = -1
+                    if bricks and ball.rect.bottom <= SEPARATION_ZONE_TOP + 50:
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] hit_index={hit_index}")
-                    except Exception as e:
-                        if not getattr(sys, "frozen", False):
-                            print(f"[ERROR] Ошибка в collidelist: {e}")
-                            import traceback
-                            traceback.print_exc()
-                        hit_index = -1
+                            print(f"[AI DEBUG] Проверяем столкновения с кубиками...")
+                        try:
+                            hit_index = ball.rect.collidelist(bricks)
+                            if frame_counter <= 3 and not getattr(sys, "frozen", False):
+                                print(f"[AI DEBUG] hit_index={hit_index}")
+                        except Exception as e:
+                            if not getattr(sys, "frozen", False):
+                                print(f"[ERROR] Ошибка в collidelist: {e}")
+                                import traceback
+                                traceback.print_exc()
+                            hit_index = -1
                     if hit_index != -1:
                         if frame_counter <= 3 and not getattr(sys, "frozen", False):
                             print(f"[AI DEBUG] Попадание в кубик! hit_index={hit_index}")
