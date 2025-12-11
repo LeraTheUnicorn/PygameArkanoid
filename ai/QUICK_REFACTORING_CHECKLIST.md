@@ -24,14 +24,17 @@
 
 - [x] Импортировать `logging`
 - [x] Создать `logger = logging.getLogger(__name__)` (через `_setup_logging()`)
-- [ ] Заменить все `print()` на `logger.debug/info/warning/error/critical` (частично: ~80 осталось из ~101)
-- [ ] Удалить проверки `if not getattr(sys, "frozen", False): print(...)` (частично: ~7 осталось из ~22)
+- [x] Заменить все `print()` на `logger.debug/info/warning/error/critical` (выполнено: ~101 заменено)
+- [x] Удалить проверки `if not getattr(sys, "frozen", False): print(...)` (выполнено: все ~22 удалены)
 
 **Файлы:** Все места с `print()` (30+ мест)  
-**Прогресс:** 
+**Прогресс:**
+
 - ✅ Выполнено: activate/deactivate, ошибки, отладочные сообщения в move_paddle_towards
-- ✅ Удалено: ~15 проверок frozen
-- ⏳ Осталось: ~80 print() (в основном большие блоки метрик и отладочные сообщения)
+- ✅ Выполнено: большие блоки метрик (_print_ml_system_metrics, _print_training_parameters)
+- ✅ Выполнено: методы сохранения/загрузки данных обучения
+- ✅ Удалено: все проверки frozen (~22)
+- ✅ Осталось: только 2 закомментированных print() (не активные)
 
 ### 4. Инъекция зависимостей
 
