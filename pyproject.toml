@@ -41,12 +41,18 @@ warn_no_return = true
 strict_equality = true
 show_error_codes = true
 ignore_missing_imports = true
+# Проверка типов для всех файлов, кроме исключенных
+warn_unreachable = true
+warn_unused_coroutines = true
+# Исключаем только тестовые файлы и документацию
 exclude = [
     "src/",
     "scripts/",
     "resources/",
     "docs/",
     "tests/.*test_.*\\.py$",
+    ".*\\.pyc$",
+    "__pycache__",
 ]
 
 [tool.pyright]
@@ -58,8 +64,22 @@ exclude = [
     "**/docs",
     "**/__pycache__",
     "**/.*",
+    "**/tests/**",
 ]
 reportMissingImports = true
 reportMissingTypeStubs = false
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
+# Дополнительные проверки для улучшения качества типизации
+reportUnusedVariable = "warning"
+reportUnusedImport = "warning"
+reportUnusedClass = "warning"
+reportUnusedFunction = "warning"
+reportDuplicateImport = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportOptionalCall = "warning"
+reportOptionalIterable = "warning"
+reportOptionalContextManager = "warning"
+reportOptionalOperand = "warning"
+reportGeneralTypeIssues = "warning"

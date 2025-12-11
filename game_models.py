@@ -44,9 +44,9 @@ class Paddle:
             direction: -1 (влево) или 1 (вправо)
         """
         self.rect.x += direction * PADDLE_SPEED
-        paddle_half_width = PADDLE_WIDTH // 2
-        min_center_x = paddle_half_width
-        max_center_x = SCREEN_WIDTH - paddle_half_width
+        paddle_half_width: int = PADDLE_WIDTH // 2
+        min_center_x: int = paddle_half_width
+        max_center_x: int = SCREEN_WIDTH - paddle_half_width
         self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
 
 
@@ -70,16 +70,17 @@ class Ball:
     _last_vel_x: int = field(default=0)
     _just_bounced: bool = field(default=False)
     _bounce_frame: int = field(default=0)
+    _wall_bounce_count: int = field(default=0)
 
     def update(self) -> None:
         """Обновляет позицию мяча и обрабатывает столкновения со стенами."""
-        ball_radius = BALL_SIZE // 2
-        min_center_x = ball_radius
-        max_center_x = SCREEN_WIDTH - ball_radius
-        min_center_y = ball_radius
+        ball_radius: int = BALL_SIZE // 2
+        min_center_x: int = ball_radius
+        max_center_x: int = SCREEN_WIDTH - ball_radius
+        min_center_y: int = ball_radius
 
-        new_center_x = self.rect.centerx + self.vel_x
-        new_center_y = self.rect.centery + self.vel_y
+        new_center_x: int = self.rect.centerx + self.vel_x
+        new_center_y: int = self.rect.centery + self.vel_y
 
         # Проверяем столкновение со стенами по горизонтали
         if new_center_x < min_center_x:
@@ -95,17 +96,13 @@ class Ball:
         if new_center_y < min_center_y:
             new_center_y = min_center_y
             self.vel_y *= -1
-            if hasattr(self, "_wall_bounce_count"):
-                self._wall_bounce_count = 0
+            self._wall_bounce_count = 0
         else:
             self.rect.centery = new_center_y
 
         # Защита от зацикливания у стен
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
-            if hasattr(self, "_wall_bounce_count"):
-                self._wall_bounce_count += 1
-            else:
-                self._wall_bounce_count = 1
+            self._wall_bounce_count += 1
 
             if self._wall_bounce_count > 10:
                 self.vel_y += random.choice([-1, 0, 1])
@@ -120,7 +117,7 @@ class Ball:
 
     def reset(self, paddle_rect: pygame.Rect) -> None:
         """Сбрасывает мяч на платформу с текущей скоростью."""
-        ball_radius = BALL_SIZE // 2
+        ball_radius: int = BALL_SIZE // 2
         self.rect.centerx = paddle_rect.centerx
         self.rect.centery = paddle_rect.top - ball_radius - 5
         self.vel_x = random.choice([-self.current_speed, self.current_speed])
@@ -133,9 +130,9 @@ class Ball:
         auto_mode: bool = False,
     ) -> None:
         """Устанавливает скорость мяча и обновляет настройки."""
-        max_speed = 8 if auto_mode else 10
+        max_speed: int = 8 if auto_mode else 10
         if 1 <= speed <= max_speed:
-            old_speed = self.current_speed
+            old_speed: int = self.current_speed
             self.current_speed = speed
             self.vel_x = (
                 int(self.vel_x * speed / old_speed) if old_speed != 0 else speed
@@ -151,7 +148,7 @@ class Ball:
         self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
     ) -> None:
         """Увеличивает скорость на 1 (максимум зависит от режима)."""
-        max_speed = 25 if auto_mode else 10
+        max_speed: int = 25 if auto_mode else 10
         if self.current_speed < max_speed:
             self.set_speed(self.current_speed + 1, settings_manager, auto_mode)
 

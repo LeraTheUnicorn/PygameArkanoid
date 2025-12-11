@@ -5,7 +5,7 @@
 разделяя её от представления и моделей данных.
 """
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -34,7 +34,7 @@ class GameController:
         ball: Ball,
         paddle: Paddle,
         settings_manager: SettingsManager,
-    ):
+    ) -> None:
         """
         Инициализирует игровой контроллер.
         
@@ -44,10 +44,10 @@ class GameController:
             paddle: Объект платформы
             settings_manager: Менеджер настроек
         """
-        self.game_state = game_state
-        self.ball = ball
-        self.paddle = paddle
-        self.settings_manager = settings_manager
+        self.game_state: GameState = game_state
+        self.ball: Ball = ball
+        self.paddle: Paddle = paddle
+        self.settings_manager: SettingsManager = settings_manager
 
     def build_bricks(self) -> List[pygame.Rect]:
         """
@@ -56,15 +56,15 @@ class GameController:
         Returns:
             Список прямоугольников кирпичей
         """
-        bricks = []
-        start_x = (
+        bricks: List[pygame.Rect] = []
+        start_x: int = (
             SCREEN_WIDTH
             - (BRICK_COLS * BRICK_WIDTH + (BRICK_COLS - 1) * BRICK_PADDING)
         ) // 2
         for row in range(BRICK_ROWS):
             for col in range(BRICK_COLS):
-                x = start_x + col * (BRICK_WIDTH + BRICK_PADDING)
-                y = BRICK_OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_PADDING)
+                x: int = start_x + col * (BRICK_WIDTH + BRICK_PADDING)
+                y: int = BRICK_OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_PADDING)
                 bricks.append(pygame.Rect(x, y, BRICK_WIDTH, BRICK_HEIGHT))
         return bricks
 
@@ -82,8 +82,8 @@ class GameController:
             return False
 
         # Проверяем, что мяч попадает в верхнюю часть платформы
-        paddle_top = self.paddle.rect.top
-        ball_bottom = self.ball.rect.bottom
+        paddle_top: int = self.paddle.rect.top
+        ball_bottom: int = self.ball.rect.bottom
 
         if (
             ball_bottom >= paddle_top
@@ -106,7 +106,7 @@ class GameController:
             return
 
         # Вычисляем относительную позицию мяча на платформе
-        relative_x = (
+        relative_x: float = (
             self.ball.rect.centerx - self.paddle.rect.centerx
         ) / (self.paddle.rect.width / 2)
 
@@ -137,7 +137,7 @@ class GameController:
             return None
 
         try:
-            hit_index = self.ball.rect.collidelist(self.game_state.bricks)
+            hit_index: int = self.ball.rect.collidelist(self.game_state.bricks)
             return hit_index if hit_index != -1 else None
         except Exception:
             return None
@@ -149,12 +149,12 @@ class GameController:
         Returns:
             Уничтоженный кирпич или None
         """
-        hit_index = self.check_ball_brick_collision()
+        hit_index: Optional[int] = self.check_ball_brick_collision()
         if hit_index is None:
             return None
 
         self.ball.bounce_vertical()
-        destroyed_brick = self.game_state.bricks.pop(hit_index)
+        destroyed_brick: pygame.Rect = self.game_state.bricks.pop(hit_index)
         self.game_state.score += 1
         return destroyed_brick
 
@@ -200,25 +200,25 @@ class GameController:
         self.game_state.bricks = self.build_bricks()
         self.ball.reset(self.paddle.rect)
         self.ball.vel_y = 0
-        ball_speed = self.settings_manager.get_ball_speed()
+        ball_speed: int = self.settings_manager.get_ball_speed()
         self.ball.set_speed(ball_speed)
 
 
 class InputController:
     """Контроллер для обработки пользовательского ввода."""
 
-    def __init__(self, game_controller: GameController):
+    def __init__(self, game_controller: GameController) -> None:
         """
         Инициализирует контроллер ввода.
         
         Args:
             game_controller: Игровой контроллер
         """
-        self.game_controller = game_controller
+        self.game_controller: GameController = game_controller
 
     def handle_keyboard_input(
         self, keys: pygame.key.ScancodeWrapper, auto_mode: bool = False
-    ) -> dict:
+    ) -> Dict[str, bool]:
         """
         Обрабатывает нажатия клавиш.
         
@@ -229,7 +229,7 @@ class InputController:
         Returns:
             Словарь с информацией о действиях
         """
-        actions = {
+        actions: Dict[str, bool] = {
             "paddle_left": False,
             "paddle_right": False,
             "start_game": False,

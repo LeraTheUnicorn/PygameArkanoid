@@ -14,7 +14,7 @@ from game_config import DIRTY_RECT_BUFFER, USE_DIRTY_RECTS
 class DirtyRectManager:
     """Менеджер для отслеживания измененных областей экрана."""
 
-    def __init__(self, screen_width: int, screen_height: int):
+    def __init__(self, screen_width: int, screen_height: int) -> None:
         """
         Инициализирует менеджер грязных прямоугольников.
         
@@ -22,10 +22,10 @@ class DirtyRectManager:
             screen_width: Ширина экрана
             screen_height: Высота экрана
         """
-        self.screen_width = screen_width
-        self.screen_height = screen_height
+        self.screen_width: int = screen_width
+        self.screen_height: int = screen_height
         self.dirty_rects: List[pygame.Rect] = []
-        self.enabled = USE_DIRTY_RECTS
+        self.enabled: bool = USE_DIRTY_RECTS
 
     def add(self, rect: pygame.Rect) -> None:
         """

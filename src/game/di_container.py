@@ -26,7 +26,7 @@ from settings import SettingsManager
 class DIContainer:
     """Контейнер для управления зависимостями."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Инициализирует контейнер зависимостей."""
         self._screen: Optional[pygame.Surface] = None
         self._font: Optional[pygame.font.Font] = None

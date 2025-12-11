@@ -5,6 +5,8 @@
 и улучшения поддерживаемости кода.
 """
 
+from typing import List, Tuple
+
 # Размеры экрана
 SCREEN_WIDTH: int = 800
 SCREEN_HEIGHT: int = 600
@@ -35,7 +37,7 @@ SEPARATION_ZONE_TOP: int = 226  # Верхняя граница зоны раз�
 SEPARATION_ZONE_BOTTOM: int = 540  # Нижняя граница зоны разделения (высота платформы)
 
 # Цвета кирпичей
-BRICK_COLORS = [
+BRICK_COLORS: List[Tuple[int, int, int]] = [
     (200, 80, 80),
     (200, 160, 80),
     (80, 200, 120),
@@ -44,26 +46,26 @@ BRICK_COLORS = [
 ]
 
 # Цвета интерфейса
-BACKGROUND_COLOR = (10, 10, 30)
-BRICK_BORDER_COLOR = (30, 30, 30)
-TEXT_COLOR = (255, 255, 255)
+BACKGROUND_COLOR: Tuple[int, int, int] = (10, 10, 30)
+BRICK_BORDER_COLOR: Tuple[int, int, int] = (30, 30, 30)
+TEXT_COLOR: Tuple[int, int, int] = (255, 255, 255)
 
 # Настройки шрифтов
-FONT_NAME = "arial"
-FONT_SIZE = 20
-BIG_FONT_SIZE = 42
-MONO_FONT_SIZE = 18
+FONT_NAME: str = "arial"
+FONT_SIZE: int = 20
+BIG_FONT_SIZE: int = 42
+MONO_FONT_SIZE: int = 18
 
 # Резервные моноширинные шрифты для кросс-платформенной совместимости
-MONO_FONT_NAMES = ["consolas", "courier new", "courier", "monospace", "liberation mono"]
+MONO_FONT_NAMES: List[str] = ["consolas", "courier new", "courier", "monospace", "liberation mono"]
 
 # Настройки звука
-SOUND_DEFAULT_VOLUME = 0.3
-MUSIC_DEFAULT_VOLUME = 0.3
-PADDLE_SOUND_FREQUENCY = 330  # E4
-PADDLE_SOUND_DURATION = 0.15
-PADDLE_SOUND_VOLUME = 0.4
+SOUND_DEFAULT_VOLUME: float = 0.3
+MUSIC_DEFAULT_VOLUME: float = 0.3
+PADDLE_SOUND_FREQUENCY: int = 330  # E4
+PADDLE_SOUND_DURATION: float = 0.15
+PADDLE_SOUND_VOLUME: float = 0.4
 
 # Настройки оптимизации отрисовки
-USE_DIRTY_RECTS = True  # Использовать оптимизацию "грязных прямоугольников"
-DIRTY_RECT_BUFFER = 2  # Дополнительные пиксели вокруг измененной области
+USE_DIRTY_RECTS: bool = True  # Использовать оптимизацию "грязных прямоугольников"
+DIRTY_RECT_BUFFER: int = 2  # Дополнительные пиксели вокруг измененной области

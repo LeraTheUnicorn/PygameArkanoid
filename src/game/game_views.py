@@ -26,7 +26,7 @@ from ai.ai_player import AIPlayer
 class GameView:
     """Базовый класс для представлений игры."""
 
-    def __init__(self, screen: pygame.Surface, dirty_rect_manager: DirtyRectManager):
+    def __init__(self, screen: pygame.Surface, dirty_rect_manager: DirtyRectManager) -> None:
         """
         Инициализирует представление.
         
@@ -34,8 +34,8 @@ class GameView:
             screen: Поверхность pygame для отрисовки
             dirty_rect_manager: Менеджер грязных прямоугольников
         """
-        self.screen = screen
-        self.dirty_rects = dirty_rect_manager
+        self.screen: pygame.Surface = screen
+        self.dirty_rects: DirtyRectManager = dirty_rect_manager
 
     def clear_screen(self) -> None:
         """Очищает экран."""
@@ -55,7 +55,7 @@ class BricksView(GameView):
             bricks: Список прямоугольников кирпичей
         """
         for idx, brick in enumerate(bricks):
-            color = BRICK_COLORS[idx // BRICK_COLS % len(BRICK_COLORS)]
+            color: Tuple[int, int, int] = BRICK_COLORS[idx // BRICK_COLS % len(BRICK_COLORS)]
             pygame.draw.rect(self.screen, color, brick)
             pygame.draw.rect(self.screen, BRICK_BORDER_COLOR, brick, 2)
             self.dirty_rects.add(brick)
@@ -78,7 +78,8 @@ class PaddleView(GameView):
             self.dirty_rects.add(old_rect)
 
         # Рисуем новую позицию
-        pygame.draw.rect(self.screen, (255, 255, 255), paddle.rect)
+        paddle_color: Tuple[int, int, int] = (255, 255, 255)
+        pygame.draw.rect(self.screen, paddle_color, paddle.rect)
         self.dirty_rects.add(paddle.rect)
 
 
@@ -99,8 +100,10 @@ class BallView(GameView):
             self.dirty_rects.add(old_rect)
 
         # Рисуем новую позицию
+        ball_color: Tuple[int, int, int] = (255, 255, 255)
+        ball_radius: int = ball.rect.width // 2
         pygame.draw.circle(
-            self.screen, (255, 255, 255), ball.rect.center, ball.rect.width // 2
+            self.screen, ball_color, ball.rect.center, ball_radius
         )
         self.dirty_rects.add(ball.rect)
 
@@ -113,7 +116,7 @@ class HUDView(GameView):
         screen: pygame.Surface,
         dirty_rect_manager: DirtyRectManager,
         font: pygame.font.Font,
-    ):
+    ) -> None:
         """
         Инициализирует HUD представление.
         
@@ -123,7 +126,7 @@ class HUDView(GameView):
             font: Шрифт для текста
         """
         super().__init__(screen, dirty_rect_manager)
-        self.font = font
+        self.font: pygame.font.Font = font
         self.last_text_rect: Optional[pygame.Rect] = None
 
     def draw(
@@ -152,6 +155,8 @@ class HUDView(GameView):
             self.dirty_rects.add(self.last_text_rect)
 
         # Формируем текст
+        text: str
+        color: Tuple[int, int, int]
         if auto_mode or training_mode:
             text = f"Очки: {score} | Жизни: {lives_left} | Скорость мяча: {ball.get_speed()} | АВТОРЕЖИМ"
             color = (255, 255, 0)
@@ -160,8 +165,8 @@ class HUDView(GameView):
             color = TEXT_COLOR
 
         # Рендерим текст
-        surf = self.font.render(text, True, color)
-        pos = (SCREEN_WIDTH - surf.get_width() - 20, 20)
+        surf: pygame.Surface = self.font.render(text, True, color)
+        pos: Tuple[int, int] = (SCREEN_WIDTH - surf.get_width() - 20, 20)
         self.screen.blit(surf, pos)
 
         # Сохраняем область для следующего обновления
@@ -178,7 +183,7 @@ class MenuView(GameView):
         dirty_rect_manager: DirtyRectManager,
         font: pygame.font.Font,
         big_font: pygame.font.Font,
-    ):
+    ) -> None:
         """
         Инициализирует представление меню.
         
@@ -189,8 +194,8 @@ class MenuView(GameView):
             big_font: Большой шрифт для заголовков
         """
         super().__init__(screen, dirty_rect_manager)
-        self.font = font
-        self.big_font = big_font
+        self.font: pygame.font.Font = font
+        self.big_font: pygame.font.Font = big_font
 
     def render_colored_hint(
         self,
@@ -211,20 +216,23 @@ class MenuView(GameView):
         Returns:
             Высота отрисованного текста
         """
+        x: int
+        y: int
         x, y = pos
-        words = text.split()
-        current_x = x
+        words: List[str] = text.split()
+        current_x: int = x
 
         for word in words:
             # Определяем цвет слова
-            color = key_color if word.isupper() or word[0].isupper() else base_color
+            color: Tuple[int, int, int] = key_color if word.isupper() or word[0].isupper() else base_color
 
-            word_surf = self.font.render(word, True, color)
+            word_surf: pygame.Surface = self.font.render(word, True, color)
             self.screen.blit(word_surf, (current_x, y))
             self.dirty_rects.add(
                 pygame.Rect(current_x, y, word_surf.get_width(), word_surf.get_height())
             )
 
-            current_x += word_surf.get_width() + self.font.size(" ")[0]
+            space_width: int = self.font.size(" ")[0]
+            current_x += word_surf.get_width() + space_width
 
         return self.font.get_height()
