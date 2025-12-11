@@ -6,6 +6,7 @@
 """
 
 import sys
+import os
 
 
 def is_frozen() -> bool:
@@ -34,4 +35,41 @@ def is_frozen() -> bool:
         return True
     
     return False
+
+
+def get_ai_directory() -> str:
+    """
+    Определяет каталог для AI файлов (логи и модели).
+    Для разработки: ai в корне проекта
+    Для exe: каталог установки Windows или директория exe файла
+    """
+    # Для разработки (запуск из IDE) всегда используем ai в корне проекта
+    if not is_frozen():
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ai_dir = os.path.join(current_dir, "ai")
+        return ai_dir
+
+    # Для exe файлов пытаемся использовать LOCALAPPDATA
+    try:
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if localappdata:
+            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+            ai_dir = os.path.join(game_dir, "ai")
+            # Создаем директории если их нет
+            try:
+                os.makedirs(ai_dir, exist_ok=True)
+            except (OSError, PermissionError):
+                pass
+            return ai_dir
+    except:
+        pass
+
+    # Fallback для exe: директория exe файла
+    exe_dir = os.path.dirname(sys.executable)
+    ai_dir = os.path.join(exe_dir, "ai")
+    try:
+        os.makedirs(ai_dir, exist_ok=True)
+    except (OSError, PermissionError):
+        pass
+    return ai_dir
 
