@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import numpy as np
+from .platform_utils import is_frozen
 
 
 def get_ai_directory() -> str:
@@ -23,7 +24,7 @@ def get_ai_directory() -> str:
     Для exe: каталог установки Windows или директория exe файла
     """
     # Для разработки (запуск из IDE) всегда используем ai в корне проекта
-    if not getattr(sys, "frozen", False):
+    if not is_frozen():
         current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         ai_dir = os.path.join(current_dir, "ai")
         return ai_dir
