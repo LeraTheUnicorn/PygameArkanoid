@@ -4,6 +4,7 @@
 # Импортируем необходимые модули
 import sys
 import os
+from typing import List
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,12 +13,12 @@ from PyGameBall import Ball, Paddle, build_bricks
 from settings import SettingsManager
 
 
-def test_ball_class():
+def test_ball_class() -> None:
     """Тестирование класса Ball"""
     print("=== Testing Ball class ===")
 
     # Создаем объект мяча
-    ball = Ball()
+    ball: Ball = Ball()
     print(f"OK: Ball object created successfully")
     print(f"  Initial speed: {ball.get_speed()}")
 
@@ -26,7 +27,7 @@ def test_ball_class():
     print(f"OK: Speed set to 7: {ball.get_speed()}")
 
     # Создаем SettingsManager для методов изменения скорости
-    settings = SettingsManager()
+    settings: SettingsManager = SettingsManager()
 
     # Тестируем увеличение скорости
     ball.increase_speed(settings, auto_mode=False)
@@ -48,14 +49,14 @@ def test_ball_class():
     print("OK: All Ball class tests passed!\n")
 
 
-def test_paddle_class():
+def test_paddle_class() -> None:
     """Тестирование класса Paddle"""
     print("=== Testing Paddle class ===")
 
-    paddle = Paddle()
+    paddle: Paddle = Paddle()
     print(f"OK: Paddle object created successfully")
 
-    initial_x = paddle.rect.x
+    initial_x: int = paddle.rect.x
     paddle.move(5)
     print(f"OK: Move right: {initial_x} -> {paddle.rect.x}")
 
@@ -65,34 +66,34 @@ def test_paddle_class():
     print("OK: All Paddle class tests passed!\n")
 
 
-def test_settings_manager():
+def test_settings_manager() -> None:
     """Тестирование SettingsManager"""
     print("=== Testing SettingsManager ===")
 
-    settings = SettingsManager()
-    initial_speed = settings.get_ball_speed()
+    settings: SettingsManager = SettingsManager()
+    initial_speed: int = settings.get_ball_speed()
     print(f"OK: Settings loaded, speed: {initial_speed}")
 
     settings.set_ball_speed(8)
-    new_speed = settings.get_ball_speed()
+    new_speed: int = settings.get_ball_speed()
     print(f"OK: Speed changed: {initial_speed} -> {new_speed}")
 
     print("OK: All SettingsManager tests passed!\n")
 
 
-def test_reset_game():
+def test_reset_game() -> None:
     """Тестирование сброса игры (функция reset_game была удалена, тест обновлен)"""
     print("=== Testing game reset logic ===")
 
     # Создаем начальные объекты
-    paddle = Paddle()
-    ball = Ball()
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
     ball.set_speed(6)
     from PyGameBall import build_bricks
 
-    bricks = build_bricks()
-    score = 10
-    lives_left = 2
+    bricks: List[object] = build_bricks()
+    score: int = 10
+    lives_left: int = 2
 
     print(f"OK: Initial data:")
     print(f"  Ball speed: {ball.get_speed()}")
@@ -101,11 +102,11 @@ def test_reset_game():
     print(f"  Bricks: {len(bricks)}")
 
     # Имитируем сброс игры (логика теперь в основном цикле)
-    new_paddle = Paddle()
-    new_ball = Ball()
-    new_bricks = build_bricks()
-    new_score = 0
-    new_lives = 3
+    new_paddle: Paddle = Paddle()
+    new_ball: Ball = Ball()
+    new_bricks: List[object] = build_bricks()
+    new_score: int = 0
+    new_lives: int = 3
 
     print(f"OK: After reset:")
     print(f"  Ball speed: {new_ball.get_speed()}")

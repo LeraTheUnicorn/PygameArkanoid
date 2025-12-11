@@ -7,12 +7,13 @@ auto mode activates correctly when pressing key 0.
 
 import sys
 import os
+from typing import List
 
 # Add current directory to path for module imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_auto_mode_fix():
+def test_auto_mode_fix() -> bool:
     """Test auto mode fix"""
 
     print("=== AUTO MODE FIX TEST ===")
@@ -25,8 +26,8 @@ def test_auto_mode_fix():
         import inspect
 
         # Get function parameters
-        sig = inspect.signature(show_game_results)
-        params = list(sig.parameters.keys())
+        sig: inspect.Signature = inspect.signature(show_game_results)
+        params: List[str] = list(sig.parameters.keys())
 
         # Check for auto_mode parameter
         if "auto_mode" in params:
@@ -46,20 +47,20 @@ def test_auto_mode_fix():
     # Read source code and check for required logic
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(
+        pygameball_path: str = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
         )
         with open(pygameball_path, "r", encoding="utf-8") as f:
-            content = f.read()
+            content: str = f.read()
 
         # Check for conditional logic for auto_mode
-        esc_logic_checks = [
+        esc_logic_checks: List[str] = [
             "if auto_mode:",
             "# В авторежиме ESC возвращает к экрану ввода имени",
             "# В ручном режиме ESC выходит из игры",
         ]
 
-        found_checks = 0
+        found_checks: int = 0
         for check in esc_logic_checks:
             if check in content:
                 found_checks += 1
@@ -91,14 +92,14 @@ def test_auto_mode_fix():
         # Find all function calls
         import re
 
-        calls = re.findall(r"show_game_results\s*\([^)]+\)", content)
+        calls: List[str] = re.findall(r"show_game_results\s*\([^)]+\)", content)
 
-        updated_calls = 0
+        updated_calls: int = 0
         for call in calls:
             if "auto_mode" in call:
                 updated_calls += 1
 
-        total_calls = len(calls)
+        total_calls: int = len(calls)
         if total_calls >= 2 and updated_calls == total_calls:
             print(
                 f"   [OK] All show_game_results calls updated ({updated_calls}/{total_calls})"
@@ -125,7 +126,7 @@ def test_auto_mode_fix():
             content = f.read()
 
         # Check for key 48 (0) handling
-        key_handling_checks = [
+        key_handling_checks: List[str] = [
             "elif event.key == 48:",
             "auto_mode = True",
             "input_active = False",

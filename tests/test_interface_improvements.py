@@ -5,6 +5,7 @@
 
 import sys
 import os
+from typing import List, Dict, Any, Optional
 
 # Добавляем родительскую директорию в путь для импорта модулей
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,14 +15,14 @@ from highscores import HighScoreManager
 import json
 
 
-def test_highscores_display_logic():
+def test_highscores_display_logic() -> bool:
     """Тестирует логику отображения таблицы рекордов"""
     print("=" * 60)
     print("ТЕСТ ЛОГИКИ ОТОБРАЖЕНИЯ ТАБЛИЦЫ РЕКОРДОВ")
     print("=" * 60)
 
     # Создаем временный файл с рекордами для тестирования
-    test_scores = [
+    test_scores: List[Dict[str, Any]] = [
         {
             "player_name": "TestPlayer1",
             "score": 50,
@@ -102,18 +103,18 @@ def test_highscores_display_logic():
         # Создаем менеджер с тестовыми данными
         from highscores import HIGHSCORES_FILE
 
-        original_file = HIGHSCORES_FILE
+        original_file: Optional[str] = HIGHSCORES_FILE
         import highscores
 
         highscores.HIGHSCORES_FILE = "test_highscores.json"
 
-        manager = HighScoreManager()
+        manager: HighScoreManager = HighScoreManager()
 
         # Проверяем загрузку данных
         print(f"[OK] Загружено {len(manager.highscores)} рекордов")
 
         # Проверяем метод display_highscores()
-        display_text = manager.display_highscores()
+        display_text: str = manager.display_highscores()
 
         # Проверяем что в тексте есть заголовок
         if "ТОП-10 РЕЗУЛЬТАТОВ:" in display_text:
@@ -123,8 +124,8 @@ def test_highscores_display_logic():
             return False
 
         # Проверяем что отображаются все 10 записей
-        lines = display_text.split("\n")
-        score_lines = []
+        lines: List[str] = display_text.split("\n")
+        score_lines: List[str] = []
         for line in lines:
             line = line.strip()
             if line and (
@@ -148,13 +149,13 @@ def test_highscores_display_logic():
             return False
 
         # Проверяем что записи отсортированы правильно (по убыванию очков)
-        scores_in_text = []
+        scores_in_text: List[int] = []
         for line in score_lines:
             # Извлекаем число из строки вида "1. TestPlayer1 - 50 очков"
-            parts = line.split("-")
+            parts: List[str] = line.split("-")
             if len(parts) >= 2:
-                score_part = parts[1].strip()
-                score_num = int(score_part.split()[0])
+                score_part: str = parts[1].strip()
+                score_num: int = int(score_part.split()[0])
                 scores_in_text.append(score_num)
 
         if scores_in_text == sorted(scores_in_text, reverse=True):
@@ -165,7 +166,7 @@ def test_highscores_display_logic():
             return False
 
         # Проверяем get_top_scores()
-        top_scores = manager.get_top_scores()
+        top_scores: List[Dict[str, Any]] = manager.get_top_scores()
         if len(top_scores) == 10:
             print("[OK] get_top_scores() возвращает 10 записей")
         else:
@@ -174,7 +175,7 @@ def test_highscores_display_logic():
 
         # Проверяем is_top_score()
         # При полной таблице рекордов (10 записей) результат с 0 очками не должен попадать в топ
-        is_top = manager.is_top_score(0)
+        is_top: bool = manager.is_top_score(0)
         if not is_top:
             print("[OK] is_top_score(0) возвращает False для полной таблицы")
         else:
@@ -204,7 +205,7 @@ def test_highscores_display_logic():
             os.unlink("test_highscores.json")
 
 
-def test_score_limits():
+def test_score_limits() -> bool:
     """Тестирует ограничения на 10 записей"""
     print("\n" + "=" * 60)
     print("ТЕСТ ОГРАНИЧЕНИЙ НА 10 ЗАПИСЕЙ")
@@ -212,20 +213,20 @@ def test_score_limits():
 
     from highscores import HIGHSCORES_FILE
 
-    original_file = HIGHSCORES_FILE
+    original_file: Optional[str] = HIGHSCORES_FILE
     import highscores
 
     highscores.HIGHSCORES_FILE = "test_limits.json"
 
     try:
-        manager = HighScoreManager()
+        manager: HighScoreManager = HighScoreManager()
 
         # Добавляем 12 результатов
-        added_count = 0
+        added_count: int = 0
         for i in range(12):
-            player_name = f"TestPlayer{i+1}"
-            score = 50 - i  # Убывающие очки: 50, 49, 48, ..., 39
-            saved = manager.add_score(player_name, score, 60 + i)
+            player_name: str = f"TestPlayer{i+1}"
+            score: int = 50 - i  # Убывающие очки: 50, 49, 48, ..., 39
+            saved: bool = manager.add_score(player_name, score, 60 + i)
             if saved:
                 added_count += 1
                 print(f"[OK] {player_name} ({score} очков) - сохранен")
@@ -240,8 +241,8 @@ def test_score_limits():
             return False
 
         # Проверяем что это действительно топ-10
-        scores = [score["score"] for score in manager.highscores]
-        expected_scores = list(
+        scores: List[int] = [score["score"] for score in manager.highscores]
+        expected_scores: List[int] = list(
             range(50, 40, -1)
         )  # 50, 49, 48, ..., 41 (только первые 10)
 
@@ -265,7 +266,7 @@ def test_score_limits():
             os.unlink("test_limits.json")
 
 
-def test_interface_flow_simulation():
+def test_interface_flow_simulation() -> bool:
     """Симулирует пользовательский интерфейс без pygame"""
     print("\n" + "=" * 60)
     print("ТЕСТ СИМУЛЯЦИИ ПОЛЬЗОВАТЕЛЬСКОГО ИНТЕРФЕЙСА")
@@ -317,14 +318,14 @@ def test_interface_flow_simulation():
     return True
 
 
-def main():
+def main() -> bool:
     """Запуск всех тестов"""
     print("ТЕСТИРОВАНИЕ УЛУЧШЕНИЙ ИНТЕРФЕЙСА ИГРЫ")
     print("=" * 60)
 
-    test1 = test_highscores_display_logic()
-    test2 = test_score_limits()
-    test3 = test_interface_flow_simulation()
+    test1: bool = test_highscores_display_logic()
+    test2: bool = test_score_limits()
+    test3: bool = test_interface_flow_simulation()
 
     print("\n" + "=" * 60)
     print("ИТОГОВЫЕ РЕЗУЛЬТАТЫ")

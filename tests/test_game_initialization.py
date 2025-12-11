@@ -6,9 +6,10 @@
 
 import sys
 import os
+from typing import List, Tuple, Callable
 
 
-def test_imports():
+def test_imports() -> bool:
     """Тест импорта всех модулей"""
     print("Testing imports...")
 
@@ -38,7 +39,7 @@ def test_imports():
     return True
 
 
-def test_ai_initialization():
+def test_ai_initialization() -> bool:
     """Тест инициализации AI системы"""
     print("\nTesting AI initialization...")
 
@@ -46,7 +47,7 @@ def test_ai_initialization():
         from ai.ai_player import AIPlayer
 
         # Создаем AIPlayer
-        ai_player = AIPlayer(800, 600, debug_mode=False)
+        ai_player: AIPlayer = AIPlayer(800, 600, debug_mode=False)
         ai_player.activate()
 
         print(f"✓ AIPlayer created and activated: {ai_player.is_active}")
@@ -55,8 +56,8 @@ def test_ai_initialization():
         from ai.learning_system import LearningSystem
         from ai.position_optimizer import PositionOptimizer
 
-        learning_system = LearningSystem()
-        position_optimizer = PositionOptimizer(800, 600)
+        learning_system: LearningSystem = LearningSystem()
+        position_optimizer: PositionOptimizer = PositionOptimizer(800, 600)
 
         print("✓ All AI components initialized successfully")
 
@@ -67,7 +68,7 @@ def test_ai_initialization():
         return False
 
 
-def test_game_objects():
+def test_game_objects() -> bool:
     """Тест создания игровых объектов"""
     print("\nTesting game object creation...")
 
@@ -80,9 +81,9 @@ def test_game_objects():
         from PyGameBall import Paddle, Ball, build_bricks
 
         # Создаем объекты
-        paddle = Paddle()
-        ball = Ball()
-        bricks = build_bricks()
+        paddle: Paddle = Paddle()
+        ball: Ball = Ball()
+        bricks: List[object] = build_bricks()
 
         print(f"✓ Paddle created at position: {paddle.rect.center}")
         print(f"✓ Ball created at position: {ball.rect.center}")
@@ -96,18 +97,18 @@ def test_game_objects():
         return False
 
 
-def main():
+def main() -> bool:
     """Запуск всех тестов"""
     print("=== Testing Game Initialization (No Pygame Display) ===\n")
 
-    tests = [
+    tests: List[Tuple[str, Callable[[], bool]]] = [
         ("Import Test", test_imports),
         ("AI Initialization Test", test_ai_initialization),
         ("Game Objects Test", test_game_objects),
     ]
 
-    passed = 0
-    total = len(tests)
+    passed: int = 0
+    total: int = len(tests)
 
     for test_name, test_func in tests:
         print(f"\n{test_name}:")

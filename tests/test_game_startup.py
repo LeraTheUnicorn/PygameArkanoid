@@ -5,6 +5,7 @@
 """
 import sys
 import os
+from typing import Any
 
 # Добавляем путь к проекту
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +22,7 @@ try:
     print("[TEST] Pygame инициализирован")
     
     # Создаем фиктивный экран для тестирования
-    screen = pygame.display.set_mode((800, 600))
+    screen: Any = pygame.display.set_mode((800, 600))
     print("[TEST] Экран создан")
     
     # Пытаемся запустить игру в режиме обучения

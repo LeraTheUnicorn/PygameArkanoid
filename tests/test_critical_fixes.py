@@ -10,6 +10,7 @@ import sys
 import os
 import pygame
 import time
+from typing import List, Callable
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,7 +26,7 @@ from PyGameBall import (
 from ai.ai_player import AIPlayer
 
 
-def test_auto_mode_after_life_loss():
+def test_auto_mode_after_life_loss() -> bool:
     """Тест продолжения игры после потери жизни в авторежиме"""
     print("🧪 Тест 1: Продолжение игры после потери жизни в авторежиме")
 
@@ -33,19 +34,19 @@ def test_auto_mode_after_life_loss():
     pygame.init()
 
     # Создаем объекты игры
-    paddle = Paddle()
-    ball = Ball()
-    bricks = build_bricks()
-    score = 0
-    lives_left = 3
-    auto_mode = True
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = build_bricks()
+    score: int = 0
+    lives_left: int = 3
+    auto_mode: bool = True
 
     # Инициализируем AI
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     # Создаем имитацию времени игры
-    game_start_time = int(time.time())
+    game_start_time: int = int(time.time())
 
     # Обновляем состояние игры для AI
     ai_player.update_game_state(ball, paddle, bricks, score, game_start_time)
@@ -64,7 +65,7 @@ def test_auto_mode_after_life_loss():
             # Сброс мяча (это часть логики потери жизни)
             ball.reset(paddle.rect)
             ball.vel_y = 0
-            game_started = False
+            game_started: bool = False
 
             # Проверяем исправление - в авторежиме должна автоматически продолжиться
             if auto_mode:
@@ -89,7 +90,7 @@ def test_auto_mode_after_life_loss():
     return False
 
 
-def test_paddle_movement_in_auto_mode():
+def test_paddle_movement_in_auto_mode() -> bool:
     """Тест движения платформы в авторежиме"""
     print("\n🧪 Тест 2: Движение платформы в авторежиме")
 
@@ -97,10 +98,10 @@ def test_paddle_movement_in_auto_mode():
     pygame.init()
 
     # Создаем объекты игры
-    paddle = Paddle()
-    ball = Ball()
-    bricks = build_bricks()
-    score = 0
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = build_bricks()
+    score: int = 0
 
     # Устанавливаем начальную позицию мяча (падающий)
     ball.vel_x = 3
@@ -109,31 +110,31 @@ def test_paddle_movement_in_auto_mode():
     ball.rect.centery = SCREEN_HEIGHT // 2
 
     # Инициализируем AI
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     print(f"✅ AI активирован: {ai_player.is_active}")
 
     # Создаем имитацию времени игры
-    game_start_time = int(time.time())
+    game_start_time: int = int(time.time())
 
     # Обновляем состояние игры для AI
     ai_player.update_game_state(ball, paddle, bricks, score, game_start_time)
 
     # Тестируем движение платформы
-    initial_x = paddle.rect.centerx
+    initial_x: int = paddle.rect.centerx
     print(f"🎯 Начальная позиция платформы: {initial_x}")
 
     # Двигаем платформу с помощью AI
-    movement = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
+    movement: int = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
     paddle.move(movement)
 
-    final_x = paddle.rect.centerx
+    final_x: int = paddle.rect.centerx
     print(f"🎯 Финальная позиция платформы: {final_x}")
     print(f"🔄 Движение: {movement}")
 
     # Проверяем оптимальную позицию
-    optimal_x = ai_player.get_optimal_paddle_position()
+    optimal_x: int = ai_player.get_optimal_paddle_position()
     print(f"🎯 Оптимальная позиция от AI: {optimal_x}")
 
     # Анализируем результат
@@ -141,7 +142,7 @@ def test_paddle_movement_in_auto_mode():
         print("✅ ТЕСТ 2 ПРОЙДЕН: Платформа движется в авторежиме")
 
         # Дополнительная проверка - сравниваем с оптимальной позицией
-        distance_to_optimal = abs(final_x - optimal_x)
+        distance_to_optimal: int = abs(final_x - optimal_x)
         print(f"📏 Расстояние до оптимальной позиции: {distance_to_optimal}")
 
         return True
@@ -155,20 +156,20 @@ def test_paddle_movement_in_auto_mode():
     pygame.quit()
 
 
-def test_ai_state_updates():
+def test_ai_state_updates() -> bool:
     """Тест обновления состояния AI"""
     print("\n🧪 Тест 3: Обновление состояния AI системы")
 
     # Создаем объекты
-    paddle = Paddle()
-    ball = Ball()
-    bricks = build_bricks()
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = build_bricks()
 
     # Инициализируем AI
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
-    game_start_time = int(time.time())
+    game_start_time: int = int(time.time())
 
     try:
         # Обновляем состояние игры
@@ -187,18 +188,18 @@ def test_ai_state_updates():
         return False
 
 
-def main():
+def main() -> bool:
     """Запуск всех тестов"""
     print("🚀 Запуск тестов критических исправлений авторежима\n")
 
-    tests = [
+    tests: List[Callable[[], bool]] = [
         test_auto_mode_after_life_loss,
         test_paddle_movement_in_auto_mode,
         test_ai_state_updates,
     ]
 
-    passed = 0
-    total = len(tests)
+    passed: int = 0
+    total: int = len(tests)
 
     for test_func in tests:
         try:

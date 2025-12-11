@@ -9,9 +9,10 @@ import time
 import os
 import signal
 import sys
+from typing import List, Dict, Any, Optional
 
 
-def test_ai_fix():
+def test_ai_fix() -> None:
     """Тестирует исправления AI системы"""
     print("Запуск тестирования AI исправлений...")
 
@@ -21,11 +22,11 @@ def test_ai_fix():
     os.environ["AI_ENABLE_SESSION_LOGGING"] = "1"
 
     # Команда для запуска игры в venv
-    cmd = [".venv\\Scripts\\python.exe", "PyGameBall.py"]
+    cmd: List[str] = [".venv\\Scripts\\python.exe", "PyGameBall.py"]
 
     try:
         # Запускаем процесс
-        process = subprocess.Popen(
+        process: subprocess.Popen[str] = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -42,15 +43,17 @@ def test_ai_fix():
         # Имитируем ввод имени "robot" и авторежим (клавиша 0)
         try:
             # Вводим имя
-            process.stdin.write("robot\n")
-            process.stdin.flush()
+            if process.stdin:
+                process.stdin.write("robot\n")
+                process.stdin.flush()
 
             # Ждем немного
             time.sleep(0.5)
 
             # Нажимаем 0 для авторежима
-            process.stdin.write("0\n")
-            process.stdin.flush()
+            if process.stdin:
+                process.stdin.write("0\n")
+                process.stdin.flush()
 
             print("Авторежим активирован, ждем 10 секунд игры...")
 
@@ -72,6 +75,8 @@ def test_ai_fix():
             process.kill()
 
         # Получаем вывод
+        stdout: str
+        stderr: str
         stdout, stderr = process.communicate()
 
         print("Вывод игры:")
@@ -87,17 +92,17 @@ def test_ai_fix():
         print(f"Ошибка запуска: {e}")
 
 
-def check_logs():
+def check_logs() -> None:
     """Проверяет последние логи на наличие вертикальных паттернов"""
     print("\nПроверка логов...")
 
-    logs_dir = "../ai/logs"
+    logs_dir: str = "../ai/logs"
     if not os.path.exists(logs_dir):
         print("Директория логов не найдена")
         return
 
     # Находим последний лог
-    log_files = [
+    log_files: List[str] = [
         f
         for f in os.listdir(logs_dir)
         if f.startswith("session_") and f.endswith(".json")
@@ -106,8 +111,8 @@ def check_logs():
         print("Логи не найдены")
         return
 
-    latest_log = max(log_files)
-    log_path = os.path.join(logs_dir, latest_log)
+    latest_log: str = max(log_files)
+    log_path: str = os.path.join(logs_dir, latest_log)
 
     print(f"Анализ лога: {latest_log}")
 
@@ -115,7 +120,7 @@ def check_logs():
         import json
 
         with open(log_path, "r", encoding="utf-8") as f:
-            log_data = json.load(f)
+            log_data: Dict[str, Any] = json.load(f)
 
         # Проверяем на ai_deactivated (означает завершение сессии)
         if "ai_deactivated" in log_data:
@@ -123,16 +128,16 @@ def check_logs():
             return
 
         # Анализируем действия
-        actions = log_data.get("actions", [])
-        vertical_hits = 0
-        total_hits = 0
-        left_positions = 0
-        total_positions = 0
+        actions: List[Dict[str, Any]] = log_data.get("actions", [])
+        vertical_hits: int = 0
+        total_hits: int = 0
+        left_positions: int = 0
+        total_positions: int = 0
 
         for action in actions:
-            trajectory = action.get("trajectory", {})
-            dx = trajectory.get("dx", 0)
-            dy = trajectory.get("dy", 0)
+            trajectory: Dict[str, Any] = action.get("trajectory", {})
+            dx: float = trajectory.get("dx", 0)
+            dy: float = trajectory.get("dy", 0)
 
             # Проверяем вертикальность
             if abs(dx) < 5 and abs(dy) > 0:
@@ -140,8 +145,8 @@ def check_logs():
             total_hits += 1
 
             # Проверяем позицию платформы
-            position = action.get("position", {})
-            x = position.get("x", 400)
+            position: Dict[str, Any] = action.get("position", {})
+            x: int = position.get("x", 400)
             if x < 100:  # Левая сторона
                 left_positions += 1
             total_positions += 1

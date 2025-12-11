@@ -5,6 +5,7 @@
 
 import sys
 import os
+from typing import List, Dict, Any, Optional
 
 # Добавляем корневую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,13 +14,13 @@ from highscores import HighScoreManager
 import json
 
 
-def test_display_highscores_format():
+def test_display_highscores_format() -> bool:
     """Тестирует правильность форматирования таблицы рекордов"""
     print("ТЕСТИРОВАНИЕ ФОРМАТИРОВАНИЯ ТАБЛИЦЫ РЕКОРДОВ")
     print("=" * 60)
 
     # Создаем тестовые данные
-    test_scores = [
+    test_scores: List[Dict[str, Any]] = [
         {
             "player_name": "TestPlayer1",
             "score": 50,
@@ -100,12 +101,12 @@ def test_display_highscores_format():
         # Создаем менеджер с тестовыми данными
         from highscores import HIGHSCORES_FILE
 
-        original_file = HIGHSCORES_FILE
+        original_file: Optional[str] = HIGHSCORES_FILE
         import highscores
 
         highscores.HIGHSCORES_FILE = "test_display_highscores.json"
 
-        manager = HighScoreManager()
+        manager: HighScoreManager = HighScoreManager()
 
         print("Тестовые данные загружены:")
         print(f"Количество рекордов: {len(manager.highscores)}")
@@ -114,7 +115,7 @@ def test_display_highscores_format():
         print("-" * 60)
 
         # Получаем отформатированную таблицу
-        table_text = manager.display_highscores()
+        table_text: str = manager.display_highscores()
 
         # Выводим таблицу
         print(table_text)
@@ -123,7 +124,7 @@ def test_display_highscores_format():
         print("ПРОВЕРКА ФОРМАТИРОВАНИЯ:")
         print("-" * 60)
 
-        lines = table_text.split("\n")
+        lines: List[str] = table_text.split("\n")
 
         # Проверяем заголовок
         if lines[0] == "ТОП-10 РЕЗУЛЬТАТОВ:":
@@ -138,7 +139,7 @@ def test_display_highscores_format():
             print(f"[ERROR] Неправильные заголовки колонок: '{lines[2]}'")
 
         # Проверяем количество строк данных
-        data_lines = [
+        data_lines: List[str] = [
             line
             for line in lines
             if line.strip()
@@ -181,7 +182,7 @@ def test_display_highscores_format():
             os.unlink("test_display_highscores.json")
 
 
-def test_empty_highscores():
+def test_empty_highscores() -> bool:
     """Тестирует отображение пустой таблицы рекордов"""
     print("\nТЕСТ ПУСТОЙ ТАБЛИЦЫ РЕКОРДОВ")
     print("=" * 60)
@@ -193,13 +194,13 @@ def test_empty_highscores():
     try:
         from highscores import HIGHSCORES_FILE
 
-        original_file = HIGHSCORES_FILE
+        original_file: Optional[str] = HIGHSCORES_FILE
         import highscores
 
         highscores.HIGHSCORES_FILE = "test_empty_highscores.json"
 
-        manager = HighScoreManager()
-        result = manager.display_highscores()
+        manager: HighScoreManager = HighScoreManager()
+        result: str = manager.display_highscores()
 
         print("Результат для пустой таблицы:")
         print(f"'{result}'")

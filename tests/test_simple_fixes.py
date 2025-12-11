@@ -7,6 +7,7 @@ import sys
 import os
 import pygame
 import time
+from typing import List, Callable
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,7 +23,7 @@ from PyGameBall import (
 from ai.ai_player import AIPlayer
 
 
-def test_auto_mode_life_loss_fix():
+def test_auto_mode_life_loss_fix() -> bool:
     """Тест продолжения игры после потери жизни в авторежиме"""
     print("Test 1: Auto mode life loss continuation")
 
@@ -30,10 +31,10 @@ def test_auto_mode_life_loss_fix():
     pygame.init()
 
     # Создаем объекты игры
-    paddle = Paddle()
-    ball = Ball()
-    lives_left = 3
-    auto_mode = True
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    lives_left: int = 3
+    auto_mode: bool = True
 
     # Имитируем потерю жизни
     ball.rect.y = SCREEN_HEIGHT + 50  # Мяч за границей
@@ -45,7 +46,7 @@ def test_auto_mode_life_loss_fix():
             # Сброс мяча
             ball.reset(paddle.rect)
             ball.vel_y = 0
-            game_started = False
+            game_started: bool = False
 
             # Проверяем исправление
             if auto_mode:
@@ -64,15 +65,15 @@ def test_auto_mode_life_loss_fix():
     return False
 
 
-def test_paddle_movement():
+def test_paddle_movement() -> bool:
     """Тест движения платформы в авторежиме"""
     print("Test 2: Paddle movement in auto mode")
 
     pygame.init()
 
     # Создаем объекты
-    paddle = Paddle()
-    ball = Ball()
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
 
     # Размещаем мяч в стороне от платформы для тестирования движения
     ball.rect.centerx = 100  # Мяч слева
@@ -81,20 +82,20 @@ def test_paddle_movement():
     ball.vel_y = 0
 
     # Инициализируем AI
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     # Обновляем состояние игры
     ai_player.update_game_state(ball, paddle, [], 0, int(time.time()))
 
     # Тестируем движение
-    initial_x = paddle.rect.centerx
+    initial_x: int = paddle.rect.centerx
     print(f"  Ball position: {ball.rect.centerx}, {ball.rect.centery}")
     print(f"  Initial paddle position: {initial_x}")
 
-    movement = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
+    movement: int = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
     paddle.move(movement)
-    final_x = paddle.rect.centerx
+    final_x: int = paddle.rect.centerx
 
     print(f"  Movement: {movement}")
     print(f"  Final paddle position: {final_x}")
@@ -102,7 +103,7 @@ def test_paddle_movement():
 
     if movement != 0 or final_x != initial_x:
         print("PASS: Paddle moves in auto mode")
-        result = True
+        result: bool = True
     else:
         print("FAIL: Paddle does not move in auto mode")
         result = False
@@ -111,15 +112,15 @@ def test_paddle_movement():
     return result
 
 
-def test_ai_activation():
+def test_ai_activation() -> bool:
     """Тест активации AI системы"""
     print("Test 3: AI system activation")
 
     # Создаем AI
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
-    is_active = ai_player.is_active
+    is_active: bool = ai_player.is_active
     print(f"  AI active: {is_active}")
 
     if is_active:
@@ -130,14 +131,14 @@ def test_ai_activation():
         return False
 
 
-def main():
+def main() -> bool:
     """Запуск всех тестов"""
     print("=== Testing Critical Auto-Mode Fixes ===\n")
 
-    tests = [test_auto_mode_life_loss_fix, test_paddle_movement, test_ai_activation]
+    tests: List[Callable[[], bool]] = [test_auto_mode_life_loss_fix, test_paddle_movement, test_ai_activation]
 
-    passed = 0
-    total = len(tests)
+    passed: int = 0
+    total: int = len(tests)
 
     for test_func in tests:
         try:

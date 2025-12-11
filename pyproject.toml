@@ -44,13 +44,13 @@ ignore_missing_imports = true
 # Проверка типов для всех файлов, кроме исключенных
 warn_unreachable = true
 warn_unused_coroutines = true
-# Исключаем только тестовые файлы и документацию
+# Исключаем только документацию и скомпилированные файлы
+# Тесты теперь включены для проверки типов
 exclude = [
     "src/",
     "scripts/",
     "resources/",
     "docs/",
-    "tests/.*test_.*\\.py$",
     ".*\\.pyc$",
     "__pycache__",
 ]
@@ -64,8 +64,8 @@ exclude = [
     "**/docs",
     "**/__pycache__",
     "**/.*",
-    "**/tests/**",
 ]
+# Тесты теперь включены для проверки типов
 reportMissingImports = true
 reportMissingTypeStubs = false
 pythonVersion = "3.11"

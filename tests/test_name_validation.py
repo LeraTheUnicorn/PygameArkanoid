@@ -4,6 +4,8 @@
 Тестовый скрипт для проверки логики валидации имени игрока
 """
 
+from typing import List, Tuple
+
 
 def is_valid_player_name_char(char: str) -> bool:
     """Проверяет, является ли символ допустимым для имени игрока"""
@@ -13,12 +15,12 @@ def is_valid_player_name_char(char: str) -> bool:
     return char.isalpha()
 
 
-def test_name_validation():
+def test_name_validation() -> None:
     """Тестирует логику валидации имени"""
     print("=== ТЕСТИРОВАНИЕ ВАЛИДАЦИИ ИМЕНИ ИГРОКА ===\n")
 
     # Тест 1: Пустая строка
-    test_cases = [
+    test_cases: List[Tuple[str, str, bool]] = [
         ("", "Пустая строка", False),
         ("   ", "Только пробелы", False),
         ("a", "Один символ", True),
@@ -29,22 +31,23 @@ def test_name_validation():
     ]
 
     print("Тесты валидности символов:")
-    valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZабвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    valid_chars: str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZабвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
     for char in valid_chars[:20]:  # Тестируем первые 20 символов
-        result = is_valid_player_name_char(char)
+        result: bool = is_valid_player_name_char(char)
         print(f"  '{char}' -> {result}")
 
     print(f"\nТесты валидации имен:")
     for name, description, expected in test_cases:
-        cleaned_name = name.strip()
+        cleaned_name: str = name.strip()
 
         # Проверяем логику из исправленного кода
+        is_valid: bool
         if not cleaned_name:
             is_valid = False
         else:
             is_valid = True
 
-        status = "PASS" if is_valid == expected else "FAIL"
+        status: str = "PASS" if is_valid == expected else "FAIL"
         print(f"  {name!r:15} ({description:20}) -> {is_valid:5} | {status}")
 
     print(f"\n=== ПРОВЕРКА АВТОРЕЖИМА ===")

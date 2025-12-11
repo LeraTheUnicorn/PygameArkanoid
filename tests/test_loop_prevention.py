@@ -6,6 +6,7 @@
 import sys
 import os
 import time
+from typing import List, Callable
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,33 +20,33 @@ from dataclasses import dataclass
 # Создаем мок объекты для тестирования
 @dataclass
 class MockPaddle:
-    rect = pygame.Rect(400, 550, 120, 15)
+    rect: pygame.Rect = pygame.Rect(400, 550, 120, 15)
 
 
 @dataclass
 class MockBall:
-    rect = pygame.Rect(400, 300, 16, 16)
-    vel_x = 3
-    vel_y = 3
+    rect: pygame.Rect = pygame.Rect(400, 300, 16, 16)
+    vel_x: int = 3
+    vel_y: int = 3
 
-    def get_speed(self):
+    def get_speed(self) -> int:
         return 5
 
 
-def test_loop_detection():
+def test_loop_detection() -> bool:
     """Тестирует обнаружение зацикливания"""
     print("Testing loop detection...")
 
     # Создаем AIPlayer
-    ai = AIPlayer(screen_width=800, screen_height=600, debug_mode=True)
+    ai: AIPlayer = AIPlayer(screen_width=800, screen_height=600, debug_mode=True)
 
     # Создаем mock состояние игры
-    ball = MockBall()
-    paddle = MockPaddle()
+    ball: MockBall = MockBall()
+    paddle: MockPaddle = MockPaddle()
 
-    bricks = []
+    bricks: List[pygame.Rect] = []
     for i in range(5):
-        rect = pygame.Rect(i * 160, 100, 60, 20)
+        rect: pygame.Rect = pygame.Rect(i * 160, 100, 60, 20)
         bricks.append(rect)
 
     # Обновляем состояние игры
@@ -59,7 +60,7 @@ def test_loop_detection():
         ai.loop_prevention_system["movement_history"].append(1 if i % 2 == 0 else -1)
 
         # Проверяем обнаружение зацикливания
-        is_looping = ai._detect_loop_pattern()
+        is_looping: bool = ai._detect_loop_pattern()
         print(
             f"Movement {i}: {ai.loop_prevention_system['movement_history'][-1]} -> Looping: {is_looping}"
         )
@@ -71,39 +72,39 @@ def test_loop_detection():
     return True
 
 
-def test_alternative_strategies():
+def test_alternative_strategies() -> bool:
     """Тестирует альтернативные стратегии"""
     print("\nTesting alternative strategies...")
 
-    ai = AIPlayer(screen_width=800, screen_height=600)
+    ai: AIPlayer = AIPlayer(screen_width=800, screen_height=600)
     ai.activate()
 
     # Создаем mock состояние
-    ball = MockBall()
-    paddle = MockPaddle()
+    ball: MockBall = MockBall()
+    paddle: MockPaddle = MockPaddle()
 
-    bricks = []
+    bricks: List[pygame.Rect] = []
     for i in range(3):
-        rect = pygame.Rect(i * 200, 100, 60, 20)
+        rect: pygame.Rect = pygame.Rect(i * 200, 100, 60, 20)
         bricks.append(rect)
 
     ai.update_game_state(ball, paddle, bricks, 0, int(time.time()))
 
     # Тестируем каждую стратегию
-    strategies = ai.loop_prevention_system["alternative_strategies"]
+    strategies: List[str] = ai.loop_prevention_system["alternative_strategies"]
 
     for i, strategy in enumerate(strategies):
         ai.loop_prevention_system["current_strategy_index"] = i
-        optimal_position = 400  # Базовая оптимальная позиция
+        optimal_position: int = 400  # Базовая оптимальная позиция
 
         # Применяем стратегию
-        new_position = ai._apply_alternative_strategy(optimal_position)
+        new_position: int = ai._apply_alternative_strategy(optimal_position)
 
         print(f"Strategy '{strategy}': {optimal_position} -> {new_position}")
 
         # Проверяем, что позиция изменилась для некоторых стратегий
         if strategy == "center_focus":
-            expected = 400  # Центр экрана
+            expected: int = 400  # Центр экрана
             assert new_position == expected, f"Expected {expected}, got {new_position}"
         elif strategy == "predictive_targeting":
             # Должна быть отличной от базовой
@@ -115,22 +116,22 @@ def test_alternative_strategies():
     return True
 
 
-def test_movement_tracking():
+def test_movement_tracking() -> bool:
     """Тестирует отслеживание движений"""
     print("\nTesting movement tracking...")
 
-    ai = AIPlayer(screen_width=800, screen_height=600)
+    ai: AIPlayer = AIPlayer(screen_width=800, screen_height=600)
 
     # Симулируем несколько движений
-    movements = [1, -1, 1, -1, 1, -1]  # Повторяющийся паттерн
-    positions = [400, 410, 400, 410, 400, 410]  # Соответствующие позиции
-    optimal_x = 405
+    movements: List[int] = [1, -1, 1, -1, 1, -1]  # Повторяющийся паттерн
+    positions: List[int] = [400, 410, 400, 410, 400, 410]  # Соответствующие позиции
+    optimal_x: int = 405
 
     for i, (movement, current_x) in enumerate(zip(movements, positions)):
         ai._update_loop_tracking(movement, current_x, optimal_x)
 
         # Проверяем обновление истории
-        history_len = len(ai.loop_prevention_system["movement_history"])
+        history_len: int = len(ai.loop_prevention_system["movement_history"])
         print(f"Movement {i}: {movement}, History length: {history_len}")
 
         assert history_len == min(
@@ -141,20 +142,20 @@ def test_movement_tracking():
     return True
 
 
-def test_reevaluation_after_bounce():
+def test_reevaluation_after_bounce() -> bool:
     """Тестирует переоценку после отбития"""
     print("\nTesting reevaluation after bounce...")
 
-    ai = AIPlayer(screen_width=800, screen_height=600, debug_mode=True)
+    ai: AIPlayer = AIPlayer(screen_width=800, screen_height=600, debug_mode=True)
     ai.activate()
 
     # Создаем состояние игры
-    ball = MockBall()
-    paddle = MockPaddle()
+    ball: MockBall = MockBall()
+    paddle: MockPaddle = MockPaddle()
 
-    bricks = []
+    bricks: List[pygame.Rect] = []
     for i in range(3):
-        rect = pygame.Rect(i * 200, 100, 60, 20)
+        rect: pygame.Rect = pygame.Rect(i * 200, 100, 60, 20)
         bricks.append(rect)
 
     ai.update_game_state(ball, paddle, bricks, 0, int(time.time()))
@@ -181,31 +182,31 @@ def test_reevaluation_after_bounce():
     return True
 
 
-def main():
+def main() -> bool:
     """Основная функция тестирования"""
     print("=== Loop Prevention System Test Suite ===\n")
 
     pygame.init()
 
-    tests = [
+    tests: List[Callable[[], bool]] = [
         test_loop_detection,
         test_alternative_strategies,
         test_movement_tracking,
         test_reevaluation_after_bounce,
     ]
 
-    results = []
+    results: List[bool] = []
     for test in tests:
         try:
-            result = test()
+            result: bool = test()
             results.append(result)
         except Exception as e:
             print(f"[FAIL] Test {test.__name__} failed: {e}")
             results.append(False)
 
     print("\n=== Test Results ===")
-    passed = sum(results)
-    total = len(results)
+    passed: int = sum(results)
+    total: int = len(results)
     print(f"Passed: {passed}/{total}")
 
     if passed == total:

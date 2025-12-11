@@ -5,6 +5,7 @@
 
 import sys
 import os
+from typing import List, Dict, Any, Callable
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,18 +20,18 @@ def test_point_serialization() -> bool:
     """Тестирует сериализацию Point объектов"""
     print("Testing Point serialization...")
 
-    point = Point(100, 150)
-    point_data = {"position": point, "type": "test_point"}
+    point: Point = Point(100, 150)
+    point_data: Dict[str, Any] = {"position": point, "type": "test_point"}
 
     try:
-        json_str = json.dumps(
+        json_str: str = json.dumps(
             point_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
         )
         print("[OK] Point serialization successful:")
         print(json_str)
 
         # Проверяем десериализацию
-        parsed = json.loads(json_str)
+        parsed: Dict[str, Any] = json.loads(json_str)
         print("[OK] Point deserialization successful:")
         print(parsed)
         return True
@@ -43,18 +44,18 @@ def test_rect_serialization() -> bool:
     """Тестирует сериализацию pygame.Rect объектов"""
     print("\nTesting pygame.Rect serialization...")
 
-    rect = pygame.Rect(50, 75, 120, 25)
-    rect_data = {"brick": rect, "type": "test_rect"}
+    rect: pygame.Rect = pygame.Rect(50, 75, 120, 25)
+    rect_data: Dict[str, Any] = {"brick": rect, "type": "test_rect"}
 
     try:
-        json_str = json.dumps(
+        json_str: str = json.dumps(
             rect_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
         )
         print("[OK] Rect serialization successful:")
         print(json_str)
 
         # Проверяем десериализацию
-        parsed = json.loads(json_str)
+        parsed: Dict[str, Any] = json.loads(json_str)
         print("[OK] Rect deserialization successful:")
         print(parsed)
         return True
@@ -67,10 +68,10 @@ def test_mixed_data() -> bool:
     """Тестирует сериализацию смешанных данных"""
     print("\nTesting mixed data serialization...")
 
-    point = Point(200, 300)
-    rect = pygame.Rect(10, 20, 80, 15)
+    point: Point = Point(200, 300)
+    rect: pygame.Rect = pygame.Rect(10, 20, 80, 15)
 
-    mixed_data = {
+    mixed_data: Dict[str, Any] = {
         "ball_position": point,
         "brick": rect,
         "score": 1500,
@@ -82,14 +83,14 @@ def test_mixed_data() -> bool:
     }
 
     try:
-        json_str = json.dumps(
+        json_str: str = json.dumps(
             mixed_data, cls=CustomJSONEncoder, ensure_ascii=False, indent=2
         )
         print("[OK] Mixed data serialization successful:")
         print(json_str)
 
         # Проверяем десериализацию
-        parsed = json.loads(json_str)
+        parsed: Dict[str, Any] = json.loads(json_str)
         print("[OK] Mixed data deserialization successful:")
         print(parsed)
         return True
@@ -104,19 +105,19 @@ def main() -> bool:
 
     pygame.init()
 
-    tests = [
+    tests: List[Callable[[], bool]] = [
         test_point_serialization,
         test_rect_serialization,
         test_mixed_data,
     ]
 
-    results = []
+    results: List[bool] = []
     for test in tests:
         results.append(test())
 
     print("\n=== Test Results ===")
-    passed = sum(results)
-    total = len(results)
+    passed: int = sum(results)
+    total: int = len(results)
     print(f"Passed: {passed}/{total}")
 
     if passed == total:

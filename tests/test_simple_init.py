@@ -42,7 +42,7 @@ def test_ai_init() -> bool:
     try:
         from ai.ai_player import AIPlayer
 
-        ai_player = AIPlayer(800, 600, debug_mode=False)
+        ai_player: AIPlayer = AIPlayer(800, 600, debug_mode=False)
         ai_player.activate()
         print(f"PASS: AIPlayer created, active: {ai_player.is_active}")
         return True
@@ -54,8 +54,9 @@ def test_ai_init() -> bool:
 def main() -> bool:
     print("=== Game Initialization Test ===")
 
-    tests = [test_imports, test_ai_init]
-    passed = sum(1 for test in tests if test())
+    from typing import List, Callable
+    tests: List[Callable[[], bool]] = [test_imports, test_ai_init]
+    passed: int = sum(1 for test in tests if test())
 
     print(f"\nResults: {passed}/{len(tests)} tests passed")
 
@@ -70,5 +71,5 @@ def main() -> bool:
 if __name__ == "__main__":
     import sys
 
-    success = main()
+    success: bool = main()
     sys.exit(0 if success else 1)

@@ -7,6 +7,7 @@ import sys
 import os
 import pygame
 import time
+from typing import List, Tuple, Callable
 
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,20 +24,20 @@ from ai.ai_player import AIPlayer
 from ai.game_state import GameState, Point
 
 
-def test_trajectory_prediction_accuracy():
+def test_trajectory_prediction_accuracy() -> bool:
     """Тест точности предсказания траектории"""
     print("=== Trajectory Prediction Accuracy Test ===")
 
     pygame.init()
 
     # Создаем AI систему
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     # Создаем объекты игры
-    paddle = Paddle()
-    ball = Ball()
-    bricks = []
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = []
 
     # Тест 1: Мяч падает прямо вниз
     print("\nTest 1: Ball falling straight down")
@@ -49,8 +50,8 @@ def test_trajectory_prediction_accuracy():
     ai_player.update_game_state(ball, paddle, bricks, 0, int(time.time()))
 
     # Предсказываем точку приземления
-    predicted_x = ai_player._predict_exact_landing_position()
-    expected_x = 400  # Должно остаться в центре
+    predicted_x: float = ai_player._predict_exact_landing_position()
+    expected_x: int = 400  # Должно остаться в центре
 
     print(f"  Ball position: {ball.rect.centerx}, {ball.rect.centery}")
     print(f"  Ball velocity: {ball.vel_x}, {ball.vel_y}")
@@ -60,7 +61,7 @@ def test_trajectory_prediction_accuracy():
 
     if abs(predicted_x - expected_x) <= 10:
         print("  PASS: Trajectory prediction accurate")
-        test1_pass = True
+        test1_pass: bool = True
     else:
         print("  FAIL: Trajectory prediction inaccurate")
         test1_pass = False
@@ -76,18 +77,18 @@ def test_trajectory_prediction_accuracy():
     ai_player.update_game_state(ball, paddle, bricks, 0, int(time.time()))
 
     # Рассчитываем ожидаемую позицию вручную
-    paddle_y = paddle.rect.centery
-    ball_y = ball.rect.centery
-    ball_x = ball.rect.centerx
-    vel_x = ball.vel_x
-    vel_y = ball.vel_y
+    paddle_y: int = paddle.rect.centery
+    ball_y: int = ball.rect.centery
+    ball_x: int = ball.rect.centerx
+    vel_x: int = ball.vel_x
+    vel_y: int = ball.vel_y
 
-    time_to_paddle = (paddle_y - ball_y) / vel_y
-    expected_x = ball_x + vel_x * time_to_paddle
+    time_to_paddle: float = (paddle_y - ball_y) / vel_y
+    expected_x: float = ball_x + vel_x * time_to_paddle
 
     # Учитываем отскок от стен
-    screen_width = SCREEN_WIDTH
-    ball_radius = 8
+    screen_width: int = SCREEN_WIDTH
+    ball_radius: int = 8
 
     # Моделируем отскоки
     while expected_x < ball_radius or expected_x > screen_width - ball_radius:
@@ -108,7 +109,7 @@ def test_trajectory_prediction_accuracy():
 
     if abs(predicted_x - expected_x) <= 15:  # Допуск 15 пикселей
         print("  PASS: Trajectory prediction accurate")
-        test2_pass = True
+        test2_pass: bool = True
     else:
         print("  FAIL: Trajectory prediction inaccurate")
         test2_pass = False
@@ -117,20 +118,20 @@ def test_trajectory_prediction_accuracy():
     return test1_pass and test2_pass
 
 
-def test_paddle_positioning_accuracy():
+def test_paddle_positioning_accuracy() -> bool:
     """Тест точности позиционирования платформы"""
     print("\n=== Paddle Positioning Accuracy Test ===")
 
     pygame.init()
 
     # Создаем AI систему
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     # Создаем объекты
-    paddle = Paddle()
-    ball = Ball()
-    bricks = []
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = []
 
     # Тест: Слежение за движущимся мячом
     print("\nTest: Paddle tracking moving ball")
@@ -148,7 +149,7 @@ def test_paddle_positioning_accuracy():
     ai_player.update_game_state(ball, paddle, bricks, 0, int(time.time()))
 
     # Получаем целевую позицию от AI
-    target_x = ai_player.get_optimal_paddle_position()
+    target_x: int = ai_player.get_optimal_paddle_position()
 
     print(f"  Ball position: {ball.rect.centerx}, {ball.rect.centery}")
     print(f"  Ball velocity: {ball.vel_x}, {ball.vel_y}")
@@ -159,13 +160,13 @@ def test_paddle_positioning_accuracy():
     # Поскольку мяч движется вправо с скоростью 2, AI должен предсказать это
     if target_x > 150:  # Должен двигаться вправо от текущей позиции мяча
         print("  PASS: AI correctly predicts ball movement")
-        test_pass = True
+        test_pass: bool = True
     else:
         print("  FAIL: AI fails to predict ball movement")
         test_pass = False
 
     # Тестируем движение
-    movement = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
+    movement: int = ai_player.move_paddle_towards(paddle.rect.centerx, PADDLE_SPEED)
     paddle.move(movement)
 
     print(f"  Movement direction: {movement}")
@@ -181,20 +182,20 @@ def test_paddle_positioning_accuracy():
     return test_pass
 
 
-def test_edge_case_handling():
+def test_edge_case_handling() -> bool:
     """Тест обработки граничных случаев"""
     print("\n=== Edge Case Handling Test ===")
 
     pygame.init()
 
     # Создаем AI систему
-    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+    ai_player: AIPlayer = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
     ai_player.activate()
 
     # Создаем объекты
-    paddle = Paddle()
-    ball = Ball()
-    bricks = []
+    paddle: Paddle = Paddle()
+    ball: Ball = Ball()
+    bricks: List[object] = []
 
     # Тест: Мяч очень близко к краю
     print("\nTest: Ball near screen edge")
@@ -206,21 +207,21 @@ def test_edge_case_handling():
 
     ai_player.update_game_state(ball, paddle, bricks, 0, int(time.time()))
 
-    predicted_x = ai_player._predict_exact_landing_position()
+    predicted_x: float = ai_player._predict_exact_landing_position()
 
     print(f"  Ball position: {ball.rect.centerx}, {ball.rect.centery}")
     print(f"  Ball velocity: {ball.vel_x}, {ball.vel_y}")
     print(f"  Predicted landing X: {predicted_x}")
 
     # Проверяем, что предсказанная позиция в пределах экрана
-    screen_width = SCREEN_WIDTH
-    ball_radius = 8
-    min_x = ball_radius
-    max_x = screen_width - ball_radius
+    screen_width: int = SCREEN_WIDTH
+    ball_radius: int = 8
+    min_x: int = ball_radius
+    max_x: int = screen_width - ball_radius
 
     if min_x <= predicted_x <= max_x:
         print("  PASS: Prediction within screen bounds")
-        test_pass = True
+        test_pass: bool = True
     else:
         print("  FAIL: Prediction outside screen bounds")
         test_pass = False
@@ -229,18 +230,18 @@ def test_edge_case_handling():
     return test_pass
 
 
-def main():
+def main() -> bool:
     """Запуск всех тестов точности"""
     print("=== AI Accuracy and Precision Tests ===")
 
-    tests = [
+    tests: List[Tuple[str, Callable[[], bool]]] = [
         ("Trajectory Prediction", test_trajectory_prediction_accuracy),
         ("Paddle Positioning", test_paddle_positioning_accuracy),
         ("Edge Cases", test_edge_case_handling),
     ]
 
-    passed = 0
-    total = len(tests)
+    passed: int = 0
+    total: int = len(tests)
 
     for test_name, test_func in tests:
         print(f"\n{test_name}:")

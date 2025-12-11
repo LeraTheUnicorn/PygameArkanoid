@@ -6,6 +6,7 @@
 import sys
 import os
 import time
+from typing import Any
 
 # Добавляем путь к проекту
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +25,7 @@ try:
     
     # Инициализируем pygame
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
+    screen: Any = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Арканоид - Тестовый режим")
     
     print("[TEST] Pygame инициализирован")

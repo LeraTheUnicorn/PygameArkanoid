@@ -6,12 +6,13 @@
 
 import sys
 import os
+from typing import List
 
 # Add current directory to path for module imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_game_state_reset():
+def test_game_state_reset() -> bool:
     """Test game state reset functionality"""
 
     print("=== GAME STATE RESET TEST ===")
@@ -21,14 +22,14 @@ def test_game_state_reset():
     print("1. Checking game state initialization in main loop...")
     try:
         # Правильный путь к PyGameBall.py
-        pygameball_path = os.path.join(
+        pygameball_path: str = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
         )
         with open(pygameball_path, "r", encoding="utf-8") as f:
-            content = f.read()
+            content: str = f.read()
 
         # Check for state reset in the main loop
-        state_reset_checks = [
+        state_reset_checks: List[str] = [
             "paddle = Paddle()",
             "ball = Ball()",
             "bricks = build_bricks()",
@@ -38,7 +39,7 @@ def test_game_state_reset():
             "game_started = False",
         ]
 
-        found_checks = 0
+        found_checks: int = 0
         for check in state_reset_checks:
             if check in content:
                 found_checks += 1
@@ -68,10 +69,10 @@ def test_game_state_reset():
             content = f.read()
 
         # Count occurrences of key state variables
-        paddle_init_count = content.count("paddle = Paddle()")
-        ball_init_count = content.count("ball = Ball()")
-        bricks_init_count = content.count("bricks = build_bricks()")
-        score_init_count = content.count("score = 0")
+        paddle_init_count: int = content.count("paddle = Paddle()")
+        ball_init_count: int = content.count("ball = Ball()")
+        bricks_init_count: int = content.count("bricks = build_bricks()")
+        score_init_count: int = content.count("score = 0")
 
         # Should have exactly one initialization in the main loop
         # Plus one in the manual restart section for paddle/ball/bricks
@@ -101,7 +102,7 @@ def test_game_state_reset():
             content = f.read()
 
         # Check for main game loop structure
-        flow_checks = [
+        flow_checks: List[str] = [
             "while True:  # Внешний цикл для возврата к вводу имени",
             "auto_mode_complete = False",
             "running = True",
@@ -136,7 +137,7 @@ def test_game_state_reset():
             content = f.read()
 
         # Check for auto mode specific logic
-        auto_mode_checks = [
+        auto_mode_checks: List[str] = [
             "auto_mode_complete = True",
             "running = False  # Останавливаем текущую игру",
             "break  # Выход из игрового цикла",
