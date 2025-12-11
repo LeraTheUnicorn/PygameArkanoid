@@ -30,9 +30,6 @@ class AIPlayer:
     - LearningSystem для обучения на основе опыта
     - PerformanceLogger для логирования и аналитики
     """
-    
-    # Логгер для класса (будет настроен в __init__)
-    _logger: logging.Logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -55,13 +52,13 @@ class AIPlayer:
         # Валидация входных данных
         self._validate_dimensions(screen_width, screen_height)
         
-        # Настройка логирования
-        self._setup_logging(debug_mode)
-        
         # Компоненты системы
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.debug_mode = bool(debug_mode)
+        
+        # Настройка логирования для этого экземпляра
+        self._logger = self._setup_logging(debug_mode)
 
         self.trajectory_predictor = TrajectoryPredictor(screen_width, screen_height)
         self.position_optimizer = PositionOptimizer(screen_width, screen_height)
@@ -247,17 +244,25 @@ class AIPlayer:
             # В случае ошибки возвращаем значение по умолчанию
             return default
 
+    _instance_counter = 0  # Счетчик для создания уникальных имен логгеров
+    
     @classmethod
-    def _setup_logging(cls, debug_mode: bool) -> None:
+    def _setup_logging(cls, debug_mode: bool) -> logging.Logger:
         """
-        Настраивает логирование для класса AIPlayer.
+        Настраивает и возвращает логгер для экземпляра AIPlayer.
         
         Args:
             debug_mode: Если True, устанавливает уровень DEBUG, иначе INFO
-        """
-        logger = cls._logger
         
-        # Настраиваем только если еще не настроен
+        Returns:
+            Настроенный логгер для этого экземпляра
+        """
+        # Создаем уникальный логгер для каждого экземпляра
+        cls._instance_counter += 1
+        logger_name = f"{__name__}.instance_{cls._instance_counter}"
+        logger = logging.getLogger(logger_name)
+        
+        # Настраиваем handler только если еще не настроен
         if not logger.handlers:
             handler = logging.StreamHandler(sys.stdout)
             formatter = logging.Formatter(
@@ -266,16 +271,17 @@ class AIPlayer:
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
+            # Предотвращаем дублирование сообщений через родительские логгеры
+            logger.propagate = False
         
-        # Устанавливаем уровень логирования
+        # Устанавливаем уровень логирования для этого экземпляра
         # В debug_mode показываем все сообщения, иначе только INFO и выше
         if debug_mode:
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.INFO)
         
-        # Убеждаемся, что propagate включен для передачи родительским логгерам
-        logger.propagate = False
+        return logger
 
     def activate(self) -> None:
         """
