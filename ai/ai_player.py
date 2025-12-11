@@ -31,8 +31,8 @@ class AIPlayer:
     - PerformanceLogger для логирования и аналитики
     """
     
-    # Логгер для класса
-    _logger = logging.getLogger(__name__)
+    # Логгер для класса (будет настроен в __init__)
+    _logger: logging.Logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -54,6 +54,9 @@ class AIPlayer:
         """
         # Валидация входных данных
         self._validate_dimensions(screen_width, screen_height)
+        
+        # Настройка логирования
+        self._setup_logging(debug_mode)
         
         # Компоненты системы
         self.screen_width = screen_width
@@ -243,6 +246,36 @@ class AIPlayer:
         except Exception:
             # В случае ошибки возвращаем значение по умолчанию
             return default
+
+    @classmethod
+    def _setup_logging(cls, debug_mode: bool) -> None:
+        """
+        Настраивает логирование для класса AIPlayer.
+        
+        Args:
+            debug_mode: Если True, устанавливает уровень DEBUG, иначе INFO
+        """
+        logger = cls._logger
+        
+        # Настраиваем только если еще не настроен
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        
+        # Устанавливаем уровень логирования
+        # В debug_mode показываем все сообщения, иначе только INFO и выше
+        if debug_mode:
+            logger.setLevel(logging.DEBUG)
+        else:
+            logger.setLevel(logging.INFO)
+        
+        # Убеждаемся, что propagate включен для передачи родительским логгерам
+        logger.propagate = False
 
     def activate(self) -> None:
         """
@@ -2733,11 +2766,9 @@ class AIPlayer:
             
             # КРИТИЧНО: Логируем состояние мяча для диагностики (только периодически, чтобы не засорять логи)
             import random
-            import sys
             if random.random() < 0.01:  # 1% кадров
-                if not getattr(sys, "frozen", False):
-                    optimal_x = self.get_optimal_paddle_position()
-                    print(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
+                optimal_x = self.get_optimal_paddle_position()
+                self._logger.debug(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
             
             # КРИТИЧНО: УБРАНО ПРАВИЛО 1 - платформа ДОЛЖНА двигаться к точке падения мяча
             # даже когда мяч летит вверх, чтобы успеть к моменту падения
