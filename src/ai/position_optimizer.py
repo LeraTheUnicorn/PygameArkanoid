@@ -3,7 +3,7 @@
 """
 
 import pygame
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 import math
 from .game_state import GameState, Point
 
