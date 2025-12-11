@@ -6,15 +6,87 @@
 import json
 import os
 import sys
-from typing import List, Dict, Any, Tuple
+import re
+import logging
+from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+# ============================================================================
+# КОНСТАНТЫ
+# ============================================================================
+
+# Ограничения игры
+MIN_SCORE: int = 0
+MAX_SCORE: int = 50
+MAX_TIME_SECONDS: int = 3599  # 59:59
+TOP_SCORES_LIMIT: int = 10
+MAX_PLAYER_NAME_LENGTH: int = 20
+
+# Форматирование таблицы
+TABLE_WIDTH: int = 69
+TABLE_HEADER: str = "ТОП-10 РЕЗУЛЬТАТОВ:"
+
+# Разрешенные символы для имени игрока (буквы, цифры, пробел, дефис, подчеркивание)
+ALLOWED_NAME_CHARS: str = r"^[a-zA-Zа-яА-ЯёЁ0-9\s\-_]+$"
+
+
+# ============================================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================================================
+
+
+def validate_player_name(name: str) -> str:
+    """
+    Валидирует и санитизирует имя игрока.
+    
+    Args:
+        name: Исходное имя игрока
+        
+    Returns:
+        Очищенное и валидированное имя
+        
+    Raises:
+        ValueError: Если имя пустое или содержит только пробелы
+        TypeError: Если имя не является строкой
+    """
+    if not isinstance(name, str):
+        raise TypeError(f"Имя должно быть строкой, получен тип: {type(name).__name__}")
+    
+    # Удаляем ведущие и завершающие пробелы
+    name = name.strip()
+    
+    if not name:
+        raise ValueError("Имя игрока не может быть пустым")
+    
+    # Удаляем опасные символы (пути, управляющие символы, HTML-теги)
+    # Оставляем только буквы, цифры, пробелы, дефисы и подчеркивания
+    safe_name = re.sub(r'[^\w\s\-_]', '', name, flags=re.UNICODE)
+    
+    # Удаляем множественные пробелы
+    safe_name = re.sub(r'\s+', ' ', safe_name)
+    
+    # Обрезаем до максимальной длины
+    safe_name = safe_name[:MAX_PLAYER_NAME_LENGTH]
+    
+    if not safe_name:
+        raise ValueError("Имя игрока после очистки стало пустым")
+    
+    return safe_name
 
 
 def get_game_directory() -> str:
     """
-    Определяет каталог игры.
+    Определяет каталог игры с поддержкой кроссплатформенности.
+    
     Для разработки: local_game_files в корне проекта
-    Для exe: каталог установки Windows или директория exe файла
+    Для exe: каталог установки (Windows: LOCALAPPDATA, Linux/Mac: XDG_DATA_HOME или ~/.local/share)
+    
+    Returns:
+        Путь к каталогу игры
     """
     # Для разработки (запуск из IDE) всегда используем local_game_files
     if not getattr(sys, "frozen", False):
@@ -22,99 +94,238 @@ def get_game_directory() -> str:
         local_game_dir = os.path.join(current_dir, "local_game_files")
         return local_game_dir
 
-    # Для exe файлов пытаемся использовать LOCALAPPDATA
-    try:
-        localappdata = os.environ.get("LOCALAPPDATA")
-        if localappdata:
-            game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+    # Для exe файлов используем системные каталоги
+    if sys.platform == "win32":
+        # Windows: используем LOCALAPPDATA
+        try:
+            localappdata = os.environ.get("LOCALAPPDATA")
+            if localappdata:
+                game_dir = os.path.join(localappdata, "Games", "Arkanoid")
+                return game_dir
+        except (KeyError, OSError) as e:
+            logger.warning(f"Не удалось получить LOCALAPPDATA: {e}")
+    else:
+        # Linux/Mac: используем XDG_DATA_HOME или ~/.local/share
+        try:
+            xdg_data_home = os.environ.get("XDG_DATA_HOME")
+            if xdg_data_home:
+                game_dir = os.path.join(xdg_data_home, "Arkanoid")
+            else:
+                home = os.path.expanduser("~")
+                game_dir = os.path.join(home, ".local", "share", "Arkanoid")
             return game_dir
-    except:
-        pass
+        except (KeyError, OSError) as e:
+            logger.warning(f"Не удалось получить путь к данным пользователя: {e}")
 
     # Fallback для exe: директория exe файла
     return os.path.dirname(sys.executable)
 
 
-def get_highscores_file_path() -> str:
-    """Возвращает полный путь к файлу рекордов"""
+def get_highscores_file_path(custom_path: Optional[str] = None) -> str:
+    """
+    Возвращает полный путь к файлу рекордов.
+    
+    Args:
+        custom_path: Опциональный пользовательский путь (для тестирования)
+        
+    Returns:
+        Полный путь к файлу рекордов
+    """
+    if custom_path:
+        return custom_path
+    
     game_dir = get_game_directory()
     resources_dir = os.path.join(game_dir, "resources")
+    data_dir = os.path.join(resources_dir, "data")
 
-    # Создаем каталог, если он не существует
+    # Создаем каталоги, если они не существуют
     try:
-        if not os.path.exists(resources_dir):
-            os.makedirs(resources_dir, exist_ok=True)
-    except (OSError, PermissionError):
-        # Если не удается создать каталог в LOCALAPPDATA, используем текущую директорию
-        resources_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "resources"
-        )
+        os.makedirs(data_dir, exist_ok=True)
+    except (OSError, PermissionError) as e:
+        logger.warning(f"Не удалось создать каталог {data_dir}: {e}")
+        # Если не удается создать каталог, используем текущую директорию
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(current_dir, "resources", "data")
         try:
-            if not os.path.exists(resources_dir):
-                os.makedirs(resources_dir, exist_ok=True)
-        except (OSError, PermissionError):
-            # Если и здесь не получается, используем каталог без resources
-            resources_dir = os.path.dirname(os.path.abspath(__file__))
+            os.makedirs(data_dir, exist_ok=True)
+        except (OSError, PermissionError) as e2:
+            logger.warning(f"Не удалось создать fallback каталог {data_dir}: {e2}")
+            # Последний fallback: каталог без resources/data
+            data_dir = os.path.dirname(os.path.abspath(__file__))
 
-    return os.path.join(resources_dir, "data", "highscores.json")
+    return os.path.join(data_dir, "highscores.json")
+
+
+def validate_score_data(score_data: Any) -> bool:
+    """
+    Валидирует структуру записи рекорда.
+    
+    Args:
+        score_data: Данные для проверки
+        
+    Returns:
+        True если данные валидны, False иначе
+    """
+    if not isinstance(score_data, dict):
+        return False
+    
+    required_fields = {"player_name", "score", "time_seconds", "time_formatted", "date"}
+    if not required_fields.issubset(score_data.keys()):
+        return False
+    
+    # Проверка типов
+    if not isinstance(score_data["player_name"], str):
+        return False
+    if not isinstance(score_data["score"], int):
+        return False
+    if not isinstance(score_data["time_seconds"], int):
+        return False
+    if not isinstance(score_data["time_formatted"], str):
+        return False
+    if not isinstance(score_data["date"], str):
+        return False
+    
+    # Проверка диапазонов
+    if not (MIN_SCORE <= score_data["score"] <= MAX_SCORE):
+        return False
+    if not (0 <= score_data["time_seconds"] <= MAX_TIME_SECONDS):
+        return False
+    
+    return True
 
 
 # Путь к файлу рекордов (теперь с полным путем)
 HIGHSCORES_FILE: str = get_highscores_file_path()
 
 
+# ============================================================================
+# КЛАСС МЕНЕДЖЕРА РЕКОРДОВ
+# ============================================================================
+
+
 class HighScoreManager:
-    def __init__(self) -> None:
+    """
+    Менеджер для управления рекордами игры.
+    
+    Обеспечивает загрузку, сохранение и управление списком рекордов.
+    Поддерживает максимум TOP_SCORES_LIMIT записей.
+    """
+    
+    def __init__(self, highscores_file: Optional[str] = None) -> None:
+        """
+        Инициализирует менеджер рекордов.
+        
+        Args:
+            highscores_file: Опциональный путь к файлу рекордов (для тестирования)
+        """
+        self.highscores_file: str = highscores_file or HIGHSCORES_FILE
         self.highscores: List[Dict[str, Any]] = []
         self.load_highscores()
 
     def load_highscores(self) -> None:
-        """Загружает рекорды из файла"""
+        """
+        Загружает рекорды из файла с валидацией данных.
+        
+        В случае ошибок инициализирует пустой список рекордов.
+        """
         try:
-            if os.path.exists(HIGHSCORES_FILE):
-                with open(HIGHSCORES_FILE, "r", encoding="utf-8") as f:
-                    self.highscores = json.load(f)
-                    if not isinstance(self.highscores, list):
-                        self.highscores = []
-        except (json.JSONDecodeError, IOError):
+            if not os.path.exists(self.highscores_file):
+                self.highscores = []
+                return
+            
+            with open(self.highscores_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                
+            # Проверяем, что данные - это список
+            if not isinstance(data, list):
+                logger.warning(f"Файл {self.highscores_file} не содержит список, инициализируем пустой список")
+                self.highscores = []
+                return
+            
+            # Валидируем каждую запись
+            validated_scores = []
+            for i, score_data in enumerate(data):
+                if validate_score_data(score_data):
+                    validated_scores.append(score_data)
+                else:
+                    logger.warning(f"Пропущена невалидная запись #{i} в файле рекордов")
+            
+            self.highscores = validated_scores
+            # Сортируем и обрезаем до лимита
+            self.sort_highscores()
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Ошибка декодирования JSON в файле {self.highscores_file}: {e}")
+            self.highscores = []
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"Ошибка чтения файла {self.highscores_file}: {e}")
+            self.highscores = []
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при загрузке рекордов: {e}", exc_info=True)
             self.highscores = []
 
     def save_highscores(self) -> None:
-        """Сохраняет рекорды в файл"""
+        """
+        Сохраняет рекорды в файл.
+        
+        В случае ошибки пытается сохранить в fallback файл.
+        """
         try:
-            with open(HIGHSCORES_FILE, "w", encoding="utf-8") as f:
+            # Создаем директорию, если её нет
+            os.makedirs(os.path.dirname(self.highscores_file), exist_ok=True)
+            
+            with open(self.highscores_file, "w", encoding="utf-8") as f:
                 json.dump(self.highscores, f, ensure_ascii=False, indent=2)
+                
         except (IOError, OSError, PermissionError) as e:
-            print(f"Ошибка сохранения рекордов: {e}")
-            print(f"Попытка сохранить в: {HIGHSCORES_FILE}")
+            logger.error(f"Ошибка сохранения рекордов в {self.highscores_file}: {e}")
             # Пытаемся сохранить в текущую директорию как fallback
             try:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                fallback_path = os.path.join(
-                    current_dir, "local_game_files", "highscores_backup.json"
-                )
+                fallback_dir = os.path.join(current_dir, "local_game_files")
+                os.makedirs(fallback_dir, exist_ok=True)
+                fallback_path = os.path.join(fallback_dir, "highscores_backup.json")
+                
                 with open(fallback_path, "w", encoding="utf-8") as f:
                     json.dump(self.highscores, f, ensure_ascii=False, indent=2)
-                print(f"Рекорды сохранены в fallback файл: {fallback_path}")
-            except Exception as fallback_error:
-                print(f"Не удалось сохранить рекорды даже в fallback: {fallback_error}")
-        except Exception as e:
-            print(f"Неожиданная ошибка при сохранении рекордов: {e}")
+                logger.info(f"Рекорды сохранены в fallback файл: {fallback_path}")
+            except (IOError, OSError, PermissionError) as fallback_error:
+                logger.error(f"Не удалось сохранить рекорды даже в fallback: {fallback_error}")
 
     def add_score(self, player_name: str, score: int, game_time_seconds: int) -> bool:
         """
-        Добавляет новый результат в список рекордов
-        Возвращает True если результат попал в топ-10 и сохранен, False если не попал
+        Добавляет новый результат в список рекордов.
+        
+        Args:
+            player_name: Имя игрока (будет валидировано и санитизировано)
+            score: Количество очков (0-50)
+            game_time_seconds: Время игры в секундах (максимум 3599)
+            
+        Returns:
+            True если результат попал в топ-10 и сохранен, False если не попал
+            
+        Raises:
+            ValueError: Если параметры вне допустимого диапазона
+            TypeError: Если имя игрока не является строкой
         """
-        # СТРОГОЕ ограничение диапазона очков от 0 до 50 баллов
-        if not (0 <= score <= 50):
+        # Валидация и санитизация имени
+        player_name = validate_player_name(player_name)
+        
+        # Валидация очков
+        if not isinstance(score, int):
+            raise TypeError(f"Очки должны быть целым числом, получен тип: {type(score).__name__}")
+        if not (MIN_SCORE <= score <= MAX_SCORE):
             raise ValueError(
-                f"Очки должны быть в диапазоне от 0 до 50. Получено: {score}"
+                f"Очки должны быть в диапазоне от {MIN_SCORE} до {MAX_SCORE}. Получено: {score}"
             )
 
-        # Ограничиваем время до 59:59 (3599 секунд)
-        if game_time_seconds > 3599:
-            game_time_seconds = 3599
+        # Валидация и ограничение времени
+        if not isinstance(game_time_seconds, int):
+            raise TypeError(f"Время должно быть целым числом, получен тип: {type(game_time_seconds).__name__}")
+        if game_time_seconds < 0:
+            game_time_seconds = 0
+        elif game_time_seconds > MAX_TIME_SECONDS:
+            game_time_seconds = MAX_TIME_SECONDS
 
         # Форматирование времени в М:СС формат с ведущими нулями для секунд
         game_time_formatted = f"{game_time_seconds // 60}:{game_time_seconds % 60:02d}"
@@ -127,82 +338,95 @@ class HighScoreManager:
             "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
 
-        # Проверяем, попадет ли результат в топ-10 БЕЗ обрезки до 10
-        temp_scores = self.highscores.copy()
-        temp_scores.append(new_score)
-
-        # Сортируем временный список БЕЗ обрезки
-        temp_scores.sort(
-            key=lambda item: (-item["score"], item["time_seconds"], item["player_name"])
-        )
-
-        # Проверяем позицию нового результата в отсортированном списке
-        for i, score_data in enumerate(temp_scores):
-            if (
-                score_data["player_name"] == player_name
-                and score_data["score"] == score
-                and score_data["time_seconds"] == game_time_seconds
-            ):
-                if i >= 10:  # 11-я позиция или ниже (индексы начинаются с 0)
-                    # Результат не попал в топ-10
+        # Оптимизированная проверка: попадет ли результат в топ-10
+        # Вместо полной сортировки проверяем минимальный порог
+        if len(self.highscores) >= TOP_SCORES_LIMIT:
+            # Список уже отсортирован (после load_highscores)
+            # Проверяем, лучше ли новый результат последнего в топ-10
+            worst_score = self.highscores[-1]
+            
+            # Сравниваем по приоритету: очки (убывание), время (возрастание), имя (возрастание)
+            if score < worst_score["score"]:
+                return False
+            elif score == worst_score["score"]:
+                if game_time_seconds > worst_score["time_seconds"]:
                     return False
-                break
+                elif game_time_seconds == worst_score["time_seconds"]:
+                    if player_name > worst_score["player_name"]:
+                        return False
 
         # Результат попал в топ-10, добавляем и сохраняем
         self.highscores.append(new_score)
-        self.sort_highscores()  # Теперь сортируем и обрезаем основной список
+        self.sort_highscores()  # Сортируем и обрезаем до лимита
         self.save_highscores()
         return True
 
     def sort_highscores(self) -> None:
-        """Сортирует рекорды: сначала по очкам (по убыванию), затем по времени (по возрастанию), затем по имени"""
-
+        """
+        Сортирует рекорды: сначала по очкам (по убыванию), 
+        затем по времени (по возрастанию), затем по имени (по возрастанию).
+        Обрезает список до TOP_SCORES_LIMIT записей.
+        """
         def sort_key(item: Dict[str, Any]) -> tuple[int, int, str]:
+            """Ключ сортировки: (-очки, время, имя)"""
             return (-item["score"], item["time_seconds"], item["player_name"])
 
         self.highscores.sort(key=sort_key)
-
-        # Обрезаем до топ-10 (это нужно только для совместимости, основная логика в add_score)
-        self.highscores = self.highscores[:10]
+        # Обрезаем до лимита
+        self.highscores = self.highscores[:TOP_SCORES_LIMIT]
 
     def get_top_scores(self) -> List[Dict[str, Any]]:
-        """Возвращает топ-10 рекордов"""
-        return self.highscores[:10]
+        """
+        Возвращает топ рекордов.
+        
+        Returns:
+            Список до TOP_SCORES_LIMIT записей, отсортированный по убыванию очков
+        """
+        return self.highscores[:TOP_SCORES_LIMIT]
 
     def is_top_score(self, score: int) -> bool:
-        """Проверяет, попадает ли результат в топ-10"""
-        # Сначала проверяем диапазон очков
-        if not (0 <= score <= 50):
+        """
+        Проверяет, попадает ли результат в топ-10.
+        
+        Args:
+            score: Количество очков для проверки
+            
+        Returns:
+            True если результат попадает в топ-10, False иначе
+        """
+        # Проверяем диапазон очков
+        if not isinstance(score, int):
+            return False
+        if not (MIN_SCORE <= score <= MAX_SCORE):
             return False
 
-        if len(self.highscores) < 10:
+        # Если в списке меньше 10 записей, любой валидный результат попадет
+        if len(self.highscores) < TOP_SCORES_LIMIT:
             return True
-        if score > self.highscores[-1]["score"]:
-            return True
-        if score == self.highscores[-1]["score"]:
-            return True
-        return False
+        
+        # Список отсортирован, проверяем последний элемент
+        worst_score = self.highscores[-1]["score"]
+        return score >= worst_score
 
     def display_highscores(self) -> str:
-        """Возвращает строку для отображения таблицы рекордов с заголовком для текстовых файлов"""
+        """
+        Возвращает строку для отображения таблицы рекордов с заголовком.
+        
+        Returns:
+            Отформатированная строка с таблицей рекордов
+        """
         if not self.highscores:
             return "Пока нет рекордов"
 
-        # Формируем полную таблицу с заголовком для текстовых файлов
-        result = "ТОП-10 РЕЗУЛЬТАТОВ:\n"
-
-        # Линия разделителя под заголовком (69 знаков равенства)
-        result += "=" * 69 + "\n"
-
-        # Заголовки колонок
+        # Формируем полную таблицу с заголовком
+        result = f"{TABLE_HEADER}\n"
+        result += "=" * TABLE_WIDTH + "\n"
         result += "Место | Игрок                | Очки | Время  \n"
-
-        # Линия разделителя под заголовками (69 знаков равенства)
-        result += "=" * 69 + "\n"
+        result += "=" * TABLE_WIDTH + "\n"
 
         # Данные с точным форматированием каждой колонки
         for i, score_data in enumerate(self.highscores, 1):
-            # Форматирование места: точно как в правильном файле
+            # Форматирование места
             if i < 10:
                 place = f"   {i}.  "  # 3 пробела + число + точка + 2 пробела
             else:
@@ -210,17 +434,15 @@ class HighScoreManager:
 
             # Форматирование имени игрока: 20 символов, выравнивание слева
             player_name = score_data["player_name"]
-            player = f"{player_name[:20]:<20}"  # 20 символов, выравнивание слева
+            player = f"{player_name[:MAX_PLAYER_NAME_LENGTH]:<{MAX_PLAYER_NAME_LENGTH}}"
 
-            # Форматирование очков: точно 3 символа, выравнивание справа
-            score = f"{score_data['score']:>3}"  # 3 символа, выравнивание справа
+            # Форматирование очков: 3 символа, выравнивание справа
+            score = f"{score_data['score']:>3}"
 
             # Форматирование времени: 5 символов, выравнивание справа
-            time = (
-                f"{score_data['time_formatted']:>5}"  # 5 символов, выравнивание справа
-            )
+            time = f"{score_data['time_formatted']:>5}"
 
-            # Собираем строку точно как в правильном файле
+            # Собираем строку
             row = f"{place}| {player}| {score}  | {time}"
             result += row + "\n"
 
