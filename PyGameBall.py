@@ -1,14 +1,15 @@
 # Игра Арканоид
 # Версия импортируется из централизованного файла version.py
-from version import VERSION, get_version
+
 
 import os
 import warnings
 from contextlib import contextmanager
+from typing import Generator
 
 # Контекстный менеджер для ограниченного подавления предупреждений
 @contextmanager
-def suppress_pkg_resources_warnings():
+def suppress_pkg_resources_warnings() -> Generator[None, None, None]:
     """Временно подавляет предупреждения о pkg_resources от pygame в ограниченной области"""
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
@@ -18,15 +19,14 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # Скрыть сообщени�
 
 import random
 import time
-import numpy as np  # type: ignore[reportMissingImports]
+import numpy as np
 import sys
-import os
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional
 
 # Импортируем pygame с ограниченным подавлением предупреждений
 with suppress_pkg_resources_warnings():
-    import pygame  # type: ignore[reportMissingImports]
+    import pygame
 from highscores import HighScoreManager
 from settings import SettingsManager
 from ai.ai_player import AIPlayer
@@ -51,7 +51,7 @@ def resource_path(relative_path: str) -> str:
     """
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
-        base_path = sys._MEIPASS  # type: ignore[reportAttributeAccessIssue]
+        base_path = sys._MEIPASS  # type: ignore[attr-defined]
     except AttributeError:
         # В режиме разработки используем директорию, где находится этот файл
         # Это гарантирует правильный путь независимо от рабочей директории
@@ -985,105 +985,6 @@ def show_settings_window(
     return sound_enabled
 
 
-def _print_training_summary(ai_player: AIPlayer, training_rounds: int) -> None:
-    """
-    Выводит итоговую статистику обучения в консоль.
-
-    Args:
-        ai_player: Экземпляр AIPlayer с данными обучения
-        training_rounds: Количество сыгранных раундов в режиме обучения
-    """
-    # Не выводим в exe файле, чтобы не открывать консоль
-    import sys
-
-    if getattr(sys, "frozen", False):
-        return  # Пропускаем вывод в скомпилированном exe
-
-    try:
-        print("\n" + "=" * 70)
-        print("ИТОГИ РЕЖИМА ОБУЧЕНИЯ ИИ")
-        print("=" * 70)
-
-        # Основная статистика
-        print(f"\n[СТАТИСТИКА] Общая статистика:")
-        print(f"   Сыграно раундов: {training_rounds}")
-        print(
-            f"   Всего игр (включая предыдущие): {ai_player.performance_metrics.get('games_played', 0)}"
-        )
-        print(f"   Побед: {ai_player.performance_metrics.get('games_won', 0)}")
-
-        if ai_player.performance_metrics.get("games_played", 0) > 0:
-            win_rate = (
-                ai_player.performance_metrics.get("games_won", 0)
-                / ai_player.performance_metrics.get("games_played", 0)
-            ) * 100
-            print(f"   Процент побед: {win_rate:.1f}%")
-
-        total_score = ai_player.performance_metrics.get("total_score", 0)
-        if training_rounds > 0:
-            avg_score = total_score / training_rounds
-            print(f"   Средний счёт за раунд: {avg_score:.1f}")
-
-        # Метрики обучения
-        print(f"\n🤖 Прогресс обучения:")
-        avg_accuracy = ai_player.performance_metrics.get("average_accuracy", 0.0)
-        learning_progress = ai_player.performance_metrics.get("learning_progress", 0.0)
-        print(f"   Средняя точность предсказаний: {avg_accuracy:.2%}")
-        print(f"   Прогресс обучения: {learning_progress:.2%}")
-
-        # Статистика системы обучения
-        learning_data = ai_player.learning_system.get_learning_progress()
-        if (
-            isinstance(learning_data, dict)
-            and learning_data.get("total_iterations", 0) > 0
-        ):
-            print(f"\n📈 Детальная статистика обучения:")
-            print(
-                f"   Всего итераций обучения: {learning_data.get('total_iterations', 0)}"
-            )
-            print(
-                f"   Успешность адаптаций: {learning_data.get('success_rate', 0.0):.2%}"
-            )
-            print(
-                f"   Средний прогресс: {learning_data.get('average_improvement', 0.0):.2%}"
-            )
-
-            # Информация о модели
-            model = ai_player.learning_system.learning_data.get(
-                "success_prediction_model"
-            )
-            if model is not None:
-                model_metrics = ai_player.learning_system.learning_data.get(
-                    "model_metrics", {}
-                )
-                model_accuracy = model_metrics.get("last_accuracy")
-                if model_accuracy is not None:
-                    print(f"   Точность ML модели: {model_accuracy:.2%}")
-
-            # Кластеризация
-            trajectory_patterns = learning_data.get("trajectory_patterns", 0)
-            unique_clusters = learning_data.get("trajectory_clusters_count", 0)
-            if trajectory_patterns > 0:
-                print(f"   Найдено паттернов траекторий: {trajectory_patterns}")
-                print(f"   Количество кластеров: {unique_clusters}")
-
-        # Оценка эффективности
-        print(f"\n[ОЦЕНКА] Оценка эффективности:")
-        if learning_progress > 0.8:
-            print(f"   🟢 ОТЛИЧНО: Система показывает высокий прогресс обучения")
-        elif learning_progress > 0.6:
-            print(f"   🟡 ХОРОШО: Система стабильно обучается")
-        elif learning_progress > 0.4:
-            print(f"   🟠 УДОВЛЕТВОРИТЕЛЬНО: Система накапливает опыт")
-        else:
-            print(f"   🔴 ТРЕБУЕТ УЛУЧШЕНИЯ: Недостаточно данных для оценки")
-
-        print("=" * 70 + "\n")
-
-    except Exception as e:
-        print(f"\n⚠️  Ошибка при выводе статистики обучения: {e}\n")
-
-
 def main() -> None:
     startup_start_time = time.time()
     if not getattr(sys, "frozen", False):
@@ -1119,7 +1020,6 @@ def main() -> None:
             generate_tone_sound(659.25, 0.2),  # E5 - ~659 Гц
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
-        music_loaded = False
         try:
             music_path = resource_path("resources/audio/Night_Prowler.ogg")
             # Нормализуем путь для корректной работы на Windows
@@ -1128,7 +1028,6 @@ def main() -> None:
             if os.path.exists(music_path):
                 pygame.mixer.music.load(music_path)
                 pygame.mixer.music.set_volume(0.3)
-                music_loaded = True
                 # Музыка будет запущена после ввода имени игрока
             else:
                 # Файл не найден - выводим отладочную информацию только в режиме разработки
@@ -1141,12 +1040,10 @@ def main() -> None:
                         print(f"[DEBUG] Найден альтернативный путь: {alt_path}")
                         pygame.mixer.music.load(alt_path)
                         pygame.mixer.music.set_volume(0.3)
-                        music_loaded = True
         except (pygame.error, FileNotFoundError, OSError) as e:
             # Музыка не загружена - выводим информацию только в режиме разработки
             if not getattr(sys, "frozen", False):
                 print(f"[DEBUG] Не удалось загрузить фоновую музыку: {e}")
-            music_loaded = False
     except pygame.error as e:
         # Не выводим в exe файле
         if not getattr(sys, "frozen", False):
@@ -1164,6 +1061,7 @@ def main() -> None:
     auto_mode = False
     training_mode = False
     training_rounds = 0  # Счетчик раундов в режиме обучения
+    ai_player: Optional[AIPlayer] = None  # Инициализация AI-игрока
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
         # Сбрасываем флаг завершения авторежима для каждого нового запуска
@@ -1416,13 +1314,13 @@ def main() -> None:
                         print(f"[AI DEBUG] update_game_state завершен")
                     
                     # КРИТИЧНО: Проверяем нарушение правила фиксации позиции
-                    if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get("game_restart_required", False):
+                    if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.game_restart_required:
                         # Нарушение правила - перезапускаем игру
                         if not getattr(sys, "frozen", False):
                             print(f"[CRITICAL ERROR] Перезапуск игры из-за нарушения правила фиксации позиции!")
                         game_over = True
                         # Сбрасываем флаг
-                        ai_player.separation_zone_tracker["game_restart_required"] = False
+                        ai_player.separation_zone_tracker.game_restart_required = False
                     
                     # В режиме обучения обновляем статистику и управляем скоростью мяча
                     if training_mode:
@@ -1500,7 +1398,7 @@ def main() -> None:
                     # 1. Мяч улетает (вверх) - платформа стоит на месте
                     # 2. Мяч в зоне кубиков (выше зоны разделения) - платформа стоит на месте
                     # 3. Мяч падает вниз и вошел в зону разделения - платформа начинает движение к точке падения
-                    ball_falling_down = ball.vel_y > 0  # Мяч движется вниз
+                    # Мяч движется вниз (ball.vel_y > 0)
                     ball_in_separation_zone = (
                         SEPARATION_ZONE_TOP <= ball.rect.centery <= SEPARATION_ZONE_BOTTOM
                         and ball.vel_y > 0  # Мяч движется вниз
@@ -1519,7 +1417,7 @@ def main() -> None:
                         
                         # КРИТИЧНО: Используем адаптивную скорость для предотвращения перескакивания через цель
                         # Получаем целевую позицию от AI
-                        target_pos = ai_player.separation_zone_tracker.get("target_position")
+                        target_pos = ai_player.separation_zone_tracker.target_position if hasattr(ai_player, 'separation_zone_tracker') else None
                         if target_pos is not None:
                             distance_to_target = abs(paddle.rect.centerx - target_pos)
                             # Если платформа близко к цели (distance < speed), уменьшаем скорость
@@ -2109,8 +2007,8 @@ def main() -> None:
                                 distance_to_optimal = abs(paddle_x - optimal_x) if optimal_x is not None else 0
                                 
                                 # Получаем информацию о зонах
-                                separation_zone_start = ai_player.separation_zone_tracker.get("separation_zone_start", 226) if hasattr(ai_player, 'separation_zone_tracker') else 226
-                                paddle_zone_start = ai_player.separation_zone_tracker.get("paddle_zone_start", 540) if hasattr(ai_player, 'separation_zone_tracker') else 540
+                                separation_zone_start = ai_player.separation_zone_tracker.separation_zone_start if hasattr(ai_player, 'separation_zone_tracker') else 226
+                                paddle_zone_start = ai_player.separation_zone_tracker.paddle_zone_start if hasattr(ai_player, 'separation_zone_tracker') else 540
                                 
                                 # Получаем информацию о скорости платформы
                                 base_speed = PADDLE_SPEED
@@ -2148,9 +2046,9 @@ def main() -> None:
                                 print(f"  Целевая позиция AI: optimal_x={optimal_x:.1f} distance_to_optimal={distance_to_optimal:.1f}px")
                                 print(f"  Скорость платформы: base={base_speed} adjusted={adjusted_speed}")
                                 print(f"  Зоны: separation_start={separation_zone_start} paddle_start={paddle_zone_start} ball_was_in_zone={ball_was_in_separation_zone}")
-                                print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.get('target_position_set', False) if hasattr(ai_player, 'separation_zone_tracker') else False}")
-                                if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.get('target_position'):
-                                    target_pos = ai_player.separation_zone_tracker.get('target_position')
+                                print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.target_position_set if hasattr(ai_player, 'separation_zone_tracker') else False}")
+                                if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.target_position:
+                                    target_pos = ai_player.separation_zone_tracker.target_position
                                     if target_pos is not None:
                                         print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
                                 print(f"  Жизни: {lives_left}")
@@ -2411,13 +2309,14 @@ def main() -> None:
                             print(f"[AI DEBUG] Столкновений с кубиками нет")
                         # КРИТИЧНО: Мяч не попал в кубики - проверяем, был ли отскок от потолка
                         # Если был отскок от потолка и мяч не попал в кубики - это отбитие в пустоту
-                        if (auto_mode or training_mode) and ai_player.empty_bounce_tracker.get("ceiling_bounces", 0) > 0:
+                        ceiling_bounces = ai_player.empty_bounce_tracker.get("ceiling_bounces", 0) or 0
+                        if (auto_mode or training_mode) and ceiling_bounces > 0:
                             # Мяч отскочил от потолка и не попал в кубики - увеличиваем счетчик
                             ai_player.empty_bounce_tracker["consecutive_empty_bounces"] += 1
                             ai_player.empty_bounce_tracker["last_bounce_position"] = paddle.rect.centerx
                             ai_player.empty_bounce_tracker["last_bounce_time"] = time.time()
                             # Логируем отбитие в пустоту
-                            brick_coords_count = len(ai_player.targeting_system.get('brick_coordinates', []))
+                            brick_coords_count = len(ai_player.targeting_system.brick_coordinates if hasattr(ai_player, 'targeting_system') else [])
                             ai_player._log_paddle_movement(
                                 paddle.rect.centerx,
                                 paddle.rect.centerx,
@@ -2923,62 +2822,31 @@ def main() -> None:
             if frame_counter == 1 and not getattr(sys, "frozen", False):
                 print(f"[AI DEBUG] Первый кадр отрисован, bricks={len(bricks)}, paddle.x={paddle.rect.x}, ball.x={ball.rect.centerx}, game_started={game_started}")
 
-            # Выход из игрового цикла при необходимости (только для ручного режима)
-            if not running and not auto_mode:
-                break
-
             # Проверяем завершение авторежима
             if auto_mode_complete:
                 break  # Выход для возврата к вводу имени
 
-            # Проверяем, нужно ли остановить игру в ручном режиме
-            if not running:
-                # В режиме обучения при остановке выводим статистику
-                if training_mode:
-                    break  # Выход для вывода статистики
-                # В ручном режиме при остановке игры полностью закрываем приложение
-                if not auto_mode:
-                    pygame.quit()
-                    return
-                break  # Выход для возврата к вводу имени
-
-    # В режиме обучения выводим статистику перед выходом
-    if training_mode:
-        # Сохраняем данные обучения
-        try:
-            if ai_player and ai_player.performance_metrics.get("games_played", 0) > 0:
-                ai_player.save_learning_data()
+        # В режиме обучения выводим статистику перед выходом
+        if training_mode:
+            # Сохраняем данные обучения
+            try:
+                if ai_player and ai_player.performance_metrics.get("games_played", 0) > 0:
+                    ai_player.save_learning_data()
+                    if not getattr(sys, "frozen", False):
+                        print(
+                            f"[AI] Режим обучения завершен. Сыграно матчей: {training_rounds}"
+                        )
+                        print("[AI] Данные обучения сохранены.")
+                else:
+                    # КРИТИЧНО: Не сохраняем данные, если не было сыграно ни одной игры
+                    if not getattr(sys, "frozen", False):
+                        print(f"[AI DEBUG] Данные обучения не сохранены - не было сыграно игр (games_played={ai_player.performance_metrics.get('games_played', 0) if ai_player else 0})")
+            except Exception as e:
                 if not getattr(sys, "frozen", False):
-                    print(
-                        f"[AI] Режим обучения завершен. Сыграно матчей: {training_rounds}"
-                    )
-                    print("[AI] Данные обучения сохранены.")
-            else:
-                # КРИТИЧНО: Не сохраняем данные, если не было сыграно ни одной игры
-                if not getattr(sys, "frozen", False):
-                    print(f"[AI DEBUG] Данные обучения не сохранены - не было сыграно игр (games_played={ai_player.performance_metrics.get('games_played', 0) if ai_player else 0})")
-        except Exception as e:
-            if not getattr(sys, "frozen", False):
-                print(f"[AI] Предупреждение: не удалось сохранить данные обучения: {e}")
-
-    # Сохраняем данные обучения AI при выходе из игры
-    # КРИТИЧНО: Отключаем сохранение при выходе, чтобы не блокировать выполнение
-    # Данные будут сохранены автоматически при следующем запуске
-    # if auto_mode and not training_mode:
-    #     ai_player.save_learning_data()
-    
-    # КРИТИЧНО: Финальная обработка логов при выходе
-    # Запускаем анализатор, сохраняем результат и удаляем ненужные логи
-    # КРИТИЧНО: Отключаем финальную обработку логов, чтобы не блокировать выход
-    # Логи будут обработаны при следующем запуске или вручную
-    # if ai_player and hasattr(ai_player, 'performance_logger'):
-    #     try:
-    #         ai_player.performance_logger.finalize_and_analyze()
-    #     except Exception as e:
-    #         if not getattr(sys, "frozen", False):
-    #             print(f"[AI] Предупреждение: не удалось обработать логи при выходе: {e}")
-
-    pygame.quit()
+                    print(f"[AI] Предупреждение: не удалось сохранить данные обучения: {e}")
+        
+        # Продолжаем внешний цикл для возврата к вводу имени
+        continue
 
 
 if __name__ == "__main__":
