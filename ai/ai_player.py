@@ -27,8 +27,10 @@ from .exceptions import (
 )
 from .debug_logger import DebugLogger
 from .platform_utils import is_frozen
+from .targeting import TargetSelector, PositionCalculator
+from .strategy import PaddleMovementStrategy, ZoneHandler, TargetTracker
 
-import pygame  # type: ignore
+import pygame  # type: ignore[import-untyped]
 
 
 @dataclass
@@ -287,6 +289,47 @@ class AIPlayer:
         
         # КРИТИЧНО: Отслеживание входа в зону разделения для одноразового движения платформы
         self.separation_zone_tracker: SeparationZoneTracker = SeparationZoneTracker()
+        
+        # Отслеживание предыдущей позиции и скорости мяча для обнаружения отскоков от кирпичей
+        self._last_ball_position: Optional[Point] = None
+        self._last_ball_velocity: Optional[Point] = None
+        
+        # Инициализация модульных классов
+        # TargetSelector для выбора целевых кирпичей
+        self.target_selector = TargetSelector(
+            screen_width=self.screen_width,
+            screen_height=self.screen_height,
+            config=self.config,
+            trajectory_predictor=self.trajectory_predictor,
+            targeting_system=self.targeting_system,
+        )
+        
+        # PositionCalculator для расчета позиций
+        self.position_calculator = PositionCalculator(
+            screen_width=self.screen_width,
+            screen_height=self.screen_height,
+            paddle_width=self.paddle_width,
+            config=self.config,
+            trajectory_predictor=self.trajectory_predictor,
+            targeting_system=self.targeting_system,
+        )
+        
+        # ZoneHandler для обработки зон
+        self.zone_handler = ZoneHandler(
+            screen_width=self.screen_width,
+            screen_height=self.screen_height,
+            config=self.config,
+            separation_zone_tracker=self.separation_zone_tracker,
+        )
+        
+        # TargetTracker для отслеживания целевой позиции
+        self.target_tracker = TargetTracker(
+            config=self.config,
+            separation_zone_tracker=self.separation_zone_tracker,
+        )
+        
+        # PaddleMovementStrategy для стратегии движения (инициализируется позже, так как требует функции)
+        self.paddle_movement_strategy: Optional[PaddleMovementStrategy] = None
 
     def _validate_dimensions(self, screen_width: int, screen_height: int) -> None:
         """
@@ -401,6 +444,28 @@ class AIPlayer:
         Активирует AIPlayer для управления игрой.
         """
         self.is_active = True
+        
+        # Инициализируем PaddleMovementStrategy при активации
+        if self.paddle_movement_strategy is None:
+            self.paddle_movement_strategy = PaddleMovementStrategy(
+                screen_width=self.screen_width,
+                screen_height=self.screen_height,
+                paddle_width=self.paddle_width,
+                config=self.config,
+                position_optimizer=self.position_optimizer,
+                learning_system=self.learning_system,
+                zone_handler=self.zone_handler,
+                target_tracker=self.target_tracker,
+                get_optimal_paddle_position_func=self.get_optimal_paddle_position,
+                loop_prevention_system=self.loop_prevention_system,
+                smoothness_system=self.smoothness_system,
+                separation_zone_tracker=self.separation_zone_tracker,
+                logger=self._logger,
+                log_paddle_movement_func=self._log_paddle_movement,
+                should_log_debug_func=self._should_log_debug,
+                current_game_state=self.current_game_state,
+            )
+        
         self._logger.info("AIPlayer активирован. Начинаем управление игрой...")
 
     def deactivate(self) -> None:
@@ -447,6 +512,10 @@ class AIPlayer:
         self.current_game_state = GameState.create_from_game_objects(
             ball, paddle, bricks, score, start_time
         )
+        
+        # Обновляем current_game_state в стратегии движения
+        if self.paddle_movement_strategy is not None:
+            self.paddle_movement_strategy.current_game_state = self.current_game_state
 
         # Инициализируем статистику игры, если это новая игра
         if self.current_game_stats["start_time"] is None:
@@ -897,21 +966,33 @@ class AIPlayer:
                     if in_separation_zone:
                         self.separation_zone_tracker.target_position = int(optimal_position)
                         self.separation_zone_tracker.target_position_set = True
-                    self._log_paddle_movement(
-                        self.current_game_state.paddle_position.x,
-                        int(optimal_position),
-                        f"ПРИНУДИТЕЛЬНОЕ прицеливание после {self.empty_bounce_tracker['consecutive_empty_bounces']} отбитий в пустоту. Координаты кубиков: {len(self.targeting_system.brick_coordinates)}",
-                        1.0
-                    )
+                    if self.current_game_state:
+                        self._log_paddle_movement(
+                            self.current_game_state.paddle_position.x,
+                            int(optimal_position),
+                            f"ПРИНУДИТЕЛЬНОЕ прицеливание после {self.empty_bounce_tracker['consecutive_empty_bounces']} отбитий в пустоту. Координаты кубиков: {len(self.targeting_system.brick_coordinates)}",
+                            1.0
+                        )
                     return int(optimal_position)
 
         if precision_priority:
+            if not self.current_game_state:
+                return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
+            optimal_position = self.position_calculator.calculate_precise_position_for_few_bricks(
+                landing_x, self.current_game_state
+            )
+            if optimal_position is not None:
+                return self._calculate_precision_position(landing_x, ball_y, zones, bricks_count, ball_speed, user_rules)
             return self._calculate_precision_position(landing_x, ball_y, zones, bricks_count, ball_speed, user_rules)
 
         # На поздних этапах используем стратегию максимизации разрушений
         if bricks_count <= 15:
-            optimal_position = self._calculate_position_for_max_destruction(landing_x)
-            if optimal_position is not None:
+            if not self.current_game_state:
+                return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
+            optimal_position = self.position_calculator.calculate_position_for_max_destruction(
+                landing_x, self.current_game_state
+            )
+            if optimal_position is not None and self.current_game_state:
                 action_plan = {
                     "ball_speed": ball_speed,
                     "movement_distance": abs(
@@ -928,18 +1009,38 @@ class AIPlayer:
                 return int(optimal_position)
 
         # Ищем целевой кирпич и рассчитываем позицию
-        return self._calculate_position_with_target_brick(landing_x, ball_y, zones, bricks_count)
+        if not self.current_game_state:
+            return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
+        game_state = self.current_game_state
+        target_brick = self.target_selector.find_best_target_brick(
+            game_state,
+            game_state.paddle_position.y,
+            game_state.ball_position.x,
+        )
+        if target_brick:
+            optimal_position = self.position_calculator.calculate_position_with_target_brick(
+                landing_x, target_brick, game_state, zones
+            )
+            if optimal_position is not None:
+                return int(optimal_position)
+        return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
 
     def _calculate_precision_position(
         self, landing_x: float, ball_y: float, zones: Dict[str, float],
         bricks_count: int, ball_speed: int, user_rules: Dict[str, Any]
     ) -> int:
         """Рассчитывает точную позицию для малого количества блоков."""
-        optimal_position = self._calculate_precise_position_for_few_bricks(landing_x)
+        if not self.current_game_state:
+            return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
+        optimal_position = self.position_calculator.calculate_precise_position_for_few_bricks(
+            landing_x, self.current_game_state
+        )
         if optimal_position is None and self.targeting_system.brick_coordinates:
             optimal_position = self._force_target_brick_from_coordinates(landing_x)
         
         if optimal_position is not None:
+            if not self.current_game_state:
+                return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
             action_plan = {
                 "ball_speed": ball_speed,
                 "movement_distance": abs(
@@ -958,7 +1059,7 @@ class AIPlayer:
                 if in_separation_zone:
                     self._set_target_position_if_needed(int(optimal_position), "few_bricks")
                 
-                if user_rules.get("use_movement_log", True):
+                if user_rules.get("use_movement_log", True) and self.current_game_state:
                     brick_coords = [f"({b.get('x', 0):.0f},{b.get('y', 0):.0f})" for b in self.targeting_system.brick_coordinates]
                     self._log_paddle_movement(
                         self.current_game_state.paddle_position.x,
@@ -974,10 +1075,19 @@ class AIPlayer:
         self, landing_x: float, ball_y: float, zones: Dict[str, float], bricks_count: int
     ) -> int:
         """Рассчитывает позицию с учетом целевого кирпича."""
-        target_brick = self._find_best_target_brick()
+        if not self.current_game_state:
+            return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
+        game_state = self.current_game_state
+        target_brick = self.target_selector.find_best_target_brick(
+            game_state,
+            game_state.paddle_position.y,
+            game_state.ball_position.x,
+        )
         
         if target_brick:
-            optimal_offset = self._calculate_optimal_offset(landing_x, target_brick)
+            optimal_offset = self.position_calculator.calculate_optimal_offset(
+                landing_x, target_brick, game_state
+            )
             self.targeting_system.target_brick = target_brick
             self.targeting_system.optimal_offset = optimal_offset
             
@@ -1012,16 +1122,17 @@ class AIPlayer:
                                 return test_x
             
             in_separation_zone = zones["separation_zone_start"] <= ball_y < zones["paddle_zone_start"]
-            if in_separation_zone and not self.separation_zone_tracker.target_position_set:
+            if in_separation_zone and not self.separation_zone_tracker.target_position_set and self.current_game_state:
                 self.separation_zone_tracker.target_position = int(optimal_position)
                 self.separation_zone_tracker.target_position_set = True
             
-            self._log_paddle_movement(
-                self.current_game_state.paddle_position.x,
-                int(optimal_position),
-                f"Прицеливание в целевой блок (осталось {bricks_count} блоков)",
-                0.8
-            )
+            if self.current_game_state:
+                self._log_paddle_movement(
+                    self.current_game_state.paddle_position.x,
+                    int(optimal_position),
+                    f"Прицеливание в целевой блок (осталось {bricks_count} блоков)",
+                    0.8
+                )
             return int(optimal_position)
         else:
             return self._calculate_fallback_position(landing_x, ball_y, zones, bricks_count)
@@ -1049,12 +1160,13 @@ class AIPlayer:
                 if in_separation_zone:
                     self._set_target_position_if_needed(int(optimal_position), "brick_coords")
                 
-                self._log_paddle_movement(
-                    self.current_game_state.paddle_position.x,
-                    int(optimal_position),
-                    f"Прицеливание по координатам (осталось {bricks_count} блоков)",
-                    0.7
-                )
+                if self.current_game_state:
+                    self._log_paddle_movement(
+                        self.current_game_state.paddle_position.x,
+                        int(optimal_position),
+                        f"Прицеливание по координатам (осталось {bricks_count} блоков)",
+                        0.7
+                    )
                 return int(optimal_position)
         
         if in_separation_zone and self.separation_zone_tracker.target_position_set:
@@ -1126,14 +1238,14 @@ class AIPlayer:
             )
 
             # Рассчитываем зоны
-            zones = self._calculate_zones()
+            zones = self.zone_handler.calculate_zones()
 
             # Если мяч в зоне кубиков - платформа НЕ должна двигаться
             if ball_y < zones["separation_zone_start"]:
-                return self._handle_bricks_zone(ball_y)
+                return self.zone_handler.handle_bricks_zone(ball_y, self.current_game_state)
             
             # Обрабатываем зону разделения
-            separation_result = self._handle_separation_zone(ball_y, ball_vel_y, zones)
+            separation_result = self.zone_handler.handle_separation_zone(ball_y, ball_vel_y, zones, self.current_game_state)
             if separation_result is not None:
                 return separation_result
 
@@ -1143,7 +1255,7 @@ class AIPlayer:
                 return self._calculate_target_position(landing_x, ball_y, zones)
             else:
                 # Мяч движется вверх — обрабатываем возможный отскок от потолка
-                return self._handle_upward_movement(ball_y)
+                return self.zone_handler.handle_upward_movement(ball_y, self.current_game_state)
 
         except (AttributeError, TypeError) as e:
             self._logger.error(f"Ошибка типов при расчете оптимальной позиции: {e}", exc_info=True)
@@ -1717,7 +1829,7 @@ class AIPlayer:
         if intersection_point is None:
             return None
         
-        best_position = None
+        best_position: Optional[float] = None
         best_score = -float("inf")
         
         # КРИТИЧНО: Сортируем кубики по приоритету (ближайшие и нижние получают больший приоритет)
@@ -1802,7 +1914,7 @@ class AIPlayer:
         
         # Если нашли позицию, возвращаем её
         if best_position is not None:
-            return best_position
+            return float(best_position)
         
         # Fallback: используем ближайший блок по координатам
         if brick_coordinates:
@@ -1814,7 +1926,7 @@ class AIPlayer:
                 )
             )
             
-            brick_center_x = closest_brick.get("x", 0)
+            brick_center_x = float(closest_brick.get("x", 0))
             dx = brick_center_x - landing_x
             required_offset = max(-1.0, min(1.0, dx / (paddle_half_width * 1.5)))
             best_position = landing_x - (required_offset * paddle_half_width)
@@ -1823,7 +1935,7 @@ class AIPlayer:
             max_position = self.screen_width - paddle_half_width
             best_position = max(min_position, min(max_position, best_position))
             
-            return best_position
+            return float(best_position)
         
         return None
 
@@ -2346,8 +2458,8 @@ class AIPlayer:
         """
         Корректирует смещение на основе истории успешных ударов по данному кубику.
         """
-        brick_x = getattr(target_brick, "x", 0)
-        brick_y = getattr(target_brick, "y", 0)
+        brick_x = float(getattr(target_brick, "x", 0))
+        brick_y = float(getattr(target_brick, "y", 0))
         brick_key = f"{int(brick_x / 60)}_{int(brick_y / 30)}"
 
         pattern = self.targeting_system.hit_patterns.get(brick_key)
@@ -2667,11 +2779,17 @@ class AIPlayer:
         if not self.current_game_state:
             return
 
-        target_brick = self._find_best_target_brick()
+        target_brick = self.target_selector.find_best_target_brick(
+            self.current_game_state,
+            self.current_game_state.paddle_position.y,
+            self.current_game_state.ball_position.x,
+        )
         if target_brick:
             self.targeting_system.target_brick = target_brick
             landing_x = self._predict_exact_landing_position()
-            new_offset = self._calculate_optimal_offset(landing_x, target_brick)
+            new_offset = self.position_calculator.calculate_optimal_offset(
+                landing_x, target_brick, self.current_game_state
+            )
             self.targeting_system.optimal_offset = new_offset
             
 
@@ -2770,11 +2888,14 @@ class AIPlayer:
         Точное предсказание X-координаты, где мяч встретится с платформой.
         ИСПРАВЛЕННАЯ ВЕРСИЯ с правильным расчетом отскоков от стен.
         """
-        ball_x = self.current_game_state.ball_position.x
-        ball_y = self.current_game_state.ball_position.y
-        vel_x = self.current_game_state.ball_velocity.x
-        vel_y = self.current_game_state.ball_velocity.y
-        paddle_y = self.current_game_state.paddle_position.y
+        if not self.current_game_state:
+            return self.screen_width / 2.0
+        game_state = self.current_game_state
+        ball_x = game_state.ball_position.x
+        ball_y = game_state.ball_position.y
+        vel_x = game_state.ball_velocity.x
+        vel_y = game_state.ball_velocity.y
+        paddle_y = game_state.paddle_position.y
 
         if vel_y <= 0:
             return ball_x
@@ -2845,11 +2966,15 @@ class AIPlayer:
         Специальная логика для позиционирования при отскоке мяча от потолка.
         Предотвращает симметричные отскоки и зацикливание.
         """
-        ball_x = self.current_game_state.ball_position.x
-        ball_y = self.current_game_state.ball_position.y
-        vel_x = self.current_game_state.ball_velocity.x
+        if not self.current_game_state:
+            return self.screen_width // 2
+        game_state = self.current_game_state
+        ball_x = game_state.ball_position.x
+        ball_y = game_state.ball_position.y
+        vel_x = game_state.ball_velocity.x
+        vel_y = game_state.ball_velocity.y
 
-        if ball_y < 30 and self.current_game_state.ball_velocity.y > 0:
+        if ball_y < 30 and vel_y > 0:
             # Мяч только что отскочил от потолка
             if abs(vel_x) < 2:
                 # Почти вертикальный отскок — смещаемся в сторону средней позиции кубиков
@@ -2881,8 +3006,11 @@ class AIPlayer:
 
     def _track_ball_position(self) -> float:
         """Следим за текущей позицией мяча с небольшим упреждением."""
-        ball_x = self.current_game_state.ball_position.x
-        vel_x = self.current_game_state.ball_velocity.x
+        if not self.current_game_state:
+            return self.screen_width / 2.0
+        game_state = self.current_game_state
+        ball_x = game_state.ball_position.x
+        vel_x = game_state.ball_velocity.x
 
         prediction_time = 3  # кадров вперёд
         predicted_x = ball_x + vel_x * prediction_time
@@ -2933,11 +3061,12 @@ class AIPlayer:
             return min_speed
         
         # Рассчитываем время до встречи с мячом (если он движется к платформе)
-        time_to_meeting = 0
-        if self.is_ball_moving_towards_paddle():
-            ball_y = self.current_game_state.ball_position.y
-            paddle_y = self.current_game_state.paddle_position.y
-            ball_vel_y = self.current_game_state.ball_velocity.y
+        time_to_meeting: float = 0.0
+        if self.is_ball_moving_towards_paddle() and self.current_game_state:
+            game_state = self.current_game_state
+            ball_y = game_state.ball_position.y
+            paddle_y = game_state.paddle_position.y
+            ball_vel_y = game_state.ball_velocity.y
             
             if ball_vel_y > 0:  # Мяч движется вниз
                 # Более точный расчет времени с учетом текущей позиции мяча
@@ -2945,37 +3074,37 @@ class AIPlayer:
                 if distance_y > 0:
                     time_to_meeting = distance_y / ball_vel_y
                     time_to_meeting = max(
-                        0, time_to_meeting
+                        0.0, time_to_meeting
                     )  # Не может быть отрицательным
         
         # Рассчитываем требуемую скорость на основе времени до встречи
-        required_speed = base_paddle_speed
+        required_speed: float = float(base_paddle_speed)
         
         if time_to_meeting > 0 and time_to_meeting != float("inf"):
             # Если времени мало, нужна высокая скорость
             if time_to_meeting <= 20:  # Менее 20 кадров - критическая ситуация
                 required_speed = max(
-                    base_paddle_speed * 2.5,  # Увеличено с 1.5 до 2.5
-                    distance_to_optimal / max(time_to_meeting * 0.5, 1),  # Увеличена скорость
+                    float(base_paddle_speed * 2.5),  # Увеличено с 1.5 до 2.5
+                    float(distance_to_optimal) / max(time_to_meeting * 0.5, 1),  # Увеличена скорость
                 )
             elif time_to_meeting <= 40:  # Менее 40 кадров
                 required_speed = max(
-                    base_paddle_speed * 2.0,  # Увеличено с 1.2 до 2.0
-                    distance_to_optimal / max(time_to_meeting * 0.6, 1),  # Увеличена скорость
+                    float(base_paddle_speed * 2.0),  # Увеличено с 1.2 до 2.0
+                    float(distance_to_optimal) / max(time_to_meeting * 0.6, 1),  # Увеличена скорость
                 )
             elif time_to_meeting <= 80:  # Менее 80 кадров  
                 required_speed = max(
-                    base_paddle_speed * 1.5,  # Увеличено с 0.9 до 1.5
-                    distance_to_optimal / max(time_to_meeting * 0.8, 1),
+                    float(base_paddle_speed * 1.5),  # Увеличено с 0.9 до 1.5
+                    float(distance_to_optimal) / max(time_to_meeting * 0.8, 1),
                 )
             else:  # Много времени - можно двигаться медленно
-                required_speed = max(min_speed, base_paddle_speed * 1.0)  # Увеличено с 0.6 до 1.0
+                required_speed = max(float(min_speed), float(base_paddle_speed * 1.0))  # Увеличено с 0.6 до 1.0
         else:
             # Мяч не движется к платформе, используем умеренную скорость
-            required_speed = base_paddle_speed * 0.8
+            required_speed = float(base_paddle_speed * 0.8)
         
         # Корректируем на основе скорости мяча
-        speed_ratio = ball_speed / 5.0  # 5 - BALL_SPEED_DEFAULT
+        speed_ratio = float(ball_speed) / 5.0  # 5 - BALL_SPEED_DEFAULT
         speed_multiplier = (
             0.7 + speed_ratio * 0.6
         )  # 0.7x до 1.3x в зависимости от скорости мяча
@@ -3014,7 +3143,7 @@ class AIPlayer:
     def move_paddle_towards(self, current_x: int, paddle_speed: int) -> int:
         """
         Двигает платформу к оптимальной позиции с предотвращением зацикливания.
-        ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ МЕТОД с флагами и логированием.
+        Использует PaddleMovementStrategy для модульной логики движения.
 
         Args:
             current_x: Текущая X-координата платформы.
@@ -3023,8 +3152,14 @@ class AIPlayer:
         Returns:
             Смещение платформы (-1, 0, 1).
         """
+        # Используем стратегию движения, если она инициализирована
+        if self.paddle_movement_strategy is not None:
+            # Обновляем current_game_state в стратегии
+            self.paddle_movement_strategy.current_game_state = self.current_game_state
+            return self.paddle_movement_strategy.move_paddle_towards(current_x, paddle_speed)
+        
+        # Fallback на старую логику, если стратегия не инициализирована
         if not self.current_game_state or not self.is_active:
-            # КРИТИЧНО: Логируем, почему платформа не двигается
             self._logger.debug(f"[PADDLE DEBUG] move_paddle_towards: current_game_state={self.current_game_state is not None}, is_active={self.is_active}")
             return self._fallback_movement(current_x)
 
@@ -3114,24 +3249,52 @@ class AIPlayer:
                                    f"zone: sep_start={separation_zone_start} paddle_y={paddle_y:.1f} in_zone={in_separation_zone} | "
                                    f"time_to_paddle={time_to_paddle:.2f} frames")
             
+            # КРИТИЧНО: Обнаружение отскоков от кирпичей по резкому изменению позиции мяча
+            ball_x = self.current_game_state.ball_position.x if self.current_game_state else 0
+            current_vel_x = self.current_game_state.ball_velocity.x if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+            current_vel_y = self.current_game_state.ball_velocity.y if (self.current_game_state and hasattr(self.current_game_state, "ball_velocity")) else 0
+            
+            brick_bounce_detected = False
+            if self._last_ball_position is not None and self.current_game_state:
+                # Проверяем резкое изменение позиции мяча (более 50 пикселей за кадр)
+                position_change = abs(ball_x - self._last_ball_position.x)
+                # Также проверяем изменение Y координаты вверх (мяч отскочил)
+                y_change = ball_y - self._last_ball_position.y
+                
+                # Отскок от кирпича: резкое изменение позиции X ИЛИ изменение направления Y (вверх)
+                if position_change > 50 or (y_change < -10 and ball_y < separation_zone_start):
+                    # Проверяем, что это не отскок от стены (vel_x должен был измениться, но это уже отслеживается)
+                    if self._last_ball_velocity is not None:
+                        vel_change = abs(current_vel_x - self._last_ball_velocity.x)
+                        # Если скорость vel_x не изменилась сильно, но позиция изменилась резко - это отскок от кирпича
+                        if vel_change < 5 and position_change > 50:
+                            brick_bounce_detected = True
+                            self._logger.debug(f"[BRICK BOUNCE DETECTED] Резкое изменение позиции: {position_change:.1f}px, "
+                                             f"ball=({ball_x:.1f},{ball_y:.1f}) prev=({self._last_ball_position.x:.1f},{self._last_ball_position.y:.1f})")
+            
+            # Обновляем предыдущую позицию мяча
+            if self.current_game_state:
+                self._last_ball_position = Point(ball_x, ball_y)
+                self._last_ball_velocity = Point(current_vel_x, current_vel_y)
+            
             # ПРАВИЛО 3: Если целевая позиция установлена - используем её БЕЗ пересчета
             # КРИТИЧЕСКОЕ ПРАВИЛО: позиция фиксируется один раз при входе мяча в зону разделения
-            # и не меняется до следующего отскока от стены
+            # и не меняется до следующего отскока от стены ИЛИ отскока от кирпича
             if self.separation_zone_tracker.target_position_set:
-                # КРИТИЧНО: В зоне разделения траектория мяча НЕ МЕНЯЕТСЯ (нет отскоков от кубиков)
-                # Проверяем ТОЛЬКО изменение скорости vel_x (отскок от стены)
-                # НЕ пересчитываем цель на основе разницы в optimal_x - это вызывает дёргание
+                # КРИТИЧНО: Проверяем отскоки от стены И от кирпичей
                 current_target = self.separation_zone_tracker.target_position
                 if current_target is not None and in_separation_zone:
-                    # КРИТИЧНО: Проверяем изменение vel_x - это единственный признак отскока от стены
-                    # Сохраняем предыдущую скорость vel_x для сравнения
+                    # КРИТИЧНО: Проверяем изменение vel_x - это признак отскока от стены
+                    # ИЛИ обнаружение отскока от кирпича
                     saved_vel_x = self.separation_zone_tracker.saved_ball_vel_x
-                    current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
                     
-                    # Если vel_x изменился (мяч отскочил от стены) - сбрасываем цель
-                    if saved_vel_x is not None and abs(current_vel_x - saved_vel_x) > 0.1:
-                        # Мяч отскочил от стены - траектория изменилась, нужно пересчитать цель
-                        self._logger.debug(f"[TARGET RESET] Мяч отскочил от стены! Старая vel_x={saved_vel_x:.1f}, Новая vel_x={current_vel_x:.1f}")
+                    # Если vel_x изменился (мяч отскочил от стены) ИЛИ обнаружен отскок от кирпича - сбрасываем цель
+                    if (saved_vel_x is not None and abs(current_vel_x - saved_vel_x) > 0.1) or brick_bounce_detected:
+                        # Мяч отскочил от стены или от кирпича - траектория изменилась, нужно пересчитать цель
+                        if brick_bounce_detected:
+                            self._logger.debug(f"[TARGET RESET] Мяч отскочил от кирпича! Траектория изменилась, пересчитываем цель")
+                        else:
+                            self._logger.debug(f"[TARGET RESET] Мяч отскочил от стены! Старая vel_x={saved_vel_x:.1f}, Новая vel_x={current_vel_x:.1f}")
                         
                         # ИСПРАВЛЕНИЕ: Проверяем расстояние до новой потенциальной цели перед сбросом
                         # Рассчитываем новую потенциальную цель для проверки расстояния
@@ -3173,6 +3336,11 @@ class AIPlayer:
                                     conservative_target = min(zone_center_x, current_x + max_distance)
                                 else:
                                     conservative_target = max(zone_center_x, current_x - max_distance)
+                                
+                                # КРИТИЧНО: Ограничиваем границами экрана, чтобы избежать отрицательных координат
+                                min_x = self.paddle_width // 2
+                                max_x = self.screen_width - self.paddle_width // 2
+                                conservative_target = max(min_x, min(max_x, conservative_target))
                                 
                                 self._logger.debug(f"[CONSERVATIVE TARGET] Большое расстояние ({distance_to_new_target:.1f}px), "
                                                    f"используем промежуточную цель: {conservative_target:.1f} вместо {zone_center_x:.1f}")
@@ -3543,12 +3711,13 @@ class AIPlayer:
                                         if self.separation_zone_tracker.target_position_set:
                                             # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                                             old_pos = self.separation_zone_tracker.target_position
-                                            self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
-                                                                 f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
-                                                                 f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
-                                            self.separation_zone_tracker.game_restart_required = True
-                                            # Используем старую позицию
-                                            optimal_x = old_pos
+                                            if old_pos is not None:
+                                                self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
+                                                                     f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
+                                                                     f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
+                                                self.separation_zone_tracker.game_restart_required = True
+                                                # Используем старую позицию
+                                                optimal_x = float(old_pos)
                                         else:
                                             # Позиция устанавливается впервые - это правильно
                                             current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
@@ -4158,11 +4327,12 @@ class AIPlayer:
         if not self.current_game_state:
             return 0
 
-        ball_x = self.current_game_state.ball_position.x
-        ball_y = self.current_game_state.ball_position.y
-        vel_x = self.current_game_state.ball_velocity.x
-        vel_y = self.current_game_state.ball_velocity.y
-        paddle_y = self.current_game_state.paddle_position.y
+        game_state = self.current_game_state
+        ball_x = game_state.ball_position.x
+        ball_y = game_state.ball_position.y
+        vel_x = game_state.ball_velocity.x
+        vel_y = game_state.ball_velocity.y
+        paddle_y = game_state.paddle_position.y
 
         # Если мяч падает — предсказываем точку встречи с платформой
         if vel_y > 0:
@@ -4881,16 +5051,6 @@ class AIPlayer:
         # Сброс прицеливания
         self.targeting_system.reset()
         
-        # Отслеживание отбитий в пустоту
-        self.empty_bounce_tracker = {
-            "consecutive_empty_bounces": 0,  # Количество последовательных отбитий в пустоту
-            "last_bounce_position": None,  # Последняя позиция платформы при отбитии
-            "last_bounce_time": 0,  # Время последнего отбития
-            "max_empty_bounces": 1,  # Максимум отбитий в пустоту подряд (уменьшено с 2 до 1)
-            "bounce_history": [],  # История отбитий (для анализа)
-            "ceiling_bounces": 0,  # Количество отскоков от потолка без попадания в кубики
-        }
-
         # Сброс системы предотвращения зацикливания
         self.loop_prevention_system["movement_history"] = []
         self.loop_prevention_system["position_history"] = []
@@ -4909,6 +5069,7 @@ class AIPlayer:
         self.empty_bounce_tracker["consecutive_empty_bounces"] = 0
         self.empty_bounce_tracker["last_bounce_position"] = None
         self.empty_bounce_tracker["last_bounce_time"] = 0
+        self.empty_bounce_tracker["max_empty_bounces"] = self.config.max_empty_bounces if hasattr(self.config, 'max_empty_bounces') else 1
         self.empty_bounce_tracker["bounce_history"] = []
         self.empty_bounce_tracker["ceiling_bounces"] = 0
 
@@ -4986,14 +5147,13 @@ class AIPlayer:
             "consecutive_stops": 0,
         }
         
-        self.empty_bounce_tracker: Dict[str, Any] = {
-            "consecutive_empty_bounces": 0,
-            "last_bounce_position": None,
-            "last_bounce_time": 0,
-            "max_empty_bounces": self.config.max_empty_bounces,
-            "bounce_history": [],
-            "ceiling_bounces": 0,
-        }
+        # Reset empty_bounce_tracker values instead of redefining
+        self.empty_bounce_tracker["consecutive_empty_bounces"] = 0
+        self.empty_bounce_tracker["last_bounce_position"] = None
+        self.empty_bounce_tracker["last_bounce_time"] = 0
+        self.empty_bounce_tracker["max_empty_bounces"] = self.config.max_empty_bounces
+        self.empty_bounce_tracker["bounce_history"] = []
+        self.empty_bounce_tracker["ceiling_bounces"] = 0
         
         # Очистка кэшей
         self._brick_map_cache = None
@@ -5142,7 +5302,7 @@ class AIPlayer:
             # Игнорируем ошибки импорта pygame при визуализации
             self._logger.debug(f"Ошибка импорта при визуализации: {e}", exc_info=True)
 
-    def _draw_predicted_trajectory(self, screen) -> None:
+    def _draw_predicted_trajectory(self, screen: Any) -> None:
         """
         Рисует предсказанную траекторию мяча для отладки.
         
@@ -5420,7 +5580,7 @@ class AIPlayer:
             efficiency = bricks / (time_taken * time_penalty)
             total_efficiency += efficiency
 
-        return total_efficiency / len(self.training_parameters["match_history"])
+        return float(total_efficiency / len(self.training_parameters["match_history"]))
 
     def get_optimal_ball_speed(self) -> int:
         """
@@ -5438,7 +5598,7 @@ class AIPlayer:
         Returns:
             Множитель скорости платформы (0.5-2.0).
         """
-        return self.training_parameters["paddle_speed_multiplier"]
+        return float(self.training_parameters["paddle_speed_multiplier"])
 
     def get_adjusted_paddle_speed(self, base_speed: int) -> int:
         """
