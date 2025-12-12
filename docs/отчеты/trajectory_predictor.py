@@ -211,38 +211,25 @@ class TrajectoryPredictor:
             return self._intersection_cache[cache_key]
 
         # Получаем текущие параметры
-        # ✅ ВАЖНО: Все скорости в px/кадр, время в кадрах
         ball_x = game_state.ball_position.x
         ball_y = game_state.ball_position.y
         vel_x = game_state.ball_velocity.x
         vel_y = game_state.ball_velocity.y
 
-        # ✅ ИСПРАВЛЕНО: Проверка физической корректности скорости
-        if abs(vel_y) < 0.1:
-            # Мяч практически не движется вертикально - не может достичь платформы
-            return None
-
         # Обычный расчет для мяча, движущегося вниз
-        # time_to_paddle в кадрах (расстояние в px / скорость в px/кадр)
         time_to_paddle = (paddle_y - ball_y) / vel_y
 
         if time_to_paddle <= 0:
             return None
-        
-        # ✅ ДОБАВЛЕНО: Проверка на разумность времени (не более 1000 кадров)
-        if time_to_paddle > 1000:
-            # Слишком долгое время - возможно ошибка в расчетах
-            return None
 
         # КРИТИЧНО: Улучшенная симуляция с учетом отскоков от боковых стен И блоков
-        # ✅ ИСПРАВЛЕНО: Используем непрерывную симуляцию вместо дискретных шагов для точности
-        # Все единицы измерения: позиции в px, скорости в px/кадр, время в кадрах
+        # Используем непрерывную симуляцию вместо дискретных шагов для точности
         ball_radius = 8  # Радиус мяча (BALL_SIZE / 2)
         sim_x = float(ball_x)
         sim_y = float(ball_y)
         sim_vel_x = float(vel_x)
         sim_vel_y = float(vel_y)
-        remaining_time = float(time_to_paddle)  # Время в кадрах
+        remaining_time = float(time_to_paddle)
         max_iterations = 300  # УВЕЛИЧЕНО с 200 до 300 для более точной симуляции множественных отскоков от блоков
         
         # КРИТИЧНО: Создаем копию списка блоков для симуляции
@@ -262,8 +249,7 @@ class TrajectoryPredictor:
             if remaining_time <= 0:
                 break
             
-            # ✅ ИСПРАВЛЕНО: Рассчитываем время до следующего отскока от стены
-            # Все расчеты в кадрах: расстояние (px) / скорость (px/кадр) = время (кадры)
+            # Рассчитываем время до следующего отскока от стены
             if sim_vel_x > 0:
                 # Движение вправо - проверяем правую стену
                 distance_to_right_wall = self.screen_width - ball_radius - sim_x
@@ -276,8 +262,7 @@ class TrajectoryPredictor:
                 # Мяч не движется горизонтально
                 time_to_wall = float('inf')
             
-            # ✅ ИСПРАВЛЕНО: Рассчитываем время до столкновения с блоком
-            # Все расчеты в кадрах: расстояние (px) / скорость (px/кадр) = время (кадры)
+            # КРИТИЧНО: Рассчитываем время до столкновения с блоком
             time_to_brick = float('inf')
             hit_brick = None
             if sim_bricks and sim_vel_y > 0:  # Мяч движется вниз (может столкнуться с блоком)
@@ -291,7 +276,7 @@ class TrajectoryPredictor:
                     # Блок должен быть ниже текущей позиции мяча и в горизонтальном диапазоне
                     if (brick_top >= sim_y and 
                         brick_left - ball_radius <= sim_x <= brick_right + ball_radius):
-                        # Рассчитываем время до столкновения (в кадрах)
+                        # Рассчитываем время до столкновения
                         distance_to_brick_y = brick_top - ball_radius - sim_y
                         if distance_to_brick_y > 0 and sim_vel_y > 0:
                             time_to_this_brick = distance_to_brick_y / sim_vel_y

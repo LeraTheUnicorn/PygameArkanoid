@@ -1457,18 +1457,46 @@ class AIPlayer:
         return base_position_int
 
     def _set_target_position_if_needed(self, position: int, reason: str) -> None:
-        """
-        Устанавливает целевую позицию, если она еще не установлена.
-        
-        ✅ ИСПРАВЛЕНО: Использует target_tracker для проверки максимального расстояния.
-        """
-        # ✅ ИСПРАВЛЕНО: Получаем текущую позицию платформы для проверки расстояния
-        current_pos = None
-        if self.current_game_state:
-            current_pos = int(self.current_game_state.paddle_position.x)
-        
-        # ✅ ИСПРАВЛЕНО: Используем target_tracker для установки позиции с проверкой расстояния
-        self.target_tracker.set_target_position(position, reason, self._logger, current_pos)
+        """Устанавливает целевую позицию, если она еще не установлена."""
+        if self.separation_zone_tracker.target_position_set:
+            old_pos = self.separation_zone_tracker.target_position
+            if old_pos is not None:
+                position_diff = abs(old_pos - position)
+                # КРИТИЧНО: Если позиция та же самая (разница < 5px) - это не нарушение
+                if position_diff < 5:
+                    self._logger.debug(
+                        f"[POSITION UPDATE] Попытка установить ту же позицию ({reason})! "
+                        f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
+                        f"Разница={position_diff:.1f}px - игнорируем"
+                    )
+                    return  # Игнорируем - позиция уже установлена
+                
+                # КРИТИЧНО: Если позиция отличается значительно - сбрасываем и устанавливаем новую
+                self._logger.warning(
+                    f"[RULE VIOLATION] Попытка установить ДРУГУЮ позицию ({reason})! "
+                    f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
+                    f"Разница={position_diff:.1f}px - сбрасываем и устанавливаем новую"
+                )
+                # Сбрасываем старую позицию и устанавливаем новую
+                self.separation_zone_tracker.target_position_set = False
+                self.separation_zone_tracker.target_position = None
+                self.separation_zone_tracker.paddle_moved_after_set = False
+                self.separation_zone_tracker.paddle_reached_target = False
+                # Устанавливаем новую позицию
+                self.separation_zone_tracker.target_position = position
+                self.separation_zone_tracker.target_position_set = True
+                self._logger.debug(
+                    f"[POSITION RESET] Позиция сброшена и установлена заново ({reason})! "
+                    f"target_position={position:.1f}"
+                )
+                return
+        else:
+            self.separation_zone_tracker.target_position = position
+            self.separation_zone_tracker.target_position_set = True
+            self._logger.debug(
+                f"[POSITION FIXED] ФЛАГ: Позиция зафиксирована впервые ({reason})! "
+                f"target_position={position:.1f}"
+            )
 
     def get_optimal_paddle_position(self) -> int:
         """

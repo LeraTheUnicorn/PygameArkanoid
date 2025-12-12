@@ -30,35 +30,15 @@ class TargetTracker:
         self.config = config
         self.separation_zone_tracker = separation_zone_tracker
 
-    def set_target_position(self, position: int, reason: str, logger: Optional[Any] = None, current_pos: Optional[int] = None) -> None:
+    def set_target_position(self, position: int, reason: str, logger: Optional[Any] = None) -> None:
         """
         Устанавливает целевую позицию, если она еще не установлена.
-        
-        ✅ ИСПРАВЛЕНО: Добавлена проверка максимального расстояния до цели (200px).
 
         Args:
             position: Целевая позиция
             reason: Причина установки позиции
             logger: Логгер для записи предупреждений
-            current_pos: Текущая позиция платформы (для проверки расстояния)
         """
-        # ✅ ДОБАВЛЕНО: Проверка максимального расстояния до цели
-        MAX_TARGET_DISTANCE = 200  # пикселей
-        
-        if current_pos is not None:
-            distance = abs(position - current_pos)
-            if distance > MAX_TARGET_DISTANCE:
-                # Корректируем цель, чтобы расстояние не превышало MAX_TARGET_DISTANCE
-                if position > current_pos:
-                    position = current_pos + MAX_TARGET_DISTANCE
-                else:
-                    position = current_pos - MAX_TARGET_DISTANCE
-                if logger:
-                    logger.warning(
-                        f"[TARGET DISTANCE] Расстояние до цели слишком большое ({distance:.1f}px > {MAX_TARGET_DISTANCE}px), "
-                        f"корректируем до {position:.1f}px (reason: {reason})"
-                    )
-        
         if self.separation_zone_tracker.target_position_set:
             old_pos = self.separation_zone_tracker.target_position
             if old_pos is not None:
@@ -171,43 +151,3 @@ class TargetTracker:
             Сохраненная X-скорость мяча или None
         """
         return self.separation_zone_tracker.saved_ball_vel_x
-    
-    def on_ball_bounce(self, logger: Optional[Any] = None) -> None:
-        """
-        ✅ ДОБАВЛЕНО: Вызывается при каждом отскоке мяча для пересчета цели.
-        
-        Args:
-            logger: Логгер для записи информации
-        """
-        if self.is_target_set():
-            if logger:
-                logger.debug(
-                    f"[BALL BOUNCE] Обнаружен отскок мяча, сбрасываем целевую позицию для пересчета"
-                )
-            self.reset_target_position()
-    
-    def validate_target_distance(self, current_pos: int, target_pos: int, max_reachable_distance: Optional[float] = None) -> int:
-        """
-        ✅ ДОБАВЛЕНО: Проверка физической достижимости цели.
-        
-        Args:
-            current_pos: Текущая позиция платформы
-            target_pos: Целевая позиция
-            max_reachable_distance: Максимально достижимое расстояние (если None, используется MAX_TARGET_DISTANCE)
-        
-        Returns:
-            Скорректированная целевая позиция
-        """
-        MAX_TARGET_DISTANCE = 200  # пикселей
-        
-        distance = abs(target_pos - current_pos)
-        max_distance = max_reachable_distance if max_reachable_distance is not None else MAX_TARGET_DISTANCE
-        
-        if distance > max_distance:
-            # Корректируем цель к ближайшей достижимой позиции
-            if target_pos > current_pos:
-                return current_pos + int(max_distance)
-            else:
-                return current_pos - int(max_distance)
-        
-        return target_pos

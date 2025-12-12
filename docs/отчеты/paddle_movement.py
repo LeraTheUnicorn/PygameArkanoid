@@ -195,8 +195,7 @@ class PaddleMovementStrategy:
                     "[IMMEDIATE BOUNCE] Отскок обнаружен НЕМЕДЛЕННО в начале! "
                     "Сбрасываем целевую позицию и переходим к установке новой"
                 )
-                # ✅ ИСПРАВЛЕНО: Используем on_ball_bounce для пересчета цели
-                self.target_tracker.on_ball_bounce(self._logger)
+                self.target_tracker.reset_target_position()
                 # Не выходим - продолжаем обработку для установки новой цели
             
             # Обновляем отслеживание для СЛЕДУЮЩЕГО кадра (ВСЕГДА, даже при отскоке)
@@ -222,8 +221,7 @@ class PaddleMovementStrategy:
                     f"vel_y изменился с {last_vel_y:.1f} (вниз) на {ball_vel_y:.1f} (вверх), "
                     f"сбрасываем целевую позицию и немедленно пересчитываем"
                 )
-                # ✅ ИСПРАВЛЕНО: Используем on_ball_bounce для пересчета цели
-                self.target_tracker.on_ball_bounce(self._logger)
+                self.target_tracker.reset_target_position()
                 self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
                 self.separation_zone_tracker.ball_moving_downward_last_frame = False
                 
@@ -260,8 +258,7 @@ class PaddleMovementStrategy:
                     f"[BRICK BOUNCE RECOVERY] Мяч отскочил от блока! "
                     f"Сбрасываем целевую позицию и немедленно пересчитываем"
                 )
-                # ✅ ИСПРАВЛЕНО: Используем on_ball_bounce для пересчета цели
-                self.target_tracker.on_ball_bounce(self._logger)
+                self.target_tracker.reset_target_position()
                 self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
                 self.separation_zone_tracker.ball_moving_downward_last_frame = (ball_vel_y > 0)
                 
@@ -850,56 +847,47 @@ class PaddleMovementStrategy:
                         )
                         optimal_x = min_left_x
 
-        # ✅ ИСПРАВЛЕНО: Физическая проверка достижимости цели
+        # КРИТИЧНО: Улучшенная проверка достижимости цели
         # Учитываем запас на ошибки, отскоки и инерцию
         distance_to_target = abs(current_x - optimal_x)
 
         if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
-            # КРИТИЧНО: paddle_speed уже в px/кадр, поэтому frames_to_reach = distance / speed
             frames_to_reach = distance_to_target / paddle_speed if paddle_speed > 0 else float('inf')
-            
-            # ✅ ИСПРАВЛЕНО: Физическая проверка достижимости
-            # Проверяем, успеет ли платформа достичь цели до прибытия мяча
-            # Добавляем запас в 2 кадра на реакцию и ошибки
-            reaction_frames = 2
-            available_frames = int(time_to_paddle) - reaction_frames
-            
-            if available_frames <= 0:
-                # Мяч уже слишком близко - используем минимальное движение
-                available_frames = 1
-            
-            # Максимально достижимое расстояние за доступное время
-            max_reachable_distance = paddle_speed * available_frames
             
             # КРИТИЧНО: Адаптивный запас на ошибки в зависимости от расстояния до платформы
             # Для критических случаев (мяч близко) используем меньший запас и более агрессивное движение
             if distance_to_paddle_y < 50:  # Мяч очень близко к платформе - экстремальный случай
-                max_distance_factor = 0.95  # 95% от максимально достижимого
+                safety_margin = 1.0  # Минимальный запас для экстремальных случаев
+                max_distance_factor = 1.0  # Максимально агрессивное ограничение (100%)
             elif distance_to_paddle_y < 100:  # Мяч близко к платформе - критический случай
-                max_distance_factor = 0.90  # 90% от максимально достижимого
+                safety_margin = 1.1  # Меньший запас для критических случаев
+                max_distance_factor = 0.95  # Более агрессивное ограничение (95%)
             else:
-                max_distance_factor = 0.80  # 80% от максимально достижимого (консервативно)
+                safety_margin = 1.5  # Обычный запас (50%)
+                max_distance_factor = 0.7  # Консервативное ограничение (70%)
             
-            max_allowed_distance = max_reachable_distance * max_distance_factor
-            
-            if distance_to_target > max_allowed_distance:
+            if frames_to_reach > time_to_paddle * safety_margin:
                 # Цель недостижима - ограничиваем её до достижимого расстояния
-                self._logger.warning(
-                    f"[NEW TARGET] Цель физически недостижима! distance={distance_to_target:.1f}px, "
-                    f"max_reachable={max_allowed_distance:.1f}px, time_to_paddle={time_to_paddle:.1f} frames, "
-                    f"available_frames={available_frames}, paddle_speed={paddle_speed}px/frame, "
-                    f"distance_to_paddle_y={distance_to_paddle_y:.1f}px, ограничиваем цель"
+                max_distance = paddle_speed * time_to_paddle * max_distance_factor
+                self._logger.debug(
+                    f"[NEW TARGET] Цель недостижима! distance={distance_to_target:.1f}px, "
+                    f"frames_to_reach={frames_to_reach:.1f}, time_to_paddle={time_to_paddle:.1f}, "
+                    f"max_distance={max_distance:.1f}px, distance_to_paddle_y={distance_to_paddle_y:.1f}, "
+                    f"ограничиваем цель (safety_margin={safety_margin}, factor={max_distance_factor})"
                 )
                 if optimal_x > current_x:
-                    optimal_x = min(optimal_x, current_x + max_allowed_distance)
+                    optimal_x = min(optimal_x, current_x + max_distance)
                 else:
-                    optimal_x = max(optimal_x, current_x - max_allowed_distance)
+                    optimal_x = max(optimal_x, current_x - max_distance)
             else:
-                # Цель достижима
-                self._logger.debug(
-                    f"[NEW TARGET] Цель достижима: distance={distance_to_target:.1f}px, "
-                    f"max_reachable={max_allowed_distance:.1f}px, time_to_paddle={time_to_paddle:.1f} frames"
-                )
+                # КРИТИЧНО: Для критических случаев (мяч очень близко) устанавливаем цель даже если она немного недостижима
+                # Это позволяет платформе попытаться добраться как можно ближе
+                if distance_to_paddle_y < 50:
+                    self._logger.debug(
+                        f"[NEW TARGET] Критический случай! Мяч очень близко ({distance_to_paddle_y:.1f}px), "
+                        f"устанавливаем цель даже если она немного недостижима для максимального приближения"
+                    )
+                    # Продолжаем установку цели - платформа попытается добраться как можно ближе
 
         # ✅ ИСПРАВЛЕНО: Жесткое ограничение максимального расстояния до цели (250px)
         # Это предотвращает установку нереалистично далеких целей
@@ -946,8 +934,7 @@ class PaddleMovementStrategy:
                 if hasattr(self.current_game_state, "ball_velocity")
                 else 0
             )
-            # ✅ ИСПРАВЛЕНО: Передаем current_x для проверки максимального расстояния
-            self.target_tracker.set_target_position(int(optimal_x), "new_target", self._logger, current_x)
+            self.target_tracker.set_target_position(int(optimal_x), "new_target", self._logger)
             self.target_tracker.update_saved_velocity(current_vel_x)
             # КРИТИЧНО: Обновляем отслеживание направления мяча
             self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
@@ -1414,62 +1401,43 @@ class PaddleMovementStrategy:
         """
         Вычисляет адаптивный допуск на основе скорости мяча, расстояния и критичности.
         
-        ✅ ИСПРАВЛЕНО: Использует физически обоснованную формулу с учетом FPS.
-        
         Args:
-            ball_vel_y: Вертикальная скорость мяча (px/кадр)
-            distance_to_target: Расстояние до целевой позиции (px)
-            paddle_speed: Скорость платформы (px/кадр)
+            ball_vel_y: Вертикальная скорость мяча
+            distance_to_target: Расстояние до целевой позиции
+            paddle_speed: Скорость платформы
             is_critical: Критическая ситуация (мяч близко или в углу)
         
         Returns:
             Адаптивный tolerance в пикселях
         """
-        # КРИТИЧНО: FPS для правильного расчета tolerance
-        FPS = 60  # кадров в секунду
-        
-        # ✅ ИСПРАВЛЕНО: Физически обоснованная формула tolerance
-        # tolerance = (paddle_speed / FPS) * reaction_frames * safety_factor
-        # где paddle_speed уже в px/кадр, поэтому делим на FPS для получения px/сек
-        paddle_speed_per_frame = paddle_speed  # уже в px/кадр
-        
-        # Время реакции: 2-3 кадра
-        reaction_time_frames = 2.5
-        
-        # Коэффициент безопасности
-        safety_factor = 1.5
-        
-        # Базовый tolerance от скорости платформы
-        # Учитываем, что paddle_speed уже в px/кадр
-        if is_critical:
-            # Для критических случаев используем меньший tolerance для точности
-            paddle_tolerance = max(3, int(paddle_speed_per_frame * reaction_time_frames * 0.4))
-        else:
-            # Обычный tolerance: скорость * время реакции * коэффициент безопасности
-            paddle_tolerance = max(4, int(paddle_speed_per_frame * reaction_time_frames * safety_factor / 3.0))
+        base_tolerance = 6  # минимальный допуск
         
         # Увеличиваем допуск при высокой скорости мяча
-        # Чем быстрее мяч, тем больше допуск (но не более 2x)
-        speed_factor = min(abs(ball_vel_y) / 10.0, 2.0) if ball_vel_y != 0 else 1.0
+        # Чем быстрее мяч, тем больше допуск (но не более 3x)
+        speed_factor = min(abs(ball_vel_y) / 10.0, 3.0) if ball_vel_y != 0 else 1.0
         
         # Уменьшаем допуск при приближении к цели
         # Чем ближе к цели, тем меньше допуск (но не менее 0.5x)
         distance_factor = max(1.0 - (distance_to_target / 300.0), 0.5)
         
+        # Базовый tolerance от скорости платформы
+        # ✅ ИСПРАВЛЕНО: Используем формулу paddle_speed // 3 вместо paddle_speed * 0.25
+        # для соответствия ожидаемому поведению из анализа
+        if is_critical:
+            paddle_tolerance = max(3, paddle_speed // 6)  # ✅ ИСПРАВЛЕНО: Для критических случаев
+        else:
+            paddle_tolerance = max(4, paddle_speed // 3)  # ✅ ИСПРАВЛЕНО: 1/3 скорости движения (как ожидается в анализе)
+        
         # Комбинируем все факторы
         adaptive_tolerance = int(paddle_tolerance * speed_factor * distance_factor)
         
-        # Ограничиваем разумными пределами (15-25px для обычных случаев, 10-20px для критических)
-        if is_critical:
-            final_tolerance = max(10, min(adaptive_tolerance, 20))
-        else:
-            final_tolerance = max(15, min(adaptive_tolerance, 25))
+        # Ограничиваем разумными пределами
+        final_tolerance = max(base_tolerance, min(adaptive_tolerance, 20))
         
         self._logger.debug(
             f"[ADAPTIVE TOLERANCE] ball_vel_y={ball_vel_y:.1f}, distance={distance_to_target:.1f}, "
             f"speed_factor={speed_factor:.2f}, distance_factor={distance_factor:.2f}, "
-            f"paddle_tolerance={paddle_tolerance}, final={final_tolerance}, is_critical={is_critical}, "
-            f"paddle_speed={paddle_speed}px/frame"
+            f"paddle_tolerance={paddle_tolerance}, final={final_tolerance}, is_critical={is_critical}"
         )
         
         return final_tolerance
