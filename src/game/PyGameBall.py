@@ -2206,6 +2206,55 @@ def main() -> None:
                         # Ограничиваем offset в диапазоне [-1, 1]
                         offset = max(-1.0, min(1.0, offset))
 
+                        # ✅ ДОБАВЛЕНО: Логирование фактической и предсказанной позиций при успешном отскоке
+                        if auto_mode or training_mode:
+                            try:
+                                # Получаем предсказанную позицию приземления
+                                predicted_landing_x = None
+                                if (hasattr(ai_player, 'trajectory_predictor') and 
+                                    hasattr(ai_player, 'current_game_state') and 
+                                    ai_player.current_game_state is not None):
+                                    try:
+                                        intersection_point = ai_player.trajectory_predictor.predict_paddle_intersection(
+                                            ai_player.current_game_state,
+                                            paddle.rect.centery
+                                        )
+                                        if intersection_point:
+                                            predicted_landing_x = intersection_point.x
+                                    except:
+                                        # Если predict_paddle_intersection не работает, используем _predict_exact_landing_position
+                                        try:
+                                            predicted_landing_x = ai_player._predict_exact_landing_position()
+                                        except:
+                                            pass
+                                
+                                # Фактическая позиция мяча при отскоке
+                                actual_ball_x = ball.rect.centerx
+                                actual_paddle_x = paddle.rect.centerx
+                                
+                                # Логируем сравнение
+                                if predicted_landing_x is not None:
+                                    prediction_error = abs(actual_ball_x - predicted_landing_x)
+                                    logger.info(
+                                        f"[BALL BOUNCE SUCCESS] ✅ Мяч успешно отскочил от платформы! "
+                                        f"Фактическая позиция мяча: {actual_ball_x:.1f}px, "
+                                        f"Предсказанная позиция: {predicted_landing_x:.1f}px, "
+                                        f"Ошибка предсказания: {prediction_error:.1f}px, "
+                                        f"Позиция платформы: {actual_paddle_x:.1f}px, "
+                                        f"Смещение от центра: {offset:.2f}"
+                                    )
+                                else:
+                                    logger.info(
+                                        f"[BALL BOUNCE SUCCESS] ✅ Мяч успешно отскочил от платформы! "
+                                        f"Фактическая позиция мяча: {actual_ball_x:.1f}px, "
+                                        f"Предсказанная позиция: НЕ ДОСТУПНА, "
+                                        f"Позиция платформы: {actual_paddle_x:.1f}px, "
+                                        f"Смещение от центра: {offset:.2f}"
+                                    )
+                            except Exception as e:
+                                # Не блокируем игру при ошибке логирования
+                                logger.debug(f"[BALL BOUNCE LOG ERROR] Ошибка логирования: {e}")
+                        
                         # Устанавливаем новые скорости ПЕРВЫМ ДЕЛОМ
                         ball.bounce_vertical()
                         # КРИТИЧНО: Убеждаемся, что мяч движется вверх (vel_y < 0)
@@ -2336,6 +2385,31 @@ def main() -> None:
                                 optimal_x = ai_player.get_optimal_paddle_position() if hasattr(ai_player, 'get_optimal_paddle_position') else paddle_x
                                 distance_to_optimal = abs(paddle_x - optimal_x) if optimal_x is not None else 0
                                 
+                                # ✅ ДОБАВЛЕНО: Получаем предсказанную позицию приземления мяча
+                                predicted_landing_x = None
+                                prediction_error = None
+                                try:
+                                    if (hasattr(ai_player, 'trajectory_predictor') and 
+                                        hasattr(ai_player, 'current_game_state')):
+                                        current_state = ai_player.current_game_state
+                                        if current_state is not None:
+                                            # Пытаемся получить предсказание из trajectory_predictor
+                                            intersection_point = ai_player.trajectory_predictor.predict_paddle_intersection(
+                                                current_state,
+                                                paddle.rect.centery
+                                            )
+                                            if intersection_point:
+                                                predicted_landing_x = intersection_point.x
+                                                prediction_error = abs(ball_x - predicted_landing_x)
+                                except:
+                                    # Если predict_paddle_intersection не работает, используем _predict_exact_landing_position
+                                    try:
+                                        if hasattr(ai_player, '_predict_exact_landing_position'):
+                                            predicted_landing_x = ai_player._predict_exact_landing_position()
+                                            prediction_error = abs(ball_x - predicted_landing_x)
+                                    except:
+                                        pass
+                                
                                 # Получаем информацию о зонах
                                 separation_zone_start = ai_player.separation_zone_tracker.separation_zone_start if hasattr(ai_player, 'separation_zone_tracker') else 226
                                 paddle_zone_start = ai_player.separation_zone_tracker.paddle_zone_start if hasattr(ai_player, 'separation_zone_tracker') else 540
@@ -2374,6 +2448,14 @@ def main() -> None:
                                 print(f"  Мяч относительно платформы: {ball_zone} (offset={ball_offset_from_paddle_center:.1f}px)")
                                 print(f"  Мяч ударился о платформу: {ball_hit_paddle} (если False - мяч пролетел мимо)")
                                 print(f"  Целевая позиция AI: optimal_x={optimal_x:.1f} distance_to_optimal={distance_to_optimal:.1f}px")
+                                # ✅ ДОБАВЛЕНО: Сравнение фактической и предсказанной позиций
+                                if predicted_landing_x is not None:
+                                    print(f"  🔴 ПРЕДСКАЗАНИЕ: Предсказанная позиция приземления: {predicted_landing_x:.1f}px")
+                                    print(f"  🔴 ПРЕДСКАЗАНИЕ: Фактическая позиция мяча: {ball_x:.1f}px")
+                                    print(f"  🔴 ПРЕДСКАЗАНИЕ: Ошибка предсказания: {prediction_error:.1f}px")
+                                    print(f"  🔴 ПРЕДСКАЗАНИЕ: Мяч пролетел мимо на: {abs(ball_x - paddle_x):.1f}px от центра платформы")
+                                else:
+                                    print(f"  🔴 ПРЕДСКАЗАНИЕ: Предсказанная позиция НЕ ДОСТУПНА")
                                 print(f"  Скорость платформы: base={base_speed} adjusted={adjusted_speed}")
                                 print(f"  Зоны: separation_start={separation_zone_start} paddle_start={paddle_zone_start} ball_was_in_zone={ball_was_in_separation_zone}")
                                 print(f"  Целевая позиция установлена: {ai_player.separation_zone_tracker.target_position_set if hasattr(ai_player, 'separation_zone_tracker') else False}")
@@ -2383,6 +2465,17 @@ def main() -> None:
                                         print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
                                 print(f"  Жизни: {lives_left}")
                                 print(f"========================================================")
+                                
+                                # ✅ ДОБАВЛЕНО: Логирование в файл для анализа
+                                if hasattr(ai_player, '_logger'):
+                                    ai_player._logger.warning(
+                                        f"[BALL LOST PREDICTION] "
+                                        f"Фактическая позиция мяча: {ball_x:.1f}px, "
+                                        f"Предсказанная позиция: {predicted_landing_x:.1f}px (ошибка: {prediction_error:.1f}px), "
+                                        f"Позиция платформы: {paddle_x:.1f}px, "
+                                        f"Целевая позиция: {optimal_x:.1f}px, "
+                                        f"Мяч пролетел мимо на: {abs(ball_x - paddle_x):.1f}px"
+                                    )
                         if frame_counter <= 3:
                             logger.debug(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
                         # Мяч ниже верхней границы платформы и не отскочил - он потерян
