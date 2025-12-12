@@ -4,12 +4,10 @@
 """
 
 import re
-import os
 from pathlib import Path
 from collections import defaultdict, Counter
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
-from datetime import datetime
 
 @dataclass
 class MovementEvent:
@@ -41,14 +39,13 @@ class LogAnalyzer:
         self.log_dir = log_dir
         self.movement_events: List[MovementEvent] = []
         self.bounce_events: List[BounceEvent] = []
-        self.metrics: Dict[str, any] = defaultdict(list)
+        self.metrics: Dict[str, Any] = defaultdict(list)
         
     def parse_log_file(self, file_path: Path) -> None:
         """Парсит один лог-файл"""
         print(f"Обработка файла: {file_path.name}")
         
         last_vel_y: Optional[float] = None
-        current_target: Optional[float] = None
         
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -70,7 +67,6 @@ class LogAnalyzer:
                     target_pos = float(new_target_match.group(2))
                     distance = float(new_target_match.group(3))
                     paddle_speed = int(new_target_match.group(4))
-                    current_target = target_pos
                     
                     # Извлекаем ball_y и ball_vel_y из предыдущих строк
                     ball_y, ball_vel_y = self._extract_ball_info_from_context(line)
@@ -191,14 +187,15 @@ class LogAnalyzer:
         ball_vel_match = re.search(r'ball_vel_y=(-?\d+\.?\d*)', line)
         return float(ball_vel_match.group(1)) if ball_vel_match else 0.0
     
-    def analyze_performance(self) -> Dict[str, any]:
+    def analyze_performance(self) -> Dict[str, Any]:
         """Анализирует производительность на основе собранных данных"""
-        analysis = {
+        issues: List[Dict[str, Any]] = []
+        analysis: Dict[str, Any] = {
             'total_movements': len(self.movement_events),
             'new_targets': len([e for e in self.movement_events if e.movement_type == 'NEW_TARGET']),
             'fixed_targets': len([e for e in self.movement_events if e.movement_type == 'FIXED_TARGET']),
             'bounces': len(self.bounce_events),
-            'issues': []
+            'issues': issues
         }
         
         # Анализ 1: Частота смены целей
@@ -216,7 +213,7 @@ class LogAnalyzer:
                 last_target = event.target_pos
         
         if len(target_changes) > len(self.movement_events) * 0.1:
-            analysis['issues'].append({
+            issues.append({
                 'type': 'excessive_target_changes',
                 'severity': 'HIGH',
                 'description': f'Слишком частые смены цели: {len(target_changes)} раз',
@@ -227,7 +224,7 @@ class LogAnalyzer:
         large_distances = [e for e in self.movement_events if e.distance and e.distance > 400]
         if large_distances:
             avg_large_distance = sum(e.distance for e in large_distances if e.distance) / len(large_distances)
-            analysis['issues'].append({
+            issues.append({
                 'type': 'large_target_distances',
                 'severity': 'HIGH',
                 'description': f'Много целей на большом расстоянии: {len(large_distances)} случаев',
@@ -238,7 +235,7 @@ class LogAnalyzer:
         buffer_zone_stops = [e for e in self.movement_events 
                            if e.action == 'stopped_buffer_zone' and e.distance and e.distance > 20]
         if buffer_zone_stops:
-            analysis['issues'].append({
+            issues.append({
                 'type': 'excessive_buffer_zone_stops',
                 'severity': 'MEDIUM',
                 'description': f'Частые остановки в буферной зоне: {len(buffer_zone_stops)} раз',
@@ -258,7 +255,7 @@ class LogAnalyzer:
                     })
         
         if tolerance_issues:
-            analysis['issues'].append({
+            issues.append({
                 'type': 'tolerance_mismatch',
                 'severity': 'MEDIUM',
                 'description': f'Несоответствие tolerance и paddle_speed: {len(tolerance_issues)} случаев'
@@ -280,7 +277,7 @@ class LogAnalyzer:
                 })
         
         if bounce_reactions:
-            analysis['issues'].append({
+            issues.append({
                 'type': 'delayed_bounce_reaction',
                 'severity': 'HIGH',
                 'description': f'Медленная реакция на отскоки: {len(bounce_reactions)} случаев',
@@ -343,11 +340,12 @@ class LogAnalyzer:
             report.append("")
             
             for i, issue in enumerate(analysis['issues'], 1):
-                severity_mark = "[!!]" if issue['severity'] == 'HIGH' else "[!]"
-                report.append(f"{i}. {severity_mark} [{issue['severity']}] {issue['type']}")
-                report.append(f"   {issue['description']}")
-                if 'details' in issue:
-                    report.append(f"   Детали: {issue['details']}")
+                issue_dict: Dict[str, Any] = issue  # type: ignore[assignment]
+                severity_mark = "[!!]" if issue_dict['severity'] == 'HIGH' else "[!]"
+                report.append(f"{i}. {severity_mark} [{issue_dict['severity']}] {issue_dict['type']}")
+                report.append(f"   {issue_dict['description']}")
+                if 'details' in issue_dict:
+                    report.append(f"   Детали: {issue_dict['details']}")
                 report.append("")
         else:
             report.append("Серьезных проблем не обнаружено.")
@@ -356,7 +354,7 @@ class LogAnalyzer:
         return "\n".join(report)
 
 
-def main():
+def main() -> None:
     """Главная функция"""
     script_dir = Path(__file__).parent
     log_files = sorted([f for f in script_dir.glob("ai_player_1_*.txt")])

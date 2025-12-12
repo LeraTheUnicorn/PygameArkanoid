@@ -29,7 +29,7 @@ class TrajectoryPredictor:
         }  # Отслеживание порядка доступа для LRU стратегии
 
     def predict_trajectory(
-        self, game_state: GameState, max_points: int = 75
+        self, game_state: GameState, max_points: int = 120
     ) -> List[Point]:
         """
         Предсказывает траекторию мяча с кэшированием результатов
@@ -218,7 +218,7 @@ class TrajectoryPredictor:
         sim_vel_x = float(vel_x)
         sim_vel_y = float(vel_y)
         remaining_time = float(time_to_paddle)
-        max_iterations = 200  # УВЕЛИЧЕНО с 100 до 200 для более точной симуляции множественных отскоков
+        max_iterations = 300  # УВЕЛИЧЕНО с 200 до 300 для более точной симуляции множественных отскоков от блоков
         
         # КРИТИЧНО: Создаем копию списка блоков для симуляции
         sim_bricks = []
@@ -356,7 +356,8 @@ class TrajectoryPredictor:
         )
 
         # Предсказываем траекторию после отскока
-        trajectory = self.predict_trajectory(after_bounce_state, max_points=40)
+        # УВЕЛИЧЕНО с 40 до 80 для лучшего учета последующих отскоков от блоков
+        trajectory = self.predict_trajectory(after_bounce_state, max_points=80)
         
         # Сохраняем в кэш
         self._cache_result(self._after_bounce_cache, cache_key, trajectory)
@@ -414,7 +415,7 @@ class TrajectoryPredictor:
 
         # Ищем лучшую позицию для попадания в кубики
         best_position = intersection_point.x
-        best_score = -1
+        best_score = -1.0
 
         # Проверяем несколько позиций вокруг предсказанной точки
         for offset in range(-50, 51, 10):  # Проверяем позиции с шагом 10 пикселей
@@ -651,18 +652,19 @@ class TrajectoryPredictor:
         distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
         
         # Адаптивное количество точек на основе расстояния
+        # УВЕЛИЧЕНО для лучшего учета отскоков от блоков
         if distance_to_paddle < 50:
             # Мяч очень близко - используем максимум точек для точности
-            max_points = 60
+            max_points = 100
         elif distance_to_paddle < 150:
             # Мяч близко - используем много точек
-            max_points = 50
+            max_points = 80
         elif distance_to_paddle < 300:
             # Мяч на среднем расстоянии - используем среднее количество
-            max_points = 35
+            max_points = 60
         else:
             # Мяч далеко - используем минимум точек для производительности
-            max_points = 25
+            max_points = 40
         
         # Получаем полную траекторию и обрезаем до нужного размера
         full_trajectory = self.predict_trajectory(game_state)

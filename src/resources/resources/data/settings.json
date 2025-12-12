@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "ball_speed": 10,
+  "ball_speed": 8,
   "delete_ai_logs_on_start": true
 }

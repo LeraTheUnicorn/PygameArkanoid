@@ -1278,6 +1278,7 @@ def main() -> None:
     training_mode = False
     training_rounds = 0  # Счетчик раундов в режиме обучения
     ai_player: Optional[AIPlayer] = None  # Инициализация AI-игрока
+    should_exit = False  # Флаг для полного выхода из игры
 
     while True:  # Внешний цикл для возврата к вводу имени в авторежиме
         # Сбрасываем флаг завершения авторежима для каждого нового запуска
@@ -1320,8 +1321,8 @@ def main() -> None:
                 get_player_name(screen, font, big_font, highscore_manager)
             )
         if exit_game:
-            pygame.quit()
-            return
+            should_exit = True
+            break  # Выходим из внешнего цикла
         
         # Создаем новый AI-систему ПОСЛЕ выбора режима (только если нужен AI)
         ai_player = None
@@ -1449,14 +1450,14 @@ def main() -> None:
                 if event.type == pygame.QUIT:
                     # QUIT всегда закрывает приложение немедленно
                     running = False
-                    pygame.quit()
-                    sys.exit(0)
+                    should_exit = True
+                    break  # Выходим из игрового цикла
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         # ESC всегда закрывает приложение немедленно
                         running = False
-                        pygame.quit()
-                        sys.exit(0)
+                        should_exit = True
+                        break  # Выходим из игрового цикла
                     elif event.key == pygame.K_m:
                         # Переключение всех звуков
                         if sound_enabled:
@@ -3156,6 +3157,15 @@ def main() -> None:
             # Проверяем завершение авторежима
             if auto_mode_complete:
                 break  # Выход для возврата к вводу имени
+            
+            # Проверяем флаг выхода из игры
+            if should_exit:
+                break  # Выходим из игрового цикла
+
+        # Проверяем флаг выхода из игры перед продолжением
+        if should_exit:
+            pygame.quit()
+            sys.exit(0)  # Полный выход из процесса
 
         # В режиме обучения выводим статистику перед выходом
         if training_mode:
@@ -3177,6 +3187,10 @@ def main() -> None:
         
         # Продолжаем внешний цикл для возврата к вводу имени
         continue
+    
+    # Если мы вышли из внешнего цикла (через break), закрываем игру
+    pygame.quit()
+    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -42,6 +42,54 @@ class PositionCalculator:
         self.trajectory_predictor = trajectory_predictor
         self.targeting_system = targeting_system
 
+    def _ensure_safe_paddle_position(
+        self, paddle_center_x: float, landing_x: float, paddle_half_width: float
+    ) -> float:
+        """
+        Обеспечивает безопасную позицию платформы, предотвращая попадание мяча в углы.
+        
+        Если предсказанная точка приземления (landing_x) слишком близко к краю платформы,
+        смещает позицию платформы так, чтобы мяч попадал в безопасную зону (минимум 25px от края).
+        
+        Args:
+            paddle_center_x: Текущая позиция центра платформы
+            landing_x: Предсказанная X-координата приземления мяча
+            paddle_half_width: Половина ширины платформы
+            
+        Returns:
+            Скорректированная позиция центра платформы
+        """
+        ball_radius = 8  # Радиус мяча
+        safe_edge_distance = 25  # Минимальное расстояние от края платформы до точки попадания мяча
+        
+        # Вычисляем края платформы при текущей позиции
+        paddle_left_edge = paddle_center_x - paddle_half_width
+        paddle_right_edge = paddle_center_x + paddle_half_width
+        
+        # Вычисляем расстояние от точки приземления до краев платформы
+        distance_to_left_edge = landing_x - paddle_left_edge
+        distance_to_right_edge = paddle_right_edge - landing_x
+        
+        # Если мяч попадает слишком близко к левому краю
+        if distance_to_left_edge < safe_edge_distance:
+            # Смещаем платформу вправо, чтобы мяч попадал в безопасную зону
+            adjustment = safe_edge_distance - distance_to_left_edge
+            paddle_center_x += adjustment
+        
+        # Если мяч попадает слишком близко к правому краю
+        elif distance_to_right_edge < safe_edge_distance:
+            # Смещаем платформу влево, чтобы мяч попадал в безопасную зону
+            adjustment = safe_edge_distance - distance_to_right_edge
+            paddle_center_x -= adjustment
+        
+        # Ограничиваем границами экрана
+        safe_margin = 30
+        min_position = paddle_half_width + safe_margin
+        max_position = self.screen_width - paddle_half_width - safe_margin
+        paddle_center_x = max(min_position, min(max_position, paddle_center_x))
+        
+        return paddle_center_x
+
     def calculate_optimal_offset(
         self, landing_x: float, target_brick: Any, game_state: GameState
     ) -> float:
@@ -412,7 +460,13 @@ class PositionCalculator:
             min_position = paddle_half_width
             max_position = self.screen_width - paddle_half_width
             best_position = max(min_position, min(max_position, best_position))
+            # КРИТИЧНО: Применяем защиту от попадания в углы платформы
+            best_position = self._ensure_safe_paddle_position(best_position, landing_x, paddle_half_width)
 
+        # КРИТИЧНО: Применяем защиту от попадания в углы платформы перед возвратом
+        if best_position is not None:
+            best_position = self._ensure_safe_paddle_position(best_position, landing_x, paddle_half_width)
+        
         return best_position
 
     def calculate_position_with_target_brick(
@@ -456,6 +510,9 @@ class PositionCalculator:
         elif paddle_right_edge > self.screen_width - safe_margin:
             optimal_position = self.screen_width - safe_margin - paddle_half_width
 
+        # КРИТИЧНО: Применяем защиту от попадания в углы платформы
+        optimal_position = self._ensure_safe_paddle_position(optimal_position, landing_x, paddle_half_width)
+        
         return optimal_position
 
     def calculate_position_for_max_destruction(
@@ -538,5 +595,8 @@ class PositionCalculator:
         min_position = paddle_half_width
         max_position = self.screen_width - paddle_half_width
         optimal_position = max(min_position, min(max_position, optimal_position))
+        
+        # КРИТИЧНО: Применяем защиту от попадания в углы платформы
+        optimal_position = self._ensure_safe_paddle_position(optimal_position, landing_x, paddle_half_width)
 
         return optimal_position
