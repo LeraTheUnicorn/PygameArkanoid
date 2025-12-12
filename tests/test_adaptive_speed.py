@@ -10,8 +10,8 @@ from typing import List, Tuple
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ai.ai_player import AIPlayer
-from ai.game_state import GameState, Point
+from src.ai.ai_player import AIPlayer
+from src.ai.game_state import GameState, Point
 
 
 def test_adaptive_speed() -> bool:

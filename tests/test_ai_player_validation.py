@@ -18,7 +18,7 @@ def test_valid_dimensions() -> bool:
     print("Testing valid dimensions...")
     
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
         
         # Стандартные размеры
         ai1 = AIPlayer(800, 600, debug_mode=False)
@@ -50,7 +50,7 @@ def test_type_validation() -> bool:
     print("Testing type validation...")
     
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
         
         test_cases: List[Tuple[any, any, str]] = [
             ("800", 600, "screen_width as string"),
@@ -85,7 +85,7 @@ def test_negative_values() -> bool:
     print("Testing negative values...")
     
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
         
         test_cases: List[Tuple[int, int, str]] = [
             (-1, 600, "negative screen_width"),
@@ -118,7 +118,7 @@ def test_minimum_dimensions() -> bool:
     print("Testing minimum dimensions...")
     
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
         
         test_cases: List[Tuple[int, int, str]] = [
             (399, 300, "width too small"),
@@ -153,7 +153,7 @@ def test_debug_mode_validation() -> bool:
     print("Testing debug_mode validation...")
     
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
         
         # debug_mode должен преобразовываться в bool
         ai1 = AIPlayer(800, 600, debug_mode=1)
@@ -179,11 +179,11 @@ def test_dependency_injection() -> bool:
     print("Testing dependency injection...")
     
     try:
-        from ai.ai_player import AIPlayer
-        from ai.trajectory_predictor import TrajectoryPredictor
-        from ai.position_optimizer import PositionOptimizer
-        from ai.learning_system import LearningSystem
-        from ai.performance_logger import PerformanceLogger
+        from src.ai.ai_player import AIPlayer
+        from src.ai.trajectory_predictor import TrajectoryPredictor
+        from src.ai.position_optimizer import PositionOptimizer
+        from src.ai.learning_system import LearningSystem
+        from src.ai.performance_logger import PerformanceLogger
         
         # Создаем mock-объекты для инъекции
         mock_trajectory = TrajectoryPredictor(800, 600)

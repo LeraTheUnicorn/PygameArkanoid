@@ -23,7 +23,7 @@ def test_game_state_reset() -> bool:
     try:
         # Правильный путь к PyGameBall.py
         pygameball_path: str = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "game", "PyGameBall.py"
         )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content: str = f.read()

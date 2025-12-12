@@ -17,7 +17,7 @@ def test_imports() -> bool:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     try:
-        from PyGameBall import Paddle, Ball, build_bricks
+        from src.game.PyGameBall import Paddle, Ball, build_bricks
 
         print("PASS: Main game modules imported successfully")
     except Exception as e:
@@ -25,11 +25,11 @@ def test_imports() -> bool:
         return False
 
     try:
-        from ai.ai_player import AIPlayer
-        from ai.learning_system import LearningSystem
-        from ai.position_optimizer import PositionOptimizer
-        from ai.trajectory_predictor import TrajectoryPredictor
-        from ai.game_state import GameState
+        from src.ai.ai_player import AIPlayer
+        from src.ai.learning_system import LearningSystem
+        from src.ai.position_optimizer import PositionOptimizer
+        from src.ai.trajectory_predictor import TrajectoryPredictor
+        from src.ai.game_state import GameState
 
         print("✓ AI modules imported successfully")
     except Exception as e:
@@ -44,7 +44,7 @@ def test_ai_initialization() -> bool:
     print("\nTesting AI initialization...")
 
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
 
         # Создаем AIPlayer
         ai_player: AIPlayer = AIPlayer(800, 600, debug_mode=False)
@@ -53,8 +53,8 @@ def test_ai_initialization() -> bool:
         print(f"✓ AIPlayer created and activated: {ai_player.is_active}")
 
         # Создаем другие компоненты
-        from ai.learning_system import LearningSystem
-        from ai.position_optimizer import PositionOptimizer
+        from src.ai.learning_system import LearningSystem
+        from src.ai.position_optimizer import PositionOptimizer
 
         learning_system: LearningSystem = LearningSystem()
         position_optimizer: PositionOptimizer = PositionOptimizer(800, 600)
@@ -78,7 +78,7 @@ def test_game_objects() -> bool:
 
         pygame.init()
 
-        from PyGameBall import Paddle, Ball, build_bricks
+        from src.game.PyGameBall import Paddle, Ball, build_bricks
 
         # Создаем объекты
         paddle: Paddle = Paddle()

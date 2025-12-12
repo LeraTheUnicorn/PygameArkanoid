@@ -24,7 +24,7 @@ LicenseFile=LICENSE.txt
 InfoBeforeFile=docs/README_RELEASE.txt
 OutputDir=installer
 OutputBaseFilename=Arkanoid_v{#MyAppVersion}_Setup
-SetupIconFile=resources/icon.ico
+SetupIconFile=src/resources/icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -44,7 +44,7 @@ Name: "gamerecords"; Description: "Создать папку для сохран
 Source: "Arkanoid_v{#MyAppVersion}.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sounds\*"; DestDir: "{app}\sounds"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "images\*"; DestDir: "{app}\images"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "resources\highscores.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "src\resources\data\highscores.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "highscores.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "docs\README_RELEASE.md"; DestDir: "{app}"; Flags: ignoreversion

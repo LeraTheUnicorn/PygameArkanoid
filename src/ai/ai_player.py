@@ -29,6 +29,11 @@ from .debug_logger import DebugLogger
 from .platform_utils import is_frozen
 from .targeting import TargetSelector, PositionCalculator
 from .strategy import PaddleMovementStrategy, ZoneHandler, TargetTracker
+from .logging_config import get_log_level, setup_root_logger
+
+# КРИТИЧНО: Настраиваем root logger для всех модулей проекта при импорте AIPlayer
+# Это гарантирует, что ВСЕ модули используют централизованную конфигурацию логирования
+setup_root_logger()
 
 import pygame  # type: ignore[import-untyped]
 
@@ -159,7 +164,8 @@ class AIPlayer:
         self.debug_mode = bool(debug_mode)
         
         # Настройка логирования для этого экземпляра
-        self._logger = self._setup_logging(debug_mode)
+        # ВАЖНО: логирование настраивается ТОЛЬКО в logging_config.py, не зависит от debug_mode
+        self._logger = self._setup_logging()
 
         # Инъекция зависимостей с fallback на значения по умолчанию
         self.trajectory_predictor = (
@@ -384,7 +390,10 @@ class AIPlayer:
         except (AttributeError, TypeError) as e:
             # В случае ошибки возвращаем значение по умолчанию
             # Используем модульный логгер, так как это статический метод
-            logging.getLogger(__name__).debug(f"Ошибка при чтении переменной окружения {key}: {e}", exc_info=True)
+            # Root logger уже настроен через setup_root_logger(), используем его
+            logger = logging.getLogger(__name__)
+            logger.setLevel(get_log_level())  # Убеждаемся что уровень установлен
+            logger.debug(f"Ошибка при чтении переменной окружения {key}: {e}", exc_info=True)
             return default
 
     _instance_counter = 0  # Счетчик для создания уникальных имен логгеров
@@ -427,13 +436,13 @@ class AIPlayer:
                 print(f"[LOG] Ошибка при очистке старых логов: {e}")
     
     @classmethod
-    def _setup_logging(cls, debug_mode: bool) -> logging.Logger:
+    def _setup_logging(cls) -> logging.Logger:
         """
         Настраивает и возвращает логгер для экземпляра AIPlayer.
         Логи записываются в файл, а не в консоль.
         
-        Args:
-            debug_mode: Если True, устанавливает уровень DEBUG, иначе INFO
+        Уровень логирования определяется ТОЛЬКО в logging_config.py через LOG_LEVEL.
+        НЕ зависит от параметра debug_mode при создании AIPlayer.
         
         Returns:
             Настроенный логгер для этого экземпляра
@@ -471,12 +480,29 @@ class AIPlayer:
             # Предотвращаем дублирование сообщений через родительские логгеры
             logger.propagate = False
         
-        # Устанавливаем уровень логирования для этого экземпляра
-        # В debug_mode показываем все сообщения, иначе только INFO и выше
-        if debug_mode:
-            logger.setLevel(logging.DEBUG)
-        else:
-            logger.setLevel(logging.INFO)
+        # Устанавливаем уровень логирования для этого экземпляра и handler
+        # Используем централизованную конфигурацию из logging_config.py
+        # ВАЖНО: уровень логирования настраивается ТОЛЬКО в logging_config.py
+        log_level = get_log_level()
+        
+        # КРИТИЧНО: Устанавливаем уровень для логгера
+        logger.setLevel(log_level)
+        
+        # КРИТИЧНО: Устанавливаем уровень для всех handlers этого логгера
+        # Это обязательно - handler может иметь свой собственный уровень
+        for handler in logger.handlers:
+            handler.setLevel(log_level)
+        
+        # КРИТИЧНО: Убеждаемся, что root logger тоже настроен правильно
+        root_logger = logging.getLogger()
+        if root_logger.level > log_level:
+            root_logger.setLevel(log_level)
+            for root_handler in root_logger.handlers:
+                if root_handler.level > log_level:
+                    root_handler.setLevel(log_level)
+        
+        # Логируем установленный уровень для диагностики (только один раз при создании)
+        logger.info(f"[LOGGING CONFIG] Уровень логирования установлен: {logging.getLevelName(log_level)} ({log_level}), logger.level={logger.level}, handler.level={[h.level for h in logger.handlers]}")
         
         return logger
 
@@ -808,17 +834,33 @@ class AIPlayer:
         """
         Проверяет, нужно ли логировать отладочную информацию в текущем кадре.
         
+        Проверяет уровень логирования логгера (не зависит от debug_mode).
+        Логирование настраивается ТОЛЬКО в logging_config.py.
+        
+        ВАЖНО: Если уровень логгера DEBUG или ниже, возвращает True всегда 
+        (без интервального ограничения), так как пользователь явно установил 
+        DEBUG уровень и хочет видеть все сообщения.
+        
         Args:
             interval_multiplier: Множитель интервала (для более редкого логирования).
+                                Используется только если уровень > DEBUG.
                                 Например, 10 означает логирование в 10 раз реже.
         
         Returns:
             True, если нужно логировать, False иначе
         """
-        if not self.debug_mode:
+        # Получаем эффективный уровень логгера (с учетом родительских логгеров)
+        effective_level = self._logger.getEffectiveLevel()
+        
+        # Проверяем уровень логирования логгера, а не debug_mode
+        # Если эффективный уровень выше DEBUG - не логируем DEBUG сообщения
+        if effective_level > logging.DEBUG:
             return False
-        # Используем счетчик кадров вместо random для предсказуемости
-        return self._debug_logger.should_log_with_multiplier(interval_multiplier)
+        
+        # Если эффективный уровень DEBUG или ниже - логируем ВСЕ сообщения 
+        # (без интервального ограничения)
+        # Пользователь явно установил DEBUG уровень и хочет видеть все DEBUG сообщения
+        return True
     
     def is_ball_moving_towards_paddle(self) -> bool:
         """Проверяет, движется ли мяч к платформе (вниз)."""
@@ -907,9 +949,9 @@ class AIPlayer:
             fixed_position = self.separation_zone_tracker.target_position
             if fixed_position is not None:
                 # Логируем возврат зафиксированной позиции для отслеживания
-                if self._should_log_debug():
-                    self._logger.debug(f"[POSITION RETURN] ФЛАГ: Возвращаем зафиксированную позицию БЕЗ пересчета! "
-                                      f"target_position={fixed_position:.1f}, ball_y={ball_y:.1f}")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[POSITION RETURN] ФЛАГ: Возвращаем зафиксированную позицию БЕЗ пересчета! "
+                                  f"target_position={fixed_position:.1f}, ball_y={ball_y:.1f}")
                 
                 # Проверяем, не изменилась ли позиция (нарушение правила)
                 saved_vel_x = self.separation_zone_tracker.saved_ball_vel_x
@@ -1247,12 +1289,35 @@ class AIPlayer:
         if self.separation_zone_tracker.target_position_set:
             old_pos = self.separation_zone_tracker.target_position
             if old_pos is not None:
+                position_diff = abs(old_pos - position)
+                # КРИТИЧНО: Если позиция та же самая (разница < 5px) - это не нарушение
+                if position_diff < 5:
+                    self._logger.debug(
+                        f"[POSITION UPDATE] Попытка установить ту же позицию ({reason})! "
+                        f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
+                        f"Разница={position_diff:.1f}px - игнорируем"
+                    )
+                    return  # Игнорируем - позиция уже установлена
+                
+                # КРИТИЧНО: Если позиция отличается значительно - сбрасываем и устанавливаем новую
                 self._logger.warning(
-                    f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО ({reason})! "
+                    f"[RULE VIOLATION] Попытка установить ДРУГУЮ позицию ({reason})! "
                     f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
-                    f"Разница={abs(old_pos - position):.1f}px"
+                    f"Разница={position_diff:.1f}px - сбрасываем и устанавливаем новую"
                 )
-            self.separation_zone_tracker.game_restart_required = True
+                # Сбрасываем старую позицию и устанавливаем новую
+                self.separation_zone_tracker.target_position_set = False
+                self.separation_zone_tracker.target_position = None
+                self.separation_zone_tracker.paddle_moved_after_set = False
+                self.separation_zone_tracker.paddle_reached_target = False
+                # Устанавливаем новую позицию
+                self.separation_zone_tracker.target_position = position
+                self.separation_zone_tracker.target_position_set = True
+                self._logger.debug(
+                    f"[POSITION RESET] Позиция сброшена и установлена заново ({reason})! "
+                    f"target_position={position:.1f}"
+                )
+                return
         else:
             self.separation_zone_tracker.target_position = position
             self.separation_zone_tracker.target_position_set = True
@@ -3195,9 +3260,13 @@ class AIPlayer:
         """
         # Используем стратегию движения, если она инициализирована
         if self.paddle_movement_strategy is not None:
+            # ТЕСТ: Логируем вызов стратегии
+            self._logger.debug(f"[AI_PLAYER_MOVE] Вызываем paddle_movement_strategy.move_paddle_towards: current_x={current_x}, paddle_speed={paddle_speed}")
             # Обновляем current_game_state в стратегии
             self.paddle_movement_strategy.current_game_state = self.current_game_state
-            return self.paddle_movement_strategy.move_paddle_towards(current_x, paddle_speed)
+            result = self.paddle_movement_strategy.move_paddle_towards(current_x, paddle_speed)
+            self._logger.debug(f"[AI_PLAYER_MOVE] paddle_movement_strategy вернул: {result}")
+            return result
         
         # Fallback на старую логику, если стратегия не инициализирована
         if not self.current_game_state or not self.is_active:
@@ -3215,10 +3284,10 @@ class AIPlayer:
             separation_zone_start = self.separation_zone_tracker.separation_zone_start
             paddle_zone_start = self.separation_zone_tracker.paddle_zone_start
             
-            # КРИТИЧНО: Логируем состояние мяча для диагностики (только периодически, чтобы не засорять логи)
-            if self._should_log_debug(interval_multiplier=10):  # Каждый 1000-й кадр (100 * 10)
-                optimal_x = self.get_optimal_paddle_position()
-                self._logger.debug(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
+            # КРИТИЧНО: Логируем состояние мяча для диагностики
+            # Фильтрация по уровню выполняется автоматически системой логирования Python
+            optimal_x = self.get_optimal_paddle_position()
+            self._logger.debug(f"[PADDLE DEBUG] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y}, current_x={current_x}, optimal_x={optimal_x}, distance={abs(current_x - optimal_x):.1f}")
             
             # КРИТИЧНО: УБРАНО ПРАВИЛО 1 - платформа ДОЛЖНА двигаться к точке падения мяча
             # даже когда мяч летит вверх, чтобы успеть к моменту падения
@@ -3239,15 +3308,15 @@ class AIPlayer:
             
             if ball_y < separation_zone_start and not is_last_brick:
                 # Для нормальных случаев - не двигаемся в зоне кубиков
-                if self._should_log_debug(interval_multiplier=2):  # Каждый 200-й кадр (100 * 2)
-                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 2: Мяч в зоне кубиков (ball_y={ball_y:.1f} < {separation_zone_start}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_in_bricks_zone", 1.0)
                 return 0
             elif ball_y < separation_zone_start and is_last_brick:
                 # КРИТИЧНО: При 1 кирпиче разрешаем упреждающее движение
                 # Это позволяет платформе подготовиться к попаданию в последний кирпич
-                if self._should_log_debug(interval_multiplier=2):  # Каждый 200-й кадр (100 * 2)
-                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 2 EXCEPTION: Последний кирпич! Разрешаем движение в зоне кубиков")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 2 EXCEPTION: Последний кирпич! Разрешаем движение в зоне кубиков")
                 # Продолжаем обработку - не возвращаем 0
             
             # КРИТИЧНО: Проверяем, не потерян ли мяч (ниже верхней границы платформы)
@@ -3258,8 +3327,8 @@ class AIPlayer:
             if ball_lost:
                 # Мяч потерян - платформа НЕ двигается
                 # КРИТИЧНО: Логируем для диагностики (периодически)
-                if self._should_log_debug(interval_multiplier=2):  # Каждый 200-й кадр (100 * 2)
-                    self._logger.debug(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), платформа не двигается")
                 self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle", 1.0)
                 return 0
             
@@ -3427,10 +3496,10 @@ class AIPlayer:
                         tolerance = 15  # Равен скорости движения платформы - предотвращает дергание
                         
                         # КРИТИЧНО: Логируем движение к зафиксированной позиции для отслеживания
-                        if self._should_log_debug():
-                            self._logger.debug(f"[MOVING TO FIXED] ФЛАГ: Движение к зафиксированной позиции! "
-                                               f"current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
-                                               f"distance={distance_to_target:.1f}px, tolerance={tolerance}")
+                        # Фильтрация по уровню выполняется автоматически системой логирования Python
+                        self._logger.debug(f"[MOVING TO FIXED] ФЛАГ: Движение к зафиксированной позиции! "
+                                           f"current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+                                           f"distance={distance_to_target:.1f}px, tolerance={tolerance}")
                         
                         # Двигаемся к зафиксированной позиции
                         if distance_to_target > tolerance:
@@ -3753,12 +3822,36 @@ class AIPlayer:
                                             # НАРУШЕНИЕ ПРАВИЛА: Позиция уже установлена, но пытаемся установить снова!
                                             old_pos = self.separation_zone_tracker.target_position
                                             if old_pos is not None:
-                                                self._logger.warning(f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО (ПРАВИЛО 4)! "
-                                                                     f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
-                                                                     f"Разница={abs(old_pos - int(new_optimal_x)):.1f}px")
-                                                self.separation_zone_tracker.game_restart_required = True
-                                                # Используем старую позицию
-                                                optimal_x = float(old_pos)
+                                                position_diff = abs(old_pos - int(new_optimal_x))
+                                                # КРИТИЧНО: Если позиция та же самая (разница < 5px) - используем старую
+                                                if position_diff < 5:
+                                                    self._logger.debug(f"[POSITION UPDATE] Попытка установить ту же позицию (ПРАВИЛО 4)! "
+                                                                       f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
+                                                                       f"Разница={position_diff:.1f}px - используем старую")
+                                                    optimal_x = float(old_pos)
+                                                else:
+                                                    # КРИТИЧНО: Если позиция отличается значительно - сбрасываем и устанавливаем новую
+                                                    self._logger.warning(f"[RULE VIOLATION] Попытка установить ДРУГУЮ позицию (ПРАВИЛО 4)! "
+                                                                         f"Старая позиция={old_pos:.1f}, Новая позиция={int(new_optimal_x):.1f}, "
+                                                                         f"Разница={position_diff:.1f}px - сбрасываем и устанавливаем новую")
+                                                    # Сбрасываем старую позицию
+                                                    self.separation_zone_tracker.target_position_set = False
+                                                    self.separation_zone_tracker.target_position = None
+                                                    self.separation_zone_tracker.paddle_moved_after_set = False
+                                                    self.separation_zone_tracker.paddle_reached_target = False
+                                                    # Устанавливаем новую позицию
+                                                    optimal_x = float(new_optimal_x)
+                                                    self.separation_zone_tracker.target_position = int(new_optimal_x)
+                                                    self.separation_zone_tracker.target_position_set = True
+                                                    self.separation_zone_tracker.frames_since_target_set = 0
+                                                    self._logger.debug(f"[POSITION RESET] Позиция сброшена и установлена заново (ПРАВИЛО 4)! "
+                                                                       f"target_position={int(new_optimal_x):.1f}")
+                                            else:
+                                                # Старая позиция была None - устанавливаем новую
+                                                optimal_x = float(new_optimal_x)
+                                                self.separation_zone_tracker.target_position = int(new_optimal_x)
+                                                self.separation_zone_tracker.target_position_set = True
+                                                self.separation_zone_tracker.frames_since_target_set = 0
                                         else:
                                             # Позиция устанавливается впервые - это правильно
                                             current_vel_x = self.current_game_state.ball_velocity.x if self.current_game_state else 0
@@ -3922,8 +4015,8 @@ class AIPlayer:
                                 if not self.separation_zone_tracker.paddle_reached_target:
                                     self.separation_zone_tracker.paddle_reached_target = True
                                 # КРИТИЧНО: Логируем для диагностики
-                                if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр
-                                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
+                                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                                self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 3.1: Платформа очень близко к цели (distance={distance_to_target:.1f} <= {tolerance}), не двигаемся")
                                 self._log_paddle_movement(current_x, current_x, "paddle_reached_target", 1.0)
                                 return 0
                         
@@ -3985,8 +4078,8 @@ class AIPlayer:
             # КРИТИЧНО: Проверяем, что мяч НЕ потерян перед установкой целевой позиции
             if in_separation_zone and not self.separation_zone_tracker.target_position_set and not ball_lost:
                 # КРИТИЧНО: Логируем установку целевой позиции
-                if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр для диагностики
-                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Устанавливаем целевую позицию. ball_y={ball_y:.1f}, in_separation_zone={in_separation_zone}")
                 # Устанавливаем целевую позицию один раз
                 optimal_x = self.get_optimal_paddle_position()
                 
@@ -4092,8 +4185,8 @@ class AIPlayer:
                 if distance_to_target <= 25:
                     self.separation_zone_tracker.paddle_reached_target = True
                     # КРИТИЧНО: Логируем для диагностики
-                    if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр
-                        self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
+                    # Фильтрация по уровню выполняется автоматически системой логирования Python
+                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Платформа очень близко к цели (distance={distance_to_target:.1f} <= 5), не двигаемся")
                     return 0
                 
                 movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
@@ -4104,8 +4197,8 @@ class AIPlayer:
                     return self._fallback_movement(current_x)
                 
                 # КРИТИЧНО: Логируем движение
-                if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр
-                    self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
+                # Фильтрация по уровню выполняется автоматически системой логирования Python
+                self._logger.debug(f"[PADDLE DEBUG] ПРАВИЛО 4: Движение! movement={movement}, distance={distance_to_target:.1f}, current_x={current_x}, target_pos={target_pos}")
                 
                 self.separation_zone_tracker.paddle_moved_after_set = True
                 self._update_loop_tracking(movement, int(current_x), int(target_pos))

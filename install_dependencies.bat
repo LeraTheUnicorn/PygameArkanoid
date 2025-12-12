@@ -66,10 +66,11 @@ echo ========================================
 echo.
 echo 🎮 Игра готова к запуску!
 echo.
-echo Команда для запуска:
-echo   python PyGameBall.py
+echo Команда для запуска из корня проекта:
+echo   python src\game\PyGameBall.py
 echo.
-echo Или просто дважды щелкните по PyGameBall.py
+echo Или используйте полный путь (работает из любой папки):
+echo   python "%~dp0src\game\PyGameBall.py"
 echo.
 goto success_exit
 

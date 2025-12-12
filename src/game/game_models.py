@@ -11,7 +11,7 @@ from typing import List, Optional
 
 import pygame
 
-from game_config import (
+from .game_config import (
     BALL_SIZE,
     BALL_SPEED_DEFAULT,
     PADDLE_HEIGHT,
@@ -20,7 +20,7 @@ from game_config import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from settings import SettingsManager
+from .settings import SettingsManager
 
 
 @dataclass

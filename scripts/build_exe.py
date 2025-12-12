@@ -9,15 +9,16 @@ import sys
 import shutil
 import subprocess
 
-# Определяем корень проекта
+# Определяем корень проекта и директорию скриптов
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_current_version():
     """Получает текущую версию из version.py"""
     try:
         sys.path.insert(0, project_root)
-        from version import get_version_string
+        from src.game.version import get_version_string
 
         return get_version_string()
     except Exception as e:
@@ -30,8 +31,8 @@ def build_executable():
     try:
         print("Начинаю сборку исполняемого файла...")
 
-        # Создаём каталог для сборки
-        build_dir = os.path.join(project_root, "build")
+        # Создаём каталог для сборки внутри scripts/
+        build_dir = os.path.join(scripts_dir, "build")
         os.makedirs(build_dir, exist_ok=True)
 
         # Запускаем PyInstaller
@@ -45,20 +46,22 @@ def build_executable():
             os.path.join(build_dir, "dist"),
             "--workpath",
             os.path.join(build_dir, "temp"),
+            "--specpath",
+            build_dir,
             "--paths",
             os.path.join(project_root, "src"),
             "--add-data",
-            f'{os.path.join(project_root, "resources", "audio")};resources/audio',
+            f'{os.path.join(project_root, "src", "resources", "audio")};src/resources/audio',
             "--add-data",
-            f'{os.path.join(project_root, "resources", "images")};resources/images',
+            f'{os.path.join(project_root, "src", "resources", "images")};src/resources/images',
             "--add-data",
-            f'{os.path.join(project_root, "resources", "data")};resources/data',
+            f'{os.path.join(project_root, "src", "resources", "data")};src/resources/data',
             "--add-data",
             f'{os.path.join(project_root, "src", "game", "highscores.py")};src/game',
             "--add-data",
             f'{os.path.join(project_root, "src", "game", "settings.py")};src/game',
             "--add-data",
-            f'{os.path.join(project_root, "resources")};resources',
+            f'{os.path.join(project_root, "src", "resources")};src/resources',
             "--hidden-import",
             "pygame",
             "--hidden-import",

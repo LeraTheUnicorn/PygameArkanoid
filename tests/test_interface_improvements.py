@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
-from highscores import HighScoreManager
+from src.game.highscores import HighScoreManager
 import json
 
 
@@ -101,7 +101,7 @@ def test_highscores_display_logic() -> bool:
 
     try:
         # Создаем менеджер с тестовыми данными
-        from highscores import HIGHSCORES_FILE
+        from src.game.highscores import HIGHSCORES_FILE
 
         original_file: Optional[str] = HIGHSCORES_FILE
         import highscores
@@ -301,7 +301,7 @@ def test_interface_flow_simulation() -> bool:
     print("-> Логика реализована во всех функциях")
 
     # Проверяем что у нас есть все необходимые функции
-    from PyGameBall import get_player_name, show_highscores, show_game_results
+    from src.game.PyGameBall import get_player_name, show_highscores, show_game_results
 
     print("\n[OK] Все функции интерфейса доступны")
     print(

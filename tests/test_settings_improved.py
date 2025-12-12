@@ -16,7 +16,7 @@ from typing import Dict, Any
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from settings import (
+from src.game.settings import (
     SettingsManager,
     SettingsValidator,
     SettingsConstants
@@ -259,7 +259,7 @@ class TestSettingsManager:
 def test_backward_compatibility() -> None:
     """Тест обратной совместимости"""
     # Проверяем, что старый код все еще работает
-    from settings import SETTINGS_FILE
+        from src.game.settings import SETTINGS_FILE
     assert isinstance(SETTINGS_FILE, str)
     assert SETTINGS_FILE.endswith("settings.json")
 

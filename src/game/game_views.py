@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 
 import pygame
 
-from game_config import (
+from .game_config import (
     BACKGROUND_COLOR,
     BRICK_BORDER_COLOR,
     BRICK_COLORS,
@@ -18,9 +18,9 @@ from game_config import (
     SCREEN_WIDTH,
     TEXT_COLOR,
 )
-from game_models import Ball, Paddle
-from dirty_rects import DirtyRectManager
-from ai.ai_player import AIPlayer
+from .game_models import Ball, Paddle
+from .dirty_rects import DirtyRectManager
+from src.ai.ai_player import AIPlayer
 
 
 class GameView:

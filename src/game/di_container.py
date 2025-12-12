@@ -9,18 +9,18 @@ from typing import Optional
 
 import pygame
 
-from dirty_rects import DirtyRectManager
-from game_config import SCREEN_HEIGHT, SCREEN_WIDTH
-from game_controllers import GameController, InputController
-from game_models import Ball, GameState, Paddle
-from game_views import (
+from .dirty_rects import DirtyRectManager
+from .game_config import SCREEN_HEIGHT, SCREEN_WIDTH
+from .game_controllers import GameController, InputController
+from .game_models import Ball, GameState, Paddle
+from .game_views import (
     BallView,
     BricksView,
     HUDView,
     PaddleView,
 )
-from highscores import HighScoreManager
-from settings import SettingsManager
+from .highscores import HighScoreManager
+from .settings import SettingsManager
 
 
 class DIContainer:

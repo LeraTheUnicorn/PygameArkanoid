@@ -12,8 +12,9 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-# Определяем корень проекта
+# Определяем корень проекта и директорию скриптов
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def check_wix_installation() -> bool:
@@ -32,7 +33,7 @@ def get_current_version() -> str:
     """Получает текущую версию из version.py"""
     try:
         sys.path.insert(0, project_root)
-        from version import get_version_string
+        from src.game.version import get_version_string
 
         return get_version_string()
     except Exception as e:
@@ -43,8 +44,8 @@ def get_current_version() -> str:
 def create_wix_files() -> Optional[Path]:
     """Создает файлы WiX для MSI сборки"""
 
-    # Создаем директории для WiX
-    build_dir = os.path.join(project_root, "build")
+    # Создаем директории для WiX внутри scripts/build/
+    build_dir = os.path.join(scripts_dir, "build")
     os.makedirs(build_dir, exist_ok=True)
     wix_dir = Path(os.path.join(build_dir, "wix"))
     wix_dir.mkdir(exist_ok=True)
@@ -63,8 +64,8 @@ def create_wix_files() -> Optional[Path]:
             project_root, "dist", f"Arkanoid_v{version}.exe"
         ),  # dist (PyInstaller)
         os.path.join(
-            project_root, "build", "dist", f"Arkanoid_v{version}.exe"
-        ),  # build/dist (PyInstaller)
+            scripts_dir, "build", "dist", f"Arkanoid_v{version}.exe"
+        ),  # scripts/build/dist (PyInstaller)
     ]
 
     for path in possible_paths:
@@ -179,7 +180,7 @@ def create_wix_files() -> Optional[Path]:
 def build_msi() -> bool:
     """Собирает MSI файл с помощью WiX"""
     version = get_current_version()
-    build_dir = os.path.join(project_root, "build")
+    build_dir = os.path.join(scripts_dir, "build")
     os.makedirs(build_dir, exist_ok=True)
 
     # Проверяем наличие exe файла

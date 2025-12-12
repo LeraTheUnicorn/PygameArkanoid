@@ -22,7 +22,7 @@ def test_auto_mode_fix() -> bool:
     # Test 1: Check show_game_results function signature
     print("1. Checking show_game_results function signature...")
     try:
-        from PyGameBall import show_game_results
+        from src.game.PyGameBall import show_game_results
         import inspect
 
         # Get function parameters
@@ -48,7 +48,7 @@ def test_auto_mode_fix() -> bool:
     try:
         # Правильный путь к PyGameBall.py
         pygameball_path: str = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PyGameBall.py"
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "game", "PyGameBall.py"
         )
         with open(pygameball_path, "r", encoding="utf-8") as f:
             content: str = f.read()

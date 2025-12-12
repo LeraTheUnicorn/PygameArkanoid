@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 # Добавляем корневую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from highscores import HighScoreManager
+from src.game.highscores import HighScoreManager
 import json
 
 
@@ -99,7 +99,7 @@ def test_display_highscores_format() -> bool:
 
     try:
         # Создаем менеджер с тестовыми данными
-        from highscores import HIGHSCORES_FILE
+        from src.game.highscores import HIGHSCORES_FILE
 
         original_file: Optional[str] = HIGHSCORES_FILE
         import highscores
@@ -192,7 +192,7 @@ def test_empty_highscores() -> bool:
         json.dump([], f)
 
     try:
-        from highscores import HIGHSCORES_FILE
+        from src.game.highscores import HIGHSCORES_FILE
 
         original_file: Optional[str] = HIGHSCORES_FILE
         import highscores

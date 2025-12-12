@@ -13,7 +13,7 @@ from typing import List, Tuple, Optional
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
-from highscores import HighScoreManager
+from src.game.highscores import HighScoreManager
 
 
 def test_strict_10_limit() -> bool:
@@ -28,10 +28,10 @@ def test_strict_10_limit() -> bool:
     original_filename: Optional[str] = None
     try:
         # Сохраняем оригинальное значение и заменяем на временный файл
-        from highscores import HIGHSCORES_FILE
+        from src.game.highscores import HIGHSCORES_FILE
 
         original_filename = HIGHSCORES_FILE
-        import highscores
+        import src.game.highscores as highscores
 
         highscores.HIGHSCORES_FILE = temp_filename
 

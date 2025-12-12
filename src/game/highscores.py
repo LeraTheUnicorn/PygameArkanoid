@@ -13,7 +13,23 @@ from datetime import datetime
 from pathlib import Path
 
 # Настройка логирования
+# Используем стандартный logger, root logger будет настроен через ai.logging_config
 logger = logging.getLogger(__name__)
+# Устанавливаем уровень из корневого логгера (будет настроен через setup_root_logger)
+# На случай, если root logger еще не настроен, устанавливаем уровень напрямую
+if logger.level == logging.NOTSET:
+    try:
+        import sys
+        import os
+        # Добавляем путь к ai модулю
+        ai_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ai')
+        if ai_path not in sys.path:
+            sys.path.insert(0, ai_path)
+        from logging_config import get_log_level
+        logger.setLevel(get_log_level())
+    except (ImportError, ModuleNotFoundError):
+        # Если не можем импортировать, используем DEBUG по умолчанию
+        logger.setLevel(logging.DEBUG)
 
 # ============================================================================
 # КОНСТАНТЫ
@@ -82,17 +98,18 @@ def get_game_directory() -> str:
     """
     Определяет каталог игры с поддержкой кроссплатформенности.
     
-    Для разработки: local_game_files в корне проекта
+    Для разработки: src/resources/
     Для exe: каталог установки (Windows: LOCALAPPDATA, Linux/Mac: XDG_DATA_HOME или ~/.local/share)
     
     Returns:
         Путь к каталогу игры
     """
-    # Для разработки (запуск из IDE) всегда используем local_game_files
+    # Для разработки (запуск из IDE) используем src/resources/
     if not getattr(sys, "frozen", False):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        local_game_dir = os.path.join(current_dir, "local_game_files")
-        return local_game_dir
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+        src_dir = os.path.dirname(current_dir)  # src/
+        resources_dir = os.path.join(src_dir, "resources")  # src/resources/
+        return resources_dir
 
     # Для exe файлов используем системные каталоги
     if sys.platform == "win32":
@@ -143,9 +160,11 @@ def get_highscores_file_path(custom_path: Optional[str] = None) -> str:
         os.makedirs(data_dir, exist_ok=True)
     except (OSError, PermissionError) as e:
         logger.warning(f"Не удалось создать каталог {data_dir}: {e}")
-        # Если не удается создать каталог, используем текущую директорию
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(current_dir, "resources", "data")
+        # Если не удается создать каталог, используем fallback - src/resources/data
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+        src_dir = os.path.dirname(current_dir)  # src/
+        fallback_resources = os.path.join(src_dir, "resources")  # src/resources/
+        data_dir = os.path.join(fallback_resources, "data")
         try:
             os.makedirs(data_dir, exist_ok=True)
         except (OSError, PermissionError) as e2:
@@ -279,10 +298,11 @@ class HighScoreManager:
                 
         except (IOError, OSError, PermissionError) as e:
             logger.error(f"Ошибка сохранения рекордов в {self.highscores_file}: {e}")
-            # Пытаемся сохранить в текущую директорию как fallback
+            # Пытаемся сохранить в src/local_game_files как fallback
             try:
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                fallback_dir = os.path.join(current_dir, "local_game_files")
+                current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+                src_dir = os.path.dirname(current_dir)  # src/
+                fallback_dir = os.path.join(src_dir, "local_game_files")  # src/local_game_files/
                 os.makedirs(fallback_dir, exist_ok=True)
                 fallback_path = os.path.join(fallback_dir, "highscores_backup.json")
                 

@@ -8,7 +8,7 @@
 from typing import List, Set
 import pygame
 
-from game_config import DIRTY_RECT_BUFFER, USE_DIRTY_RECTS
+from .game_config import DIRTY_RECT_BUFFER, USE_DIRTY_RECTS
 
 
 class DirtyRectManager:

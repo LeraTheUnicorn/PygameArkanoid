@@ -15,7 +15,7 @@ def test_imports() -> bool:
     print("Testing imports...")
 
     try:
-        from PyGameBall import Paddle, Ball, build_bricks
+        from src.game.PyGameBall import Paddle, Ball, build_bricks
 
         print("PASS: Main game modules imported")
     except Exception as e:
@@ -23,10 +23,10 @@ def test_imports() -> bool:
         return False
 
     try:
-        from ai.ai_player import AIPlayer
-        from ai.learning_system import LearningSystem
-        from ai.position_optimizer import PositionOptimizer
-        from ai.trajectory_predictor import TrajectoryPredictor
+        from src.ai.ai_player import AIPlayer
+        from src.ai.learning_system import LearningSystem
+        from src.ai.position_optimizer import PositionOptimizer
+        from src.ai.trajectory_predictor import TrajectoryPredictor
 
         print("PASS: AI modules imported")
     except Exception as e:
@@ -40,7 +40,7 @@ def test_ai_init() -> bool:
     print("\nTesting AI initialization...")
 
     try:
-        from ai.ai_player import AIPlayer
+        from src.ai.ai_player import AIPlayer
 
         ai_player: AIPlayer = AIPlayer(800, 600, debug_mode=False)
         ai_player.activate()

@@ -34,7 +34,25 @@ if sys.version_info < (3, 8):
     raise RuntimeError("Требуется Python 3.8 или выше")
 
 # Настройка логирования
+# Используем стандартный logger, но root logger будет настроен через ai.logging_config
+# когда импортируется AIPlayer
 logger = logging.getLogger(__name__)
+# Устанавливаем уровень из корневого логгера (будет настроен через setup_root_logger)
+# На случай, если root logger еще не настроен, устанавливаем уровень напрямую
+if logger.level == logging.NOTSET:
+    # Пытаемся импортировать настройку из ai, если доступно
+    try:
+        import sys
+        import os
+        # Добавляем путь к ai модулю
+        ai_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ai')
+        if ai_path not in sys.path:
+            sys.path.insert(0, ai_path)
+        from logging_config import get_log_level
+        logger.setLevel(get_log_level())
+    except (ImportError, ModuleNotFoundError):
+        # Если не можем импортировать, используем DEBUG по умолчанию
+        logger.setLevel(logging.DEBUG)
 
 
 # ============================================================================
@@ -265,21 +283,22 @@ _settings_file_path_cache: Optional[str] = None
 def get_game_directory() -> str:
     """
     Определяет каталог игры.
-    При запуске из студии разработки использует local_game_files,
-    иначе использует директорию exe файла или текущую директорию.
+    При запуске из студии разработки использует src/resources,
+    иначе использует директорию exe файла.
     
     Returns:
-        Путь к каталогу игры
+        Путь к каталогу игры (где находятся resources)
     """
     # Проверяем, запущено ли приложение как exe или как скрипт Python
     if not getattr(sys, "frozen", False):
         # Если приложение запущено как скрипт Python (из студии разработки)
-        # Используем каталог local_game_files в корне проекта
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        local_game_dir = safe_join_path(current_dir, "local_game_files")
-        return local_game_dir
+        # Файл находится в src/game/, нужно подняться на уровень вверх и войти в src/resources/
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+        src_dir = os.path.dirname(current_dir)  # src/
+        resources_dir = os.path.join(src_dir, "resources")  # src/resources/
+        return resources_dir
     
-    # Для exe файлов используем директорию exe файла
+    # Для exe файлов используем директорию exe файла (там находятся ресурсы после сборки)
     return os.path.dirname(sys.executable)
 
 
@@ -315,9 +334,11 @@ def get_settings_file_path() -> str:
                 os.makedirs(data_dir, exist_ok=True)
             except (OSError, PermissionError) as e:
                 logger.warning(f"Не удалось создать каталог {data_dir}: {e}")
-                # Если не удается создать каталог, используем текущую директорию
-                fallback_dir = os.path.dirname(os.path.abspath(__file__))
-                data_dir = safe_join_path(fallback_dir, "resources", "data")
+                # Если не удается создать каталог, используем fallback - src/resources/data
+                current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+                src_dir = os.path.dirname(current_dir)  # src/
+                fallback_dir = os.path.join(src_dir, "resources")  # src/resources/
+                data_dir = safe_join_path(fallback_dir, "data")
                 if not os.path.exists(data_dir):
                     try:
                         os.makedirs(data_dir, exist_ok=True)

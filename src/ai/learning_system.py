@@ -58,7 +58,8 @@ class LearningSystem:
     """Система обучения для AI"""
 
     def __init__(self, model_path: Optional[str] = None):
-        self.logger = logging.getLogger(__name__)
+        from .logging_config import get_logger
+        self.logger = get_logger(__name__)
         
         # Определяем путь к модели
         if model_path is None:

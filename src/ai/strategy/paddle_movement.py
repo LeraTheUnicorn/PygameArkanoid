@@ -86,17 +86,26 @@ class PaddleMovementStrategy:
         Returns:
             Смещение платформы (-1, 0, 1)
         """
+        # КРИТИЧНО: Валидация входных параметров
+        current_x = self._clamp_paddle_position(current_x)
+        
+        # ТЕСТ: Логируем каждый вызов для диагностики
+        self._logger.debug(f"[MOVE_PADDLE_CALL] move_paddle_towards вызван: current_x={current_x}, paddle_speed={paddle_speed}")
+        
         # Проверка состояния
         if not self._validate_state():
-            return self._fallback_movement(current_x)
+            self._logger.debug("[MOVE_PADDLE_CALL] _validate_state вернул False, используем fallback")
+            return self._validate_movement(self._fallback_movement(current_x))
 
         try:
+            self._logger.debug("[MOVE_PADDLE_CALL] Начинаем обработку движения платформы")
             ball_y = self.current_game_state.ball_position.y
             ball_vel_y = (
                 self.current_game_state.ball_velocity.y
                 if hasattr(self.current_game_state, "ball_velocity")
                 else 0
             )
+            self._logger.debug(f"[MOVE_PADDLE_CALL] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y:.1f}")
 
             # Обработка зоны кубиков
             zones = self.zone_handler.calculate_zones()
@@ -104,40 +113,41 @@ class PaddleMovementStrategy:
                 bricks_count = len(self.current_game_state.remaining_bricks) if self.current_game_state else 50
                 is_last_brick = bricks_count == 1
                 if not is_last_brick:
-                    return self.zone_handler.handle_bricks_zone(ball_y, self.current_game_state)
+                    result = self.zone_handler.handle_bricks_zone(ball_y, self.current_game_state)
+                    return self._validate_movement(result)
 
             # Обработка потерянного мяча
             lost_ball_result = self._handle_lost_ball(ball_y, current_x)
             if lost_ball_result is not None:
-                return lost_ball_result
+                return self._validate_movement(lost_ball_result)
 
             # Обработка зоны разделения
             separation_result = self.zone_handler.handle_separation_zone(
                 ball_y, ball_vel_y, zones, self.current_game_state
             )
             if separation_result is not None:
-                return separation_result
+                return self._validate_movement(separation_result)
 
             # Фиксация целевой позиции
             fixed_target_result = self._handle_fixed_target(
                 current_x, paddle_speed, ball_y, ball_vel_y, zones
             )
             if fixed_target_result is not None:
-                return fixed_target_result
+                return self._validate_movement(fixed_target_result)
 
             # Установка новой цели
             new_target_result = self._set_new_target(
                 current_x, paddle_speed, ball_y, ball_vel_y, zones
             )
             if new_target_result is not None:
-                return new_target_result
+                return self._validate_movement(new_target_result)
 
             # Обычная логика движения
-            return self._handle_normal_movement(current_x, paddle_speed)
+            return self._validate_movement(self._handle_normal_movement(current_x, paddle_speed))
 
         except Exception as e:
             self._logger.error(f"Ошибка при движении платформы: {e}", exc_info=True)
-            return self._fallback_movement(current_x)
+            return self._validate_movement(self._fallback_movement(current_x))
 
     def _validate_state(self) -> bool:
         """
@@ -183,11 +193,11 @@ class PaddleMovementStrategy:
         ball_lost = ball_y > paddle_y
 
         if ball_lost:
-            if self._should_log_debug(interval_multiplier=2):
-                self._logger.debug(
-                    f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), "
-                    f"платформа не двигается"
-                )
+            # Фильтрация по уровню выполняется автоматически системой логирования Python
+            self._logger.debug(
+                f"[PADDLE DEBUG] Мяч потерян (ball_y={ball_y:.1f} > paddle_y={paddle_y:.1f}), "
+                f"платформа не двигается"
+            )
             self._log_paddle_movement(current_x, current_x, "ball_lost_below_paddle", 1.0)
             return 0
 
@@ -264,16 +274,24 @@ class PaddleMovementStrategy:
 
         # Двигаемся к зафиксированной позиции
         target_pos = int(current_target)
+        
+        # КРИТИЧНО: Ограничиваем целевую позицию границами экрана
+        target_pos = self._clamp_paddle_position(target_pos)
+        
         distance_to_target = abs(current_x - target_pos)
-        tolerance = 15  # Равен скорости движения платформы
+        # КРИТИЧНО: Используем меньший tolerance для более точного движения
+        # tolerance должен быть меньше скорости движения, чтобы платформа могла двигаться
+        # даже при малых расстояниях (например, 12-15px)
+        tolerance = max(3, paddle_speed // 3)  # Около 1/3 скорости движения, минимум 3px
 
         # КРИТИЧНО: Логируем для диагностики проблем с движением
-        if self._should_log_debug(interval_multiplier=1):  # Каждый 100-й кадр
-            self._logger.debug(
-                f"[FIXED TARGET] current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
-                f"distance={distance_to_target:.1f}, tolerance={tolerance}, "
-                f"in_separation_zone={in_separation_zone}, ball_y={ball_y:.1f}"
-            )
+        # Фильтрация по уровню выполняется автоматически системой логирования Python
+        self._logger.debug(
+            f"[FIXED TARGET] current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+            f"distance={distance_to_target:.1f}px, tolerance={tolerance}, "
+            f"in_separation_zone={in_separation_zone}, ball_y={ball_y:.1f}, "
+            f"paddle_speed={paddle_speed}"
+        )
 
         if distance_to_target > tolerance:
             movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
@@ -281,13 +299,18 @@ class PaddleMovementStrategy:
                 self._update_loop_tracking(movement, int(current_x), int(target_pos))
                 self._update_smoothness_tracking(movement, current_x)
                 self._log_paddle_movement(current_x, target_pos, "moving_to_fixed_target", 1.0)
+                self._logger.debug(
+                    f"[FIXED TARGET] Движение: {movement} (влево=-1, вправо=1, стоп=0), "
+                    f"distance={distance_to_target:.1f}px > tolerance={tolerance}"
+                )
                 return movement
         else:
             # КРИТИЧНО: Логируем, почему не двигаемся (достигли цели)
-            if self._should_log_debug(interval_multiplier=1):
-                self._logger.debug(
-                    f"[FIXED TARGET] Достигли цели! distance={distance_to_target:.1f} <= tolerance={tolerance}"
-                )
+            # Фильтрация по уровню выполняется автоматически системой логирования Python
+            self._logger.debug(
+                f"[FIXED TARGET] Достигли цели! distance={distance_to_target:.1f}px <= tolerance={tolerance}, "
+                f"возвращаем 0 (стоп)"
+            )
             return 0
 
     def _set_new_target(
@@ -347,6 +370,9 @@ class PaddleMovementStrategy:
                 else:
                     optimal_x = max(optimal_x, current_x - max_distance)
 
+        # КРИТИЧНО: Ограничиваем целевую позицию границами экрана
+        optimal_x = self._clamp_paddle_position(int(optimal_x))
+
         # Сохраняем целевую позицию
         if self.current_game_state:
             current_vel_x = (
@@ -360,19 +386,35 @@ class PaddleMovementStrategy:
         target_pos = int(optimal_x)
         distance_to_target = abs(current_x - target_pos)
 
+        # КРИТИЧНО: Логируем установку новой цели для диагностики
+        self._logger.debug(
+            f"[NEW TARGET] Установлена новая цель: current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
+            f"distance={distance_to_target:.1f}px, paddle_speed={paddle_speed}"
+        )
+
         if target_pos == current_x:
+            self._logger.debug(f"[NEW TARGET] Цель совпадает с текущей позицией, возвращаем 0")
             return 0
 
         if distance_to_target <= 25:
+            self._logger.debug(
+                f"[NEW TARGET] Расстояние до цели слишком мало ({distance_to_target:.1f}px <= 25), "
+                f"возвращаем 0"
+            )
             return 0
 
         movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
         if movement == 0:
+            self._logger.debug(f"[NEW TARGET] Не удалось определить направление, используем fallback")
             return self._fallback_movement(current_x)
 
         self._update_loop_tracking(movement, int(current_x), int(target_pos))
         self._update_smoothness_tracking(movement, current_x)
         self._log_paddle_movement(current_x, target_pos, "moving_to_new_target", 0.9)
+        self._logger.debug(
+            f"[NEW TARGET] Движение: {movement} (влево=-1, вправо=1, стоп=0), "
+            f"distance={distance_to_target:.1f}px"
+        )
         return movement
 
     def _handle_normal_movement(self, current_x: int, paddle_speed: int) -> int:
@@ -391,6 +433,9 @@ class PaddleMovementStrategy:
         if optimal_x is None:
             return self._fallback_movement(current_x)
 
+        # КРИТИЧНО: Ограничиваем оптимальную позицию границами экрана
+        optimal_x = self._clamp_paddle_position(int(optimal_x))
+
         # Проверяем зацикливание
         if not self.target_tracker.is_target_set():
             self._change_strategy_if_looping()
@@ -398,6 +443,8 @@ class PaddleMovementStrategy:
                 optimal_x = self._apply_alternative_strategy(optimal_x)
                 if optimal_x is None:
                     return self._fallback_movement(current_x)
+                # КРИТИЧНО: Ограничиваем альтернативную стратегию тоже
+                optimal_x = self._clamp_paddle_position(int(optimal_x))
 
         # Проверяем дрожание
         jitter_detected = self._detect_jitter()
@@ -415,12 +462,32 @@ class PaddleMovementStrategy:
         distance_to_optimal = abs(optimal_x - current_x)
         min_movement_distance = self.smoothness_system["min_movement_distance"]
 
+        # КРИТИЧНО: Логируем обычное движение для диагностики
+        self._logger.debug(
+            f"[NORMAL MOVEMENT] current_x={current_x:.1f}, optimal_x={optimal_x:.1f}, "
+            f"distance={distance_to_optimal:.1f}px, min_movement_distance={min_movement_distance:.1f}, "
+            f"precision_tolerance={precision_tolerance}, paddle_speed={paddle_speed}"
+        )
+
         if distance_to_optimal < min_movement_distance:
             if distance_to_optimal <= precision_tolerance:
+                self._logger.debug(
+                    f"[NORMAL MOVEMENT] Расстояние слишком мало ({distance_to_optimal:.1f}px <= {precision_tolerance}), "
+                    f"возвращаем 0"
+                )
                 return 0
             else:
-                return self._calculate_smooth_movement(current_x, optimal_x, distance_to_optimal)
+                smooth_movement = self._calculate_smooth_movement(current_x, optimal_x, distance_to_optimal)
+                self._logger.debug(
+                    f"[NORMAL MOVEMENT] Плавное движение: {smooth_movement} "
+                    f"(distance={distance_to_optimal:.1f}px < min_movement={min_movement_distance:.1f}px)"
+                )
+                return smooth_movement
         elif distance_to_optimal <= precision_tolerance:
+            self._logger.debug(
+                f"[NORMAL MOVEMENT] В пределах точности ({distance_to_optimal:.1f}px <= {precision_tolerance}), "
+                f"возвращаем 0"
+            )
             return 0
         else:
             # Адаптивная скорость
@@ -444,10 +511,19 @@ class PaddleMovementStrategy:
             )
 
             if movement == 0 and optimal_x != current_x:
+                self._logger.debug(
+                    f"[NORMAL MOVEMENT] position_optimizer вернул 0, но optimal_x != current_x, "
+                    f"используем fallback"
+                )
                 movement = self._fallback_movement(current_x)
 
             self._update_loop_tracking(movement, current_x, optimal_x)
             self._update_smoothness_tracking(movement, current_x)
+
+            self._logger.debug(
+                f"[NORMAL MOVEMENT] Движение: {movement} (влево=-1, вправо=1, стоп=0), "
+                f"distance={distance_to_optimal:.1f}px, adjusted_speed={adjusted_paddle_speed}"
+            )
 
             return movement
 
@@ -462,6 +538,7 @@ class PaddleMovementStrategy:
             Смещение платформы (-1, 0, 1)
         """
         if not self.current_game_state:
+            self._logger.debug("[FALLBACK] Нет game_state, возвращаем 0")
             return 0
 
         ball_x = self.current_game_state.ball_position.x
@@ -498,12 +575,26 @@ class PaddleMovementStrategy:
             else:
                 target_x = ball_x
 
+        # КРИТИЧНО: Ограничиваем целевую позицию границами экрана
+        target_x = self._clamp_paddle_position(int(target_x))
+
         distance = target_x - current_x
         tolerance = 3
 
+        # КРИТИЧНО: Логируем fallback движение для диагностики
+        self._logger.debug(
+            f"[FALLBACK] current_x={current_x:.1f}, target_x={target_x:.1f}, "
+            f"distance={abs(distance):.1f}px, tolerance={tolerance}, "
+            f"ball=({ball_x:.1f},{ball_y:.1f}), vel=({vel_x:.1f},{vel_y:.1f})"
+        )
+
         if abs(distance) <= tolerance:
+            self._logger.debug(f"[FALLBACK] В пределах tolerance, возвращаем 0")
             return 0
-        return 1 if distance > 0 else -1
+        
+        movement = 1 if distance > 0 else -1
+        self._logger.debug(f"[FALLBACK] Движение: {movement} (влево=-1, вправо=1)")
+        return movement
 
     def _detect_loop_pattern(self) -> bool:
         """
@@ -713,3 +804,60 @@ class PaddleMovementStrategy:
                     for t in self.smoothness_system["movement_changes"]
                     if current_time - t < 1.0
                 ]
+
+    def _validate_movement(self, movement: int) -> int:
+        """
+        Валидирует возвращаемое значение движения.
+
+        Args:
+            movement: Возвращаемое значение движения
+
+        Returns:
+            Валидное направление движения (-1, 0, 1)
+        """
+        # КРИТИЧНО: Проверяем, что возвращается направление, а не позиция
+        if movement not in (-1, 0, 1):
+            # Если возвращена позиция (больше 1 или меньше -1), конвертируем в направление
+            if isinstance(movement, (int, float)) and abs(movement) > 1:
+                # Это позиция, а не направление - логируем ошибку
+                self._logger.error(
+                    f"[CRITICAL ERROR] move_paddle_towards вернул позицию ({movement}) вместо направления! "
+                    f"Исправляем на fallback движение."
+                )
+                # Используем fallback движение
+                if self.current_game_state:
+                    current_x = int(self.current_game_state.paddle_position.x)
+                    return self._fallback_movement(current_x)
+                return 0
+            # Если это не число или невалидное значение - возвращаем 0
+            self._logger.error(
+                f"[CRITICAL ERROR] move_paddle_towards вернул невалидное значение: {movement} (тип: {type(movement)}). "
+                f"Исправляем на 0."
+            )
+            return 0
+        
+        return movement
+
+    def _clamp_paddle_position(self, position: int) -> int:
+        """
+        Ограничивает позицию платформы границами экрана.
+
+        Args:
+            position: Позиция платформы
+
+        Returns:
+            Ограниченная позиция платформы
+        """
+        paddle_half_width = self.paddle_width // 2
+        min_x = paddle_half_width
+        max_x = self.screen_width - paddle_half_width
+        
+        clamped = max(min_x, min(max_x, position))
+        
+        if clamped != position:
+            self._logger.debug(
+                f"[POSITION CLAMP] Позиция {position} ограничена до {clamped} "
+                f"(границы: {min_x} - {max_x})"
+            )
+        
+        return clamped

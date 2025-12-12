@@ -12,7 +12,7 @@ from typing import List, Callable
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from PyGameBall import (
+from src.game.PyGameBall import (
     Paddle,
     Ball,
     build_bricks,
@@ -20,7 +20,7 @@ from PyGameBall import (
     SCREEN_HEIGHT,
     PADDLE_SPEED,
 )
-from ai.ai_player import AIPlayer
+from src.ai.ai_player import AIPlayer
 
 
 def test_auto_mode_life_loss_fix() -> bool:

@@ -10,8 +10,8 @@ from typing import List, Dict, Any, Callable
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ai.performance_logger import CustomJSONEncoder
-from ai.game_state import Point
+from src.ai.performance_logger import CustomJSONEncoder
+from src.ai.game_state import Point
 import pygame
 import json
 

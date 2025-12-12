@@ -41,13 +41,45 @@ class TargetTracker:
         """
         if self.separation_zone_tracker.target_position_set:
             old_pos = self.separation_zone_tracker.target_position
-            if old_pos is not None and logger:
-                logger.warning(
-                    f"[RULE VIOLATION] ФЛАГ: Попытка установить позицию ПОВТОРНО ({reason})! "
-                    f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
-                    f"Разница={abs(old_pos - position):.1f}px"
-                )
-            self.separation_zone_tracker.game_restart_required = True
+            if old_pos is not None:
+                # КРИТИЧНО: Если позиция та же самая (разница < 5px) - это не нарушение,
+                # просто игнорируем попытку установить ту же позицию
+                position_diff = abs(old_pos - position)
+                if position_diff < 5:
+                    if logger:
+                        logger.debug(
+                            f"[POSITION UPDATE] Попытка установить ту же позицию ({reason})! "
+                            f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
+                            f"Разница={position_diff:.1f}px - игнорируем"
+                        )
+                    return  # Игнорируем - позиция уже установлена
+                
+                # КРИТИЧНО: Если позиция отличается значительно - это нарушение правила
+                # Вместо перезапуска игры просто сбрасываем целевую позицию и устанавливаем новую
+                if logger:
+                    logger.warning(
+                        f"[RULE VIOLATION] Попытка установить ДРУГУЮ позицию ({reason})! "
+                        f"Старая позиция={old_pos:.1f}, Новая позиция={position:.1f}, "
+                        f"Разница={position_diff:.1f}px - сбрасываем и устанавливаем новую"
+                    )
+                # Сбрасываем старую позицию и устанавливаем новую
+                self.reset_target_position()
+                self.separation_zone_tracker.target_position = position
+                self.separation_zone_tracker.target_position_set = True
+                if logger:
+                    logger.debug(
+                        f"[POSITION RESET] Позиция сброшена и установлена заново ({reason})! "
+                        f"target_position={position:.1f}"
+                    )
+            else:
+                # Старая позиция была None - просто устанавливаем новую
+                self.separation_zone_tracker.target_position = position
+                self.separation_zone_tracker.target_position_set = True
+                if logger:
+                    logger.debug(
+                        f"[POSITION FIXED] Позиция установлена ({reason})! "
+                        f"target_position={position:.1f}"
+                    )
         else:
             self.separation_zone_tracker.target_position = position
             self.separation_zone_tracker.target_position_set = True
@@ -82,7 +114,7 @@ class TargetTracker:
         Returns:
             True, если позиция установлена
         """
-        return self.separation_zone_tracker.target_position_set
+        return bool(self.separation_zone_tracker.target_position_set)
 
     def check_wall_bounce(self, current_vel_x: float) -> bool:
         """

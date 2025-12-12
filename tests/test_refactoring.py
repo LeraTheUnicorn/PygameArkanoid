@@ -9,8 +9,8 @@ from typing import List
 # Добавляем родительскую директорию в путь для импорта модулей
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from PyGameBall import Ball, Paddle, build_bricks
-from settings import SettingsManager
+from src.game.PyGameBall import Ball, Paddle, build_bricks
+from src.game.settings import SettingsManager
 
 
 def test_ball_class() -> None:
@@ -89,7 +89,7 @@ def test_reset_game() -> None:
     paddle: Paddle = Paddle()
     ball: Ball = Ball()
     ball.set_speed(6)
-    from PyGameBall import build_bricks
+    from src.game.PyGameBall import build_bricks
 
     bricks: List[object] = build_bricks()
     score: int = 10

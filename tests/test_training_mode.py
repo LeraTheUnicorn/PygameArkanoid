@@ -18,7 +18,7 @@ print("[TEST] Импортируем модули...")
 
 try:
     import pygame
-    from PyGameBall import main, get_player_name
+    from src.game.PyGameBall import main, get_player_name
     
     print("[TEST] Модули импортированы успешно")
     print("[TEST] Инициализируем pygame...")

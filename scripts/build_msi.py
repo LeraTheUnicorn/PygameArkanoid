@@ -9,15 +9,16 @@ import sys
 import subprocess
 import shutil
 
-# Определяем корень проекта
+# Определяем корень проекта и директорию скриптов
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_current_version():
     """Получает текущую версию из version.py"""
     try:
         sys.path.insert(0, project_root)
-        from version import get_version_string
+        from src.game.version import get_version_string
 
         return get_version_string()
     except Exception as e:
@@ -38,7 +39,7 @@ def build_msi():
         if not os.path.exists(exe_path):
             print(f"EXE файл {exe_path} не найден. Создаю...")
             exe_result = subprocess.run(
-                ["python", os.path.join(project_root, "scripts", "build_spec.py")]
+                [sys.executable, os.path.join(project_root, "scripts", "build_exe.py")]
             )
             if exe_result.returncode != 0:
                 print("Ошибка создания EXE")
@@ -51,7 +52,7 @@ def build_msi():
 
         # Копируем MSI в FINAL_RELEASE и проверяем
         build_msi_path = os.path.join(
-            project_root, "build", f"Arkanoid_v{version}_Setup.msi"
+            scripts_dir, "build", f"Arkanoid_v{version}_Setup.msi"
         )
         final_dir = os.path.join(project_root, "FINAL_RELEASE")
         os.makedirs(final_dir, exist_ok=True)

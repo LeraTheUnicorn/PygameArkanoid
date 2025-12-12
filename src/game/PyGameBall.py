@@ -22,14 +22,47 @@ import time
 import numpy as np
 import sys
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
+
+# Исправление для запуска файла напрямую: добавляем корневую директорию проекта в sys.path
+if __name__ == "__main__":
+    # Получаем путь к директории, содержащей этот файл
+    current_file = os.path.abspath(__file__)
+    current_dir = os.path.dirname(current_file)
+    # Поднимаемся на два уровня вверх: src/game -> src -> project_root
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+# КРИТИЧНО: Настраиваем логирование ПЕРЕД импортом всех модулей
+# Это гарантирует, что ВСЕ модули используют централизованную конфигурацию
+try:
+    from src.ai.logging_config import setup_root_logger
+    setup_root_logger()
+except (ImportError, ModuleNotFoundError):
+    # Если модуль недоступен, настраиваем базовое логирование
+    import logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
 # Импортируем pygame с ограниченным подавлением предупреждений
 with suppress_pkg_resources_warnings():
     import pygame
-from highscores import HighScoreManager
-from settings import SettingsManager
-from ai.ai_player import AIPlayer
+
+# Импорты с поддержкой как относительных, так и абсолютных путей
+try:
+    # Пытаемся использовать относительные импорты (когда запускается как модуль)
+    from .highscores import HighScoreManager
+    from .settings import SettingsManager
+except ImportError:
+    # Если относительные импорты не работают (когда запускается напрямую), используем абсолютные
+    from src.game.highscores import HighScoreManager
+    from src.game.settings import SettingsManager
+
+from src.ai.ai_player import AIPlayer
 
 
 def resource_path(relative_path: str) -> str:
@@ -40,49 +73,74 @@ def resource_path(relative_path: str) -> str:
     Использует os.path.join для корректной работы на разных ОС.
     
     Args:
-        relative_path: Относительный путь к ресурсу (например, "resources/audio/file.ogg")
+        relative_path: Относительный путь к ресурсу (например, "audio/file.ogg" или "images/d2.gif")
+                      Путь должен быть относительно src/resources/
         
     Returns:
         Абсолютный путь к ресурсу, нормализованный для текущей ОС
         
     Note:
-        В режиме разработки использует директорию файла.
-        В скомпилированном exe (PyInstaller) использует временную папку _MEIPASS.
+        В режиме разработки использует директорию src/resources/.
+        В скомпилированном exe (PyInstaller) ресурсы находятся в _MEIPASS/src/resources/.
     """
     try:
         # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
         base_path = sys._MEIPASS  # type: ignore[attr-defined]
+        # В exe ресурсы находятся в src/resources/ (как указано в --add-data)
+        resources_path = os.path.join(base_path, "src", "resources")
     except AttributeError:
-        # В режиме разработки используем директорию, где находится этот файл
-        # Это гарантирует правильный путь независимо от рабочей директории
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        # В режиме разработки файл находится в src/game/, нужно подняться на уровень вверх и войти в src/resources/
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # src/game/
+        src_dir = os.path.dirname(current_dir)  # src/
+        resources_path = os.path.join(src_dir, "resources")  # src/resources/
 
     # Используем os.path.join для кросс-платформенной совместимости
     # и нормализуем путь для корректной работы на всех ОС
-    full_path = os.path.join(base_path, relative_path)
+    full_path = os.path.join(resources_path, relative_path)
     return os.path.normpath(full_path)
 
 
 # Импортируем конфигурацию из централизованного файла
-from game_config import (
-    BALL_SIZE,
-    BALL_SPEED_DEFAULT,
-    BRICK_COLS,
-    BRICK_HEIGHT,
-    BRICK_OFFSET_TOP,
-    BRICK_PADDING,
-    BRICK_ROWS,
-    BRICK_WIDTH,
-    FPS,
-    MAX_LIVES,
-    PADDLE_HEIGHT,
-    PADDLE_SPEED,
-    PADDLE_WIDTH,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-    SEPARATION_ZONE_BOTTOM,
-    SEPARATION_ZONE_TOP,
-)
+try:
+    from .game_config import (
+        BALL_SIZE,
+        BALL_SPEED_DEFAULT,
+        BRICK_COLS,
+        BRICK_HEIGHT,
+        BRICK_OFFSET_TOP,
+        BRICK_PADDING,
+        BRICK_ROWS,
+        BRICK_WIDTH,
+        FPS,
+        MAX_LIVES,
+        PADDLE_HEIGHT,
+        PADDLE_SPEED,
+        PADDLE_WIDTH,
+        SCREEN_HEIGHT,
+        SCREEN_WIDTH,
+        SEPARATION_ZONE_BOTTOM,
+        SEPARATION_ZONE_TOP,
+    )
+except ImportError:
+    from src.game.game_config import (
+        BALL_SIZE,
+        BALL_SPEED_DEFAULT,
+        BRICK_COLS,
+        BRICK_HEIGHT,
+        BRICK_OFFSET_TOP,
+        BRICK_PADDING,
+        BRICK_ROWS,
+        BRICK_WIDTH,
+        FPS,
+        MAX_LIVES,
+        PADDLE_HEIGHT,
+        PADDLE_SPEED,
+        PADDLE_WIDTH,
+        SCREEN_HEIGHT,
+        SCREEN_WIDTH,
+        SEPARATION_ZONE_BOTTOM,
+        SEPARATION_ZONE_TOP,
+    )
 
 
 def generate_tone_sound(
@@ -538,7 +596,7 @@ def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -
         print(f"[VICTORY SPLASH] Начало функции show_victory_splash, длительность: {duration_seconds} сек")
     
     # Загружаем изображение
-    image_path = resource_path("resources/images/d2.gif")
+    image_path = resource_path("images/d2.gif")
     
     if not getattr(sys, "frozen", False):
         print(f"[VICTORY SPLASH] Путь к изображению: {image_path}")
@@ -554,6 +612,15 @@ def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -
                 print(f"[VICTORY SPLASH] Размер экрана: {screen_width}x{screen_height} (НЕ МЕНЯЕМ!)")
                 print(f"[VICTORY SPLASH] Загружаем GIF через PIL: {image_path}")
             
+            # Определяем правильный фильтр для изменения размера (совместимость с разными версиями Pillow)
+            # Pillow >= 9.0.0 использует Image.Resampling.LANCZOS, старые версии - Image.LANCZOS
+            if hasattr(Image, 'Resampling'):
+                lanczos_filter = Image.Resampling.LANCZOS
+            else:
+                # Для старых версий Pillow используем getattr для безопасного доступа
+                # Совместимость со старыми версиями Pillow, где LANCZOS это int
+                lanczos_filter: Any = getattr(Image, 'LANCZOS', 1)  # type: ignore[no-redef]  # 1 - это числовая константа LANCZOS
+            
             # Загружаем GIF с помощью PIL
             with Image.open(image_path) as im:
                 # Получаем длительность кадров из метаданных
@@ -565,7 +632,7 @@ def show_victory_splash(screen: pygame.Surface, duration_seconds: float = 5.0) -
                 
                 for i, frame in enumerate(ImageSequence.Iterator(im)):
                     # Копируем кадр и изменяем размер до размера экрана
-                    resized_frame = frame.copy().resize((screen_width, screen_height), Image.LANCZOS)
+                    resized_frame = frame.copy().resize((screen_width, screen_height), lanczos_filter)
                     
                     # Получаем длительность кадра
                     duration = frame.info.get("duration", default_duration)
@@ -1065,7 +1132,10 @@ def draw_bricks(screen: pygame.Surface, bricks: List[pygame.Rect]) -> None:
     Note:
         Для использования новой архитектуры с оптимизацией отрисовки см. game_views.BricksView
     """
-    from game_config import BRICK_COLORS, BRICK_BORDER_COLOR
+    try:
+        from .game_config import BRICK_COLORS, BRICK_BORDER_COLOR
+    except ImportError:
+        from src.game.game_config import BRICK_COLORS, BRICK_BORDER_COLOR
     
     for idx, brick in enumerate(bricks):
         color = BRICK_COLORS[idx // BRICK_COLS % len(BRICK_COLORS)]
@@ -1294,7 +1364,7 @@ def main() -> None:
         ]
         # Пытаемся загрузить фоновую музыку (но не запускаем автоматически)
         try:
-            music_path = resource_path("resources/audio/Night_Prowler.ogg")
+            music_path = resource_path("audio/Night_Prowler.ogg")
             # Нормализуем путь для корректной работы на Windows
             music_path = os.path.normpath(music_path)
             
@@ -1307,7 +1377,7 @@ def main() -> None:
                 if not getattr(sys, "frozen", False):
                     print(f"[DEBUG] Файл музыки не найден по пути: {music_path}")
                     # Пробуем альтернативный путь относительно текущей директории
-                    alt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "audio", "Night_Prowler.ogg")
+                    alt_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "audio", "Night_Prowler.ogg")
                     alt_path = os.path.normpath(alt_path)
                     if os.path.exists(alt_path):
                         print(f"[DEBUG] Найден альтернативный путь: {alt_path}")
@@ -1401,7 +1471,7 @@ def main() -> None:
                 traceback.print_exc()
                 # Создаем базовый AI без логирования в случае ошибки
                 try:
-                    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+                    ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
                 except:
                     # Если и это не работает, создаем минимальный AI
                     if not getattr(sys, "frozen", False):
@@ -1409,7 +1479,7 @@ def main() -> None:
                     raise
         else:
             # В ручном режиме создаем неактивный AI (для совместимости)
-            ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+            ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
             ai_player.deactivate()
 
         # ИСПРАВЛЕНИЕ: Устанавливаем жизни ПОСЛЕ получения training_mode
@@ -1606,7 +1676,7 @@ def main() -> None:
                                     ai_player = AIPlayer(
                                         SCREEN_WIDTH,
                                         SCREEN_HEIGHT,
-                                        debug_mode=False,
+                                        debug_mode=True,
                                     )
                                     ai_player.activate()
                                     game_start_time = time.time()
@@ -1651,7 +1721,7 @@ def main() -> None:
                 game_over = False
                 game_started = False
                 # Пересоздаем AI для новой игры
-                ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False)
+                ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
                 ai_player.activate()
 
             if not game_over:
@@ -1670,11 +1740,17 @@ def main() -> None:
                         print(f"[AI DEBUG] update_game_state завершен")
                     
                     # КРИТИЧНО: Проверяем нарушение правила фиксации позиции
+                    # Теперь вместо перезапуска игры просто сбрасываем целевую позицию
                     if hasattr(ai_player, 'separation_zone_tracker') and ai_player.separation_zone_tracker.game_restart_required:
-                        # Нарушение правила - перезапускаем игру
+                        # Нарушение правила - сбрасываем целевую позицию вместо перезапуска игры
                         if not getattr(sys, "frozen", False):
-                            print(f"[CRITICAL ERROR] Перезапуск игры из-за нарушения правила фиксации позиции!")
-                        game_over = True
+                            print(f"[WARNING] Обнаружено нарушение правила фиксации позиции! Сбрасываем целевую позицию.")
+                        # Сбрасываем целевую позицию
+                        if hasattr(ai_player, 'target_tracker'):
+                            ai_player.target_tracker.reset_target_position()
+                        elif hasattr(ai_player.separation_zone_tracker, 'target_position_set'):
+                            ai_player.separation_zone_tracker.target_position_set = False
+                            ai_player.separation_zone_tracker.target_position = None
                         # Сбрасываем флаг
                         ai_player.separation_zone_tracker.game_restart_required = False
                     
@@ -2630,7 +2706,7 @@ def main() -> None:
                                         ai_player = AIPlayer(
                                             SCREEN_WIDTH,
                                             SCREEN_HEIGHT,
-                                            debug_mode=False,
+                                            debug_mode=True,
                                         )
                                         ai_player.activate()
                                         # Перезапускаем отсчет времени игры
@@ -2952,7 +3028,7 @@ def main() -> None:
                                         ai_player = AIPlayer(
                                             SCREEN_WIDTH,
                                             SCREEN_HEIGHT,
-                                            debug_mode=False,
+                                            debug_mode=True,
                                         )
                                         ai_player.activate()
                                         # Перезапускаем отсчет времени игры
@@ -3123,7 +3199,7 @@ def main() -> None:
                                     game_started = False
                                     # Пересоздаем AI для новой игры
                                     ai_player = AIPlayer(
-                                        SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=False
+                                        SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True
                                     )
                                     ai_player.activate()
                                     # Перезапускаем отсчет времени игры

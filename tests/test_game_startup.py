@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Импортируем необходимые модули
 try:
-    from PyGameBall import main
+    from src.game.PyGameBall import main
     import pygame
     
     print("[TEST] Импорт модулей успешен")

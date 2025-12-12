@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 
 import pygame
 
-from game_config import (
+from .game_config import (
     BRICK_COLS,
     BRICK_HEIGHT,
     BRICK_OFFSET_TOP,
@@ -21,8 +21,8 @@ from game_config import (
     SEPARATION_ZONE_BOTTOM,
     SEPARATION_ZONE_TOP,
 )
-from game_models import Ball, GameState, Paddle
-from settings import SettingsManager
+from .game_models import Ball, GameState, Paddle
+from .settings import SettingsManager
 
 
 class GameController:
