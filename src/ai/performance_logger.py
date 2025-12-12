@@ -537,7 +537,16 @@ class PerformanceLogger:
 
     def save_game_result(self, game_result: Dict[str, Any]):
         """Сохраняет результат игры в общий файл"""
-        results_file = os.path.join(self.logs_dir, "all_game_results.json")
+        # Используем каталог analysis для результатов анализа, а не logs
+        ai_dir = get_ai_directory()
+        analysis_dir = os.path.join(ai_dir, "analysis")
+        try:
+            os.makedirs(analysis_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            # Fallback: используем каталог рядом с performance_logger.py
+            analysis_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analysis")
+            os.makedirs(analysis_dir, exist_ok=True)
+        results_file = os.path.join(analysis_dir, "all_game_results.json")
 
         # Загружаем существующие результаты
         existing_results = []
