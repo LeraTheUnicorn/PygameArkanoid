@@ -96,6 +96,8 @@ class SeparationZoneTracker:
     frames_since_target_set: int = 0
     saved_ball_vel_x: Optional[float] = None
     game_restart_required: bool = False
+    last_ball_vel_y: Optional[float] = None  # КРИТИЧНО: Отслеживание предыдущего направления мяча
+    ball_moving_downward_last_frame: bool = False  # КРИТИЧНО: Флаг движения мяча вниз на предыдущем кадре
     
     def reset(self) -> None:
         """Сбрасывает состояние."""
@@ -108,6 +110,8 @@ class SeparationZoneTracker:
         self.frames_since_target_set = 0
         self.saved_ball_vel_x = None
         self.game_restart_required = False
+        self.last_ball_vel_y = None
+        self.ball_moving_downward_last_frame = False
 
 
 class AIPlayer:

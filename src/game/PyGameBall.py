@@ -57,10 +57,12 @@ try:
     # Пытаемся использовать относительные импорты (когда запускается как модуль)
     from .highscores import HighScoreManager
     from .settings import SettingsManager
+    from .game_models import Ball, Paddle
 except ImportError:
     # Если относительные импорты не работают (когда запускается напрямую), используем абсолютные
     from src.game.highscores import HighScoreManager
     from src.game.settings import SettingsManager
+    from src.game.game_models import Ball, Paddle
 
 from src.ai.ai_player import AIPlayer
 
@@ -939,161 +941,8 @@ def show_game_results(
     return sound_enabled, restart_game, exit_game
 
 
-@dataclass
-class Paddle:
-    rect: pygame.Rect = field(
-        default_factory=lambda: pygame.Rect(
-            (SCREEN_WIDTH - PADDLE_WIDTH) // 2,
-            SCREEN_HEIGHT - 60,
-            PADDLE_WIDTH,
-            PADDLE_HEIGHT,
-        )
-    )
-
-    def move(self, direction: int) -> None:
-        """direction = -1 (влево) / 1 (вправо)."""
-        self.rect.x += direction * PADDLE_SPEED
-        # Строгие границы для центра платформы: половина ширины платформы = 60 пикселей
-        paddle_half_width = PADDLE_WIDTH // 2  # 60 пикселей
-        min_center_x = paddle_half_width
-        max_center_x = SCREEN_WIDTH - paddle_half_width
-        self.rect.centerx = max(min_center_x, min(max_center_x, self.rect.centerx))
-
-
-@dataclass
-class Ball:
-    """Класс мяча с интегрированным управлением скоростью"""
-
-    rect: pygame.Rect = field(
-        default_factory=lambda: pygame.Rect(
-            (SCREEN_WIDTH - BALL_SIZE) // 2,
-            SCREEN_HEIGHT // 2,
-            BALL_SIZE,
-            BALL_SIZE,
-        )
-    )
-    vel_x: int = field(
-        default_factory=lambda: random.choice([-BALL_SPEED_DEFAULT, BALL_SPEED_DEFAULT])
-    )
-    vel_y: int = field(default_factory=lambda: -BALL_SPEED_DEFAULT)
-    current_speed: int = field(default_factory=lambda: BALL_SPEED_DEFAULT)
-    _last_vel_x: int = field(default=0)
-    _just_bounced: bool = field(default=False)
-    _bounce_frame: int = field(default=0)
-
-    def update(self) -> None:
-        # Используем centerx/centery для согласованности координат
-        ball_radius = BALL_SIZE // 2  # 8 пикселей
-        min_center_x = ball_radius
-        max_center_x = SCREEN_WIDTH - ball_radius
-        min_center_y = ball_radius
-        
-        new_center_x = self.rect.centerx + self.vel_x
-        new_center_y = self.rect.centery + self.vel_y
-        
-        # Проверяем столкновение со стенами по горизонтали
-        if new_center_x < min_center_x:
-            new_center_x = min_center_x
-            self.vel_x *= -1
-        elif new_center_x > max_center_x:
-            new_center_x = max_center_x
-            self.vel_x *= -1
-        
-        # Ограничиваем позицию мяча по горизонтали
-        self.rect.centerx = new_center_x
-        
-        # Проверяем столкновение с потолком
-        if new_center_y < min_center_y:
-            new_center_y = min_center_y
-            self.vel_y *= -1
-            # Сбрасываем счетчик отскоков от стен при отскоке от верхней стенки
-            if hasattr(self, "_wall_bounce_count"):
-                self._wall_bounce_count = 0
-        else:
-            self.rect.centery = new_center_y
-        
-        # Дополнительная защита от зацикливания у стен
-        if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
-            # Если мяч слишком долго отскакивает от стен, добавляем случайность
-            if hasattr(self, "_wall_bounce_count"):
-                self._wall_bounce_count += 1
-            else:
-                self._wall_bounce_count = 1
-
-            if self._wall_bounce_count > 10:  # Если много раз отскочил от стен подряд
-                # Добавляем небольшое случайное изменение вертикальной скорости
-                self.vel_y += random.choice([-1, 0, 1])
-                self._wall_bounce_count = 0  # Сбрасываем счетчик
-
-    def bounce_vertical(self) -> None:
-        # КРИТИЧНО: Если vel_y == 0, устанавливаем скорость вверх
-        # Это предотвращает ситуацию, когда мяч "застревает" с нулевой скоростью
-        if self.vel_y == 0:
-            self.vel_y = -self.current_speed
-        else:
-            self.vel_y *= -1
-
-    def reset(self, paddle_rect: pygame.Rect) -> None:
-        """Сброс мяча на платформу с текущей скоростью"""
-        # Используем centerx/centery для согласованности координат
-        ball_radius = BALL_SIZE // 2
-        self.rect.centerx = paddle_rect.centerx
-        self.rect.centery = paddle_rect.top - ball_radius - 5  # Мяч должен быть минимум на 5 пикселей выше платформы
-        self.vel_x = random.choice([-self.current_speed, self.current_speed])
-        self.vel_y = -self.current_speed
-
-    def set_speed(
-        self,
-        speed: int,
-        settings_manager: Optional[SettingsManager] = None,
-        auto_mode: bool = False,
-    ) -> None:
-        """
-        Устанавливает скорость мяча и обновляет настройки.
-        
-        Ограничения скорости основаны на:
-        1. Ограничении времени расчета: FPS = 60 (16.67 мс на кадр)
-        2. Времени движения платформы в зоне разделения:
-           - Зона разделения: 314 пикселей (от 226 до 540)
-           - Платформа: скорость 9 пикселей/кадр, максимум 22.5 при 2.5x (1 кубик)
-           - Время движения платформы на 800 пикселей: 800 / 22.5 = 35.6 кадров
-           - Минимальное время пролета мяча: 314 / ball_speed >= 35.6
-           - Максимальная скорость мяча: 314 / 35.6 = 8.8 пикселей/кадр
-           - С запасом: 8 пикселей/кадр
-        """
-        # КРИТИЧНО: Максимальная скорость ограничена временем движения платформы
-        max_speed = 8 if auto_mode else 10
-        if 1 <= speed <= max_speed:
-            old_speed = self.current_speed
-            self.current_speed = speed
-            self.vel_x = (
-                int(self.vel_x * speed / old_speed) if old_speed != 0 else speed
-            )
-            self.vel_y = (
-                int(self.vel_y * speed / old_speed) if old_speed != 0 else -speed
-            )
-
-            if settings_manager:
-                settings_manager.set_ball_speed(speed, auto_mode)
-
-    def increase_speed(
-        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
-    ) -> None:
-        """Увеличивает скорость на 1 (максимум зависит от режима)"""
-        max_speed = 25 if auto_mode else 10
-        if self.current_speed < max_speed:
-            self.set_speed(self.current_speed + 1, settings_manager, auto_mode)
-
-    def decrease_speed(
-        self, settings_manager: Optional[SettingsManager] = None, auto_mode: bool = False
-    ) -> None:
-        """Уменьшает скорость на 1 (минимум 1)"""
-        if self.current_speed > 1:
-            self.set_speed(self.current_speed - 1, settings_manager, auto_mode)
-
-    def get_speed(self) -> int:
-        """Возвращает текущую скорость мяча"""
-        return self.current_speed
+# КРИТИЧНО: Классы Paddle и Ball импортируются из game_models.py
+# для устранения дубликатов кода (см. docs/DUPLICATE_ANALYSIS.md)
 
 
 def build_bricks() -> List[pygame.Rect]:

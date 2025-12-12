@@ -7,7 +7,7 @@
 
 import json
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast, DefaultDict
 from collections import defaultdict
 from pathlib import Path
 import statistics
@@ -104,9 +104,10 @@ class LogAnalyzer:
             analysis["low_confidence_count"] = sum(1 for c in confidences if c < 0.5)
         
         # Анализ причин движения
+        movement_reasons = cast(DefaultDict[str, int], analysis["movement_reasons"])
         for movement in self.movements:
             reason: str = movement.get("reason", "unknown")
-            analysis["movement_reasons"][reason] += 1
+            movement_reasons[reason] += 1
         
         # Выявление проблемных позиций
         analysis["problematic_positions"] = self._find_problematic_positions()

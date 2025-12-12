@@ -92,8 +92,13 @@ class ZoneHandler:
         separation_zone_start = zones["separation_zone_start"]
         paddle_zone_start = zones["paddle_zone_start"]
 
-        # Если мяч в разделительной зоне, но движется вверх — не двигаем платформу
+        # КРИТИЧНО: Если мяч в разделительной зоне, но движется вверх — сбрасываем цель
+        # и не двигаем платформу, так как мяч не представляет угрозы
         if separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y <= 0:
+            # Мяч движется вверх - сбрасываем целевую позицию, если она была установлена
+            if self.separation_zone_tracker.target_position_set:
+                self.separation_zone_tracker.target_position_set = False
+                self.separation_zone_tracker.target_position = None
             return 0
 
         # Проверяем, вошел ли мяч в зону разделения

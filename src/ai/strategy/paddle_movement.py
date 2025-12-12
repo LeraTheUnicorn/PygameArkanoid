@@ -242,6 +242,32 @@ class PaddleMovementStrategy:
         paddle_zone_start = zones["paddle_zone_start"]
         in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
+        # КРИТИЧНО: Проверяем смену направления мяча (вверх -> вниз)
+        # Если мяч только что начал двигаться вниз после движения вверх,
+        # нужно сбросить целевую позицию и пересчитать её
+        last_vel_y = self.separation_zone_tracker.last_ball_vel_y
+        if (last_vel_y is not None and 
+            last_vel_y <= 0 and  # мяч двигался вверх на предыдущем кадре
+            ball_vel_y > 0 and  # мяч теперь двигается вниз
+            in_separation_zone):  # мяч в зоне разделения
+            # Мяч сменил направление на движение вниз - сбрасываем цель для пересчета
+            self._logger.debug(
+                f"[DIRECTION CHANGE] Мяч сменил направление с вверх (vel_y={last_vel_y:.1f}) "
+                f"на вниз (vel_y={ball_vel_y:.1f}), сбрасываем целевую позицию"
+            )
+            self.target_tracker.reset_target_position()
+            self.separation_zone_tracker.ball_moving_downward_last_frame = True
+            # Обновляем отслеживание направления
+            self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
+            return None  # Возвращаем None, чтобы установить новую цель
+        
+        # Обновляем отслеживание направления
+        self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
+        if ball_vel_y > 0:
+            self.separation_zone_tracker.ball_moving_downward_last_frame = True
+        elif ball_vel_y <= 0:
+            self.separation_zone_tracker.ball_moving_downward_last_frame = False
+
         # КРИТИЧНО: Платформа должна двигаться к зафиксированной цели,
         # даже если мяч временно не в зоне разделения (например, близко к платформе)
         # НО только если мяч не потерян и не в зоне кубиков
@@ -338,8 +364,45 @@ class PaddleMovementStrategy:
         paddle_zone_start = zones["paddle_zone_start"]
         in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
-        if not in_separation_zone or self.target_tracker.is_target_set():
+        # КРИТИЧНО: Устанавливаем новую цель только если:
+        # 1. Мяч в зоне разделения И движется вниз (ball_vel_y > 0)
+        # 2. Мяч действительно летит к AI (проверяется через ball_vel_y > 0)
+        # 3. Цель еще не установлена ИЛИ мяч только что сменил направление на вниз
+        if not in_separation_zone:
             return None
+        
+        # КРИТИЧНО: Дополнительная проверка - мяч должен двигаться вниз (к AI)
+        # Это критично, так как AI находится внизу экрана
+        if ball_vel_y <= 0:
+            # Мяч движется вверх или стоит на месте - не устанавливаем цель
+            return None
+        
+        # КРИТИЧНО: Проверяем, что мяч действительно приближается к AI
+        # AI находится внизу экрана, поэтому мяч должен двигаться вниз
+        if not self.current_game_state:
+            return None
+        
+        paddle_y = self.current_game_state.paddle_position.y
+        # Мяч должен быть выше платформы и двигаться вниз
+        if ball_y >= paddle_y:
+            # Мяч уже на уровне или ниже платформы - слишком поздно
+            return None
+        
+        # Если цель уже установлена, но мяч не сменил направление - не пересчитываем
+        if self.target_tracker.is_target_set():
+            # Проверяем, не сменил ли мяч направление
+            last_vel_y = self.separation_zone_tracker.last_ball_vel_y
+            if (last_vel_y is not None and 
+                last_vel_y <= 0 and  # мяч двигался вверх
+                ball_vel_y > 0):  # мяч теперь двигается вниз
+                # Мяч сменил направление - сбрасываем старую цель и устанавливаем новую
+                self._logger.debug(
+                    f"[NEW TARGET] Мяч сменил направление, сбрасываем старую цель и устанавливаем новую"
+                )
+                self.target_tracker.reset_target_position()
+            else:
+                # Цель уже установлена и направление не изменилось - не пересчитываем
+                return None
 
         if not self.current_game_state:
             return None
@@ -382,6 +445,9 @@ class PaddleMovementStrategy:
             )
             self.target_tracker.set_target_position(int(optimal_x), "new_target", self._logger)
             self.target_tracker.update_saved_velocity(current_vel_x)
+            # КРИТИЧНО: Обновляем отслеживание направления мяча
+            self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
+            self.separation_zone_tracker.ball_moving_downward_last_frame = True
 
         target_pos = int(optimal_x)
         distance_to_target = abs(current_x - target_pos)

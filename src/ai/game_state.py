@@ -6,6 +6,7 @@ import pygame
 from dataclasses import dataclass
 from typing import List, Tuple, Optional, Dict, Any
 import time
+import math
 
 
 @dataclass
@@ -26,7 +27,7 @@ class Point:
 
     def distance_to(self, other: "Point") -> float:
         """Вычисляет расстояние до другой точки"""
-        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
 
 @dataclass

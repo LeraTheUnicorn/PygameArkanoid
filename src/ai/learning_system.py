@@ -5,10 +5,9 @@
 import json
 import os
 import sys
-import logging
+import logging  # pyright: ignore[reportUnusedImport]
 from typing import Dict, List, Any, Optional
 import math
-from collections import defaultdict
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -220,8 +219,8 @@ class LearningSystem:
             return "conservative"
 
     def _update_position_preferences(
-        self, state_before: Dict, state_after: Dict, success: bool
-    ):
+        self, state_before: Dict[str, Any], state_after: Dict[str, Any], success: bool
+    ) -> None:
         """Обновляет предпочтения позиций платформы"""
         paddle_x_before = state_before.get("paddle_position", {}).get("x", 0)
         paddle_x_after = state_after.get("paddle_position", {}).get("x", 0)
@@ -243,7 +242,7 @@ class LearningSystem:
 
         pref["success_rate"] = pref["success_count"] / pref["total_count"]
 
-    def _analyze_trajectory_pattern(self, trajectory_data: Dict, success: bool):
+    def _analyze_trajectory_pattern(self, trajectory_data: Optional[Dict[str, Any]], success: bool) -> None:
         """Анализирует паттерны траекторий"""
         if trajectory_data is None:
             return
@@ -318,7 +317,7 @@ class LearningSystem:
 
         return "_".join(pattern_data)
 
-    def _update_success_factors(self, action_result: Dict[str, Any]):
+    def _update_success_factors(self, action_result: Dict[str, Any]) -> None:
         """Обновляет факторы успеха"""
         success = action_result.get("success", False)
         bricks_remaining = action_result.get("remaining_bricks", [])
@@ -353,7 +352,7 @@ class LearningSystem:
             if len(factor_data["factor_values"]) > 200:
                 factor_data["factor_values"] = factor_data["factor_values"][-100:]
 
-    def _update_learning_stats(self, success: bool):
+    def _update_learning_stats(self, success: bool) -> None:
         """Обновляет статистику обучения"""
         stats = self.learning_data["learning_stats"]
         stats["total_learning_iterations"] += 1
@@ -370,7 +369,7 @@ class LearningSystem:
                 stats["average_improvement"] * 0.9 + improvement_rate * 0.1
             )
 
-    def _train_success_prediction_model(self):
+    def _train_success_prediction_model(self) -> None:
         """Обучает модель предсказания успеха на основе исторических данных"""
         factors = self.learning_data["success_factors"]
         if not factors or len(factors) < 1:
@@ -392,20 +391,20 @@ class LearningSystem:
         success_rate = successes / total if total > 0 else 0.5
 
         # Создаем признаки: только ball_speed
-        X = []
-        y = []
+        X_list: List[List[float]] = []
+        y_list: List[int] = []
         
         for val in values:
             # Бинарный таргет: успех если фактор привел к успеху
             target = 1 if np.random.random() < success_rate else 0
-            X.append([val])
-            y.append(target)
+            X_list.append([float(val)])
+            y_list.append(target)
 
-        if len(X) < 10:
+        if len(X_list) < 10:
             return
 
-        X = np.array(X)
-        y = np.array(y)
+        X: np.ndarray[Any, Any] = np.array(X_list)
+        y: np.ndarray[Any, Any] = np.array(y_list)
 
         # Разделяем на train/test
         X_train, X_test, y_train, y_test = train_test_split(
@@ -430,11 +429,12 @@ class LearningSystem:
         self.learning_data["model_metrics"]["last_accuracy"] = float(accuracy)
         self.learning_data["model_metrics"]["training_samples"] = len(X_train)
         self.learning_data["model_metrics"]["test_samples"] = len(X_test)
-        self.learning_data["model_metrics"]["features_count"] = X.shape[1] if len(X.shape) > 1 else 1
+        features_count = int(X.shape[1]) if len(X.shape) > 1 else 1
+        self.learning_data["model_metrics"]["features_count"] = features_count
 
         self.learning_data["success_prediction_model"] = model
 
-    def cluster_trajectories(self, n_clusters=5):
+    def cluster_trajectories(self, n_clusters: int = 5) -> List[Dict[str, Any]]:
         """Кластеризует траектории на основе начальных точек"""
         if not self.learning_data["trajectory_patterns"]:
             return []
@@ -459,7 +459,7 @@ class LearningSystem:
             n_clusters = len(vectors)
 
         try:
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
             clusters = kmeans.fit_predict(vectors)
         except Exception as e:
             self.logger.warning(f"Ошибка кластеризации: {e}")
@@ -475,7 +475,7 @@ class LearningSystem:
         if not trajectory_clusters:
             return 0.0
 
-        cluster_counts = {}
+        cluster_counts: Dict[int, int] = {}
         for item in trajectory_clusters:
             cluster = item["cluster"]
             cluster_counts[cluster] = cluster_counts.get(cluster, 0) + 1
@@ -541,7 +541,8 @@ class LearningSystem:
         Returns:
             Текстовый промпт с правилами для алгоритма.
         """
-        return self.learning_data.get("user_prompt_destruction_control", "")
+        prompt = self.learning_data.get("user_prompt_destruction_control", "")
+        return str(prompt) if prompt else ""
 
     def apply_user_prompt_rules(self, current_situation: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -557,7 +558,7 @@ class LearningSystem:
         if not prompt:
             return {}
         
-        applied_rules = {}
+        applied_rules: Dict[str, Any] = {}
         
         # Анализируем промпт и извлекаем правила
         prompt_lower = prompt.lower()
@@ -567,20 +568,20 @@ class LearningSystem:
             bricks_remaining = current_situation.get("bricks_remaining", 25)
             if bricks_remaining <= 10:
                 applied_rules["precision_priority"] = True
-                applied_rules["aggressive_penalty"] = 0.7  # Снижаем агрессивность
+                applied_rules["aggressive_penalty"] = float(0.7)  # Снижаем агрессивность
         
         # Правило 2: Ограничение скорости платформы
         if "скорость платформы" in prompt_lower or "не избыточной" in prompt_lower:
-            applied_rules["speed_limit"] = 2.5  # Ограничиваем скорость платформы
+            applied_rules["speed_limit"] = float(2.5)  # Ограничиваем скорость платформы
         
         # Правило 3: Точное прицеливание
         if "точное прицеливание" in prompt_lower or "точность попадания" in prompt_lower:
-            applied_rules["precision_boost"] = 1.3  # Увеличиваем приоритет точности
+            applied_rules["precision_boost"] = float(1.3)  # Увеличиваем приоритет точности
         
         # Правило 4: Приоритет разрушения всех блоков
         if "разрушение" in prompt_lower or "все блоки" in prompt_lower or "50 блоков" in prompt_lower:
             applied_rules["destruction_priority"] = True
-            applied_rules["completion_goal"] = 50  # Цель - все 50 блоков
+            applied_rules["completion_goal"] = int(50)  # Цель - все 50 блоков
         
         # Правило 5: Использование координат блоков для точного прицеливания
         if "координаты" in prompt_lower or "координат" in prompt_lower:
@@ -589,7 +590,7 @@ class LearningSystem:
         
         # Правило 6: Исключение многократных отбитий в пустоту
         if ("отбитие" in prompt_lower and "пустот" in prompt_lower) or "более 2" in prompt_lower:
-            applied_rules["max_empty_bounces"] = 2
+            applied_rules["max_empty_bounces"] = int(2)
             applied_rules["prevent_empty_bounces"] = True
         
         # Правило 7: Использование лога передвижения
@@ -629,9 +630,10 @@ class LearningSystem:
 
         total_weight = sum(base_weights.values())
         if total_weight > 0:
-            base_weights = {k: v / total_weight for k, v in base_weights.items()}
+            normalized_weights: Dict[str, float] = {k: float(v / total_weight) for k, v in base_weights.items()}
+            return normalized_weights
 
-        return base_weights
+        return {k: float(v) for k, v in base_weights.items()}
 
     def get_optimal_position_preference(self, paddle_x: int) -> float:
         """
@@ -646,11 +648,12 @@ class LearningSystem:
         position_segment = int(paddle_x / 80)
 
         if position_segment in self.learning_data["position_preferences"]:
-            return self.learning_data["position_preferences"][position_segment][
-                "success_rate"
-            ]
+            success_rate = self.learning_data["position_preferences"][position_segment].get(
+                "success_rate", 0.5
+            )
+            return float(success_rate)
 
-        return 0.5
+        return float(0.5)
 
     def predict_success_probability(self, action_plan: Dict[str, Any]) -> float:
         """
@@ -684,7 +687,7 @@ class LearningSystem:
                 
                 proba = model.predict_proba(features)[0][1]  # Вероятность успеха
                 return float(proba)
-            except Exception as e:
+            except Exception:
                 # В случае ошибки используем fallback
                 pass
 
@@ -743,7 +746,8 @@ class LearningSystem:
             distance_factor = min(
                 10.0, distance_to_target / 100.0
             )  # Макс 10x для расстояния > 1000px
-            return max(0.5, min(10.0, avg_multiplier * distance_factor))
+            result = max(0.5, min(10.0, avg_multiplier * distance_factor))
+            return float(result)
 
         # Базовый расчет: скорость платформы пропорциональна скорости мяча
         base_multiplier = max(
@@ -754,7 +758,7 @@ class LearningSystem:
 
     def update_paddle_speed_feedback(
         self, ball_speed: int, speed_multiplier: float, success: bool
-    ):
+    ) -> None:
         """
         Обновляет данные о скорости платформы на основе результата
 
@@ -794,7 +798,7 @@ class LearningSystem:
             # Оставляем только успешные множители
             factors["speed_multipliers"] = factors["speed_multipliers"][-25:]
 
-    def save_model(self):
+    def save_model(self) -> None:
         """Сохраняет модель в файл"""
         try:
             # Создаем копию данных без ML модели (она не сериализуема в JSON)
@@ -803,11 +807,13 @@ class LearningSystem:
 
             with open(self.model_path, "w", encoding="utf-8") as f:
                 json.dump(save_data, f, ensure_ascii=False, indent=2)
-            self.logger.info("Модель сохранена успешно")
+            # КРИТИЧНО: Изменено с INFO на DEBUG, так как сохранение происходит очень часто
+            # и засоряет логи. Важные сохранения (при ошибках) все еще логируются как ERROR.
+            self.logger.debug("Модель сохранена успешно")
         except Exception as e:
             self.logger.error(f"Ошибка при сохранении модели: {e}")
 
-    def load_model(self):
+    def load_model(self) -> None:
         """Загружает модель из файла"""
         if os.path.exists(self.model_path):
             try:
@@ -822,7 +828,7 @@ class LearningSystem:
             except Exception as e:
                 self.logger.error(f"Ошибка при загрузке модели: {e}")
 
-    def reset_learning_data(self):
+    def reset_learning_data(self) -> None:
         """Сбрасывает данные обучения"""
         self.learning_data = {
             "strategy_weights": {
