@@ -140,3 +140,12 @@ class TargetTracker:
             vel_x: X-скорость мяча
         """
         self.separation_zone_tracker.saved_ball_vel_x = vel_x
+
+    def get_saved_velocity(self) -> Optional[float]:
+        """
+        Получает сохраненную скорость мяча.
+
+        Returns:
+            Сохраненная X-скорость мяча или None
+        """
+        return self.separation_zone_tracker.saved_ball_vel_x

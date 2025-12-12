@@ -37,8 +37,22 @@ if __name__ == "__main__":
 # КРИТИЧНО: Настраиваем логирование ПЕРЕД импортом всех модулей
 # Это гарантирует, что ВСЕ модули используют централизованную конфигурацию
 try:
-    from src.ai.logging_config import setup_root_logger
+    import logging
+    from src.ai.logging_config import setup_root_logger, get_logger
     setup_root_logger()
+    # Создаем logger для PyGameBall
+    logger = get_logger(__name__)
+    # КРИТИЧНО: Отключаем распространение в root logger, чтобы сообщения не попадали в консоль
+    # Все логи должны идти только в файлы через handlers, созданные в ai_player.py
+    logger.propagate = False
+    # Удаляем все консольные handlers (StreamHandler), если они есть
+    handlers_to_remove = []
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handlers_to_remove.append(handler)
+    for handler in handlers_to_remove:
+        logger.removeHandler(handler)
+        handler.close()
 except (ImportError, ModuleNotFoundError):
     # Если модуль недоступен, настраиваем базовое логирование
     import logging
@@ -47,6 +61,16 @@ except (ImportError, ModuleNotFoundError):
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
+    logger = logging.getLogger(__name__)
+    logger.propagate = False
+    # Удаляем все консольные handlers (StreamHandler), если они есть
+    handlers_to_remove = []
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handlers_to_remove.append(handler)
+    for handler in handlers_to_remove:
+        logger.removeHandler(handler)
+        handler.close()
 
 # Импортируем pygame с ограниченным подавлением предупреждений
 with suppress_pkg_resources_warnings():
@@ -1302,20 +1326,17 @@ def main() -> None:
         # Создаем новый AI-систему ПОСЛЕ выбора режима (только если нужен AI)
         ai_player = None
         if auto_mode or training_mode:
-            # Не выводим в exe файле
-            if not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Создание AIPlayer... auto_mode={auto_mode}, training_mode={training_mode}")
+            # Логируем создание AIPlayer (только в файл, не в консоль)
+            logger.debug(f"[AI DEBUG] Создание AIPlayer... auto_mode={auto_mode}, training_mode={training_mode}")
             try:
                 # КРИТИЧНО: Создаем AIPlayer БЕЗ блокирующего сообщения на экране
                 # Сообщение может остаться на экране, если создание занимает время
                 ai_player = AIPlayer(SCREEN_WIDTH, SCREEN_HEIGHT, debug_mode=True)
-                # Не выводим в exe файле
-                if not getattr(sys, "frozen", False):
-                    print(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
+                # Логируем создание AIPlayer (только в файл, не в консоль)
+                logger.debug(f"[AI DEBUG] Новый AIPlayer создан. Обучение будет продолжено...")
             except Exception as e:
-                # Не выводим в exe файле
-                if not getattr(sys, "frozen", False):
-                    print(f"[ERROR] Ошибка при создании AIPlayer: {e}")
+                # Логируем ошибку (только в файл, не в консоль)
+                logger.error(f"[ERROR] Ошибка при создании AIPlayer: {e}")
                 import traceback
                 traceback.print_exc()
                 # Создаем базовый AI без логирования в случае ошибки
@@ -1387,9 +1408,8 @@ def main() -> None:
             game_started = True  # Игра начинается сразу
             ball.vel_x = ball.get_speed()  # Направление вправо
             ball.vel_y = -ball.get_speed()
-            # Не выводим в exe файле
-            if not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Игра настроена, game_started={game_started}, ball.vel_x={ball.vel_x}, ball.vel_y={ball.vel_y}")
+            # Логируем настройку игры (только в файл, не в консоль)
+            logger.debug(f"[AI DEBUG] Игра настроена, game_started={game_started}, ball.vel_x={ball.vel_x}, ball.vel_y={ball.vel_y}")
         else:
             ai_player.deactivate()  # Деактивируем в ручном режиме
 
@@ -1409,21 +1429,19 @@ def main() -> None:
             ai_player.update_game_state(
                 ball, paddle, bricks, score, int(game_start_time)
             )
-            # Не выводим в exe файле
-            if not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Состояние игры обновлено для AI перед входом в цикл")
+            # Логируем обновление состояния (только в файл, не в консоль)
+            logger.debug(f"[AI DEBUG] Состояние игры обновлено для AI перед входом в цикл")
         
-        # КРИТИЧНО: Обновляем экран перед входом в основной цикл
-        if not getattr(sys, "frozen", False):
-            print(f"[AI DEBUG] Вход в основной цикл игры, running={running}, game_started={game_started}")
+        # КРИТИЧНО: Логируем вход в основной цикл (только в файл, не в консоль)
+        logger.debug(f"[AI DEBUG] Вход в основной цикл игры, running={running}, game_started={game_started}")
         
         # Очистка экрана выполняется в основном цикле для корректной отрисовки
 
         while running:
             frame_counter += 1
             # Отладочное сообщение только в первых 3 кадрах
-            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Кадр {frame_counter}, running={running}, game_started={game_started}")
+            if frame_counter <= 3:
+                logger.debug(f"[AI DEBUG] Кадр {frame_counter}, running={running}, game_started={game_started}")
             
             # КРИТИЧНО: Обработка событий должна быть первой и всегда выполняться
             events = pygame.event.get()
@@ -1535,8 +1553,8 @@ def main() -> None:
             keys = pygame.key.get_pressed()
             
             # Отладочное сообщение только в первых 3 кадрах
-            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] После обработки событий, game_started={game_started}, game_over={game_over}, auto_mode={auto_mode}, training_mode={training_mode}")
+            if frame_counter <= 3:
+                logger.debug(f"[AI DEBUG] После обработки событий, game_started={game_started}, game_over={game_over}, auto_mode={auto_mode}, training_mode={training_mode}")
 
             if not game_started and not auto_mode:
                 ball.rect.center = paddle.rect.midtop
@@ -1575,18 +1593,18 @@ def main() -> None:
 
             if not game_over:
                 # Отладочное сообщение только в первых 3 кадрах
-                if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                    print(f"[AI DEBUG] В блоке if not game_over, обновляем состояние игры")
+                if frame_counter <= 3:
+                    logger.debug(f"[AI DEBUG] В блоке if not game_over, обновляем состояние игры")
                 
                 # Обновляем состояние игры для AI системы
                 if auto_mode or training_mode:
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вызываем update_game_state...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Вызываем update_game_state...")
                     ai_player.update_game_state(
                         ball, paddle, bricks, score, int(game_start_time)
                     )
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] update_game_state завершен")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] update_game_state завершен")
                     
                     # КРИТИЧНО: Проверяем нарушение правила фиксации позиции
                     # Теперь вместо перезапуска игры просто сбрасываем целевую позицию
@@ -1645,34 +1663,35 @@ def main() -> None:
                 if auto_mode or training_mode:
                     # В авторежиме и режиме обучения используем адаптивную скорость платформы
                     if training_mode:
-                        # В режиме обучения ИИ управляет скоростью платформы
+                        # В режиме обучения используем адаптивную скорость с разумными пределами
+                        ball_speed = ball.get_speed()
+                        base_speed = max(35, min(int(ball_speed * 2.5), 60))
+                        # Применяем множитель от ИИ, но ограничиваем разумными пределами
                         paddle_speed_multiplier = (
                             ai_player.get_optimal_paddle_speed_multiplier()
                         )
-                        base_speed = PADDLE_SPEED * paddle_speed_multiplier
+                        base_speed = int(base_speed * paddle_speed_multiplier)
+                        # Ограничиваем финальную скорость разумными пределами
+                        base_speed = max(35, min(base_speed, 60))
                     else:
-                        # В авторежиме используем стандартную логику
-                        base_speed = max(
-                            PADDLE_SPEED, ball.get_speed() * 0.8
-                        )  # Минимум 15 или 80% от скорости мяча
-                        base_speed = max(
-                            base_speed, PADDLE_SPEED * 1.5
-                        )  # Минимум 22.5 для авторежима
+                        # В авторежиме используем адаптивную скорость платформы
+                        # КРИТИЧНО: Адаптивная скорость с разумными пределами
+                        # Минимум 35, максимум 60, базовая = ball_speed * 2.5
+                        ball_speed = ball.get_speed()
+                        base_speed = max(35, min(int(ball_speed * 2.5), 60))
                     
                     # КРИТИЧНО: При малом количестве блоков увеличиваем скорость платформы
+                    # Но ограничиваем разумными пределами (35-60)
                     try:
                         bricks_remaining = len(bricks) if bricks is not None else 50
                     except (NameError, TypeError):
                         bricks_remaining = 50
                     if bricks_remaining <= 5:
-                        # Увеличиваем скорость в критических ситуациях
-                        base_speed = int(base_speed * 1.5)  # Увеличиваем на 50%
+                        # Увеличиваем скорость в критических ситуациях, но не превышаем максимум
+                        base_speed = min(int(base_speed * 1.2), 60)  # Увеличиваем на 20%, максимум 60
                     if bricks_remaining == 1:
-                        # При 1 кубике максимальная скорость для гарантированного попадания
-                        base_speed = int(base_speed * 2.5)  # Увеличиваем в 2.5 раза
-                        # Также увеличиваем скорость пропорционально скорости мяча
-                        if ball.get_speed() > 20:
-                            base_speed = int(base_speed * (ball.get_speed() / 20.0))
+                        # При 1 кубике используем максимальную скорость для гарантированного попадания
+                        base_speed = 60  # Максимальная скорость
 
                     # КРИТИЧНО: Платформа начинает движение когда мяч в зоне разделения
                     # Правила работы:
@@ -1702,12 +1721,11 @@ def main() -> None:
                     # НО только если мяч не потерян
                     should_move = (ball_in_separation_zone or target_position_set) and ball_not_lost
                     
-                    # КРИТИЧНО: Логируем для диагностики проблем с движением
+                    # КРИТИЧНО: Логируем для диагностики проблем с движением (только в файл, не в консоль)
                     if should_move and pygame.time.get_ticks() % 1000 < 16:  # Каждые ~1 секунду
-                        if not getattr(sys, "frozen", False):
-                            print(f"[PADDLE MOVEMENT DEBUG] ball_in_separation_zone={ball_in_separation_zone}, "
-                                  f"target_position_set={target_position_set}, ball_not_lost={ball_not_lost}, "
-                                  f"ball_y={ball.rect.centery:.1f}, paddle_x={paddle.rect.centerx:.1f}")
+                        logger.debug(f"[PADDLE MOVEMENT DEBUG] ball_in_separation_zone={ball_in_separation_zone}, "
+                                     f"target_position_set={target_position_set}, ball_not_lost={ball_not_lost}, "
+                                     f"ball_y={ball.rect.centery:.1f}, paddle_x={paddle.rect.centerx:.1f}")
                     
                     if should_move:
                         # Используем AI систему для автоматического управления
@@ -1715,13 +1733,12 @@ def main() -> None:
                             paddle.rect.centerx, int(base_speed)
                         )
                         
-                        # КРИТИЧНО: Логируем результат движения для диагностики
+                        # КРИТИЧНО: Логируем результат движения для диагностики (только в файл, не в консоль)
                         if movement == 0 and target_position_set and pygame.time.get_ticks() % 1000 < 16:
-                            if not getattr(sys, "frozen", False):
-                                target_pos = ai_player.separation_zone_tracker.target_position if hasattr(ai_player, 'separation_zone_tracker') else None
-                                distance = abs(paddle.rect.centerx - target_pos) if target_pos is not None else 0
-                                print(f"[PADDLE MOVEMENT WARNING] movement=0, но target_position_set=True! "
-                                      f"paddle_x={paddle.rect.centerx:.1f}, target_pos={target_pos}, distance={distance:.1f}")
+                            target_pos = ai_player.separation_zone_tracker.target_position if hasattr(ai_player, 'separation_zone_tracker') else None
+                            distance = abs(paddle.rect.centerx - target_pos) if target_pos is not None else 0
+                            logger.debug(f"[PADDLE MOVEMENT DEBUG] movement=0, но target_position_set=True! "
+                                         f"paddle_x={paddle.rect.centerx:.1f}, target_pos={target_pos}, distance={distance:.1f}")
                         # Получаем скорректированную скорость от AI (с учетом адаптации)
                         adjusted_speed = ai_player.get_adjusted_paddle_speed(
                             int(base_speed)
@@ -1770,12 +1787,12 @@ def main() -> None:
                     ball_was_at_top = ball.rect.top <= 0 and ball.vel_y < 0
                     
                     # Обычное обновление мяча (непрерывная проверка столкновений встроена в update)
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вызываем ball.update()...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Вызываем ball.update()...")
                     try:
                         ball.update()
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] ball.update() завершен")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] ball.update() завершен")
                     except Exception as e:
                         if not getattr(sys, "frozen", False):
                             print(f"[ERROR] Ошибка в ball.update(): {e}")
@@ -1826,8 +1843,8 @@ def main() -> None:
                     
                     # КРИТИЧНО: Логируем координаты мяча и платформы для диагностики
                     # Логируем каждый 10-й кадр для экономии, НО всегда логируем при обнаружении прилипания
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем логирование координат...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Проверяем логирование координат...")
                     should_log = False
                     if (auto_mode or training_mode):
                         # Логируем каждый 10-й кадр или при обнаружении прилипания
@@ -1839,8 +1856,8 @@ def main() -> None:
                             should_log = True
                     
                     if should_log:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Вызываем log_ball_paddle_positions...")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Вызываем log_ball_paddle_positions...")
                         try:
                             ai_player.performance_logger.log_ball_paddle_positions(
                                 ball.rect.centerx,
@@ -1853,16 +1870,16 @@ def main() -> None:
                                 paddle.rect.height,
                                 "frame_update"
                             )
-                            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                                print(f"[AI DEBUG] log_ball_paddle_positions завершен")
+                            if frame_counter <= 3:
+                                logger.debug(f"[AI DEBUG] log_ball_paddle_positions завершен")
                         except Exception as e:
                             if not getattr(sys, "frozen", False):
                                 print(f"[ERROR] Ошибка в log_ball_paddle_positions: {e}")
                     
                     # КРИТИЧНО: После обновления проверяем, отскочил ли мяч от потолка
                     # Если мяч был у потолка и теперь движется вниз - это отскок от потолка
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем отскок от потолка...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Проверяем отскок от потолка...")
                     if ball_was_at_top and ball.vel_y > 0:
                         # Мяч отскочил от потолка - проверяем, попадет ли он в кубики
                         # Если в следующем кадре не будет попадания в кубик - это отбитие в пустоту
@@ -1875,8 +1892,8 @@ def main() -> None:
                     # ВАЖНО: Проверка столкновения должна быть ДО проверки потери мяча!
                     # Мяч может быть отбит только верхней поверхностью платформы
                     # Если мяч попадает на боковую сторону - это потеря мяча
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем столкновения с платформой...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Проверяем столкновения с платформой...")
                     
                     # КРИТИЧНО: Проверяем столкновение ТОЛЬКО с верхней поверхностью платформы
                     # Верхняя поверхность: мяч должен быть по горизонтали в пределах платформы
@@ -1889,8 +1906,8 @@ def main() -> None:
                     # 2. Центр мяча по горизонтали в пределах платформы (с небольшим запасом)
                     # 3. Нижняя часть мяча касается верхней части платформы
                     # 4. Мяч НЕ находится слишком глубоко внутри платформы (не боковой удар)
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вычисляем ball_hits_paddle_top...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Вычисляем ball_hits_paddle_top...")
                     try:
                         # КРИТИЧНО: Проверяем, не отскочил ли мяч только что (предотвращаем повторную обработку)
                         just_bounced = getattr(ball, '_just_bounced', False)
@@ -1907,8 +1924,8 @@ def main() -> None:
                                 and ball.rect.bottom <= paddle.rect.top + 15  # Мяч в пределах 15 пикселей от верха платформы
                                 and ball.rect.top < paddle.rect.top + 10  # КРИТИЧНО: Мяч не слишком глубоко внутри платформы (верхняя часть мяча не ниже 10px от верха платформы)
                             )
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] ball_hits_paddle_top={ball_hits_paddle_top}")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_top={ball_hits_paddle_top}")
                     except Exception as e:
                         if not getattr(sys, "frozen", False):
                             print(f"[ERROR] Ошибка в вычислении ball_hits_paddle_top: {e}")
@@ -1919,8 +1936,8 @@ def main() -> None:
                     # Проверяем боковое столкновение - это потеря мяча
                     # Боковое столкновение: мяч касается платформы, но НЕ попадает в верхнюю поверхность
                     # Это происходит, когда мяч касается левой или правой стороны платформы
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Вычисляем ball_hits_paddle_side...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Вычисляем ball_hits_paddle_side...")
                     try:
                         ball_hits_paddle_side = (
                             ball.rect.colliderect(paddle.rect)
@@ -1937,8 +1954,8 @@ def main() -> None:
                                 (ball.rect.bottom < paddle.rect.top and (ball.rect.centerx < paddle.rect.left or ball.rect.centerx > paddle.rect.right))
                             )
                         )
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] ball_hits_paddle_side={ball_hits_paddle_side}")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_side={ball_hits_paddle_side}")
                     except Exception as e:
                         if not getattr(sys, "frozen", False):
                             print(f"[ERROR] Ошибка в вычислении ball_hits_paddle_side: {e}")
@@ -1946,21 +1963,21 @@ def main() -> None:
                             traceback.print_exc()
                         raise
                     
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем условия ball_hits_paddle_side и ball_hits_paddle_top...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Проверяем условия ball_hits_paddle_side и ball_hits_paddle_top...")
                         try:
-                            print(f"[AI DEBUG] ball_hits_paddle_side={ball_hits_paddle_side}, ball_hits_paddle_top={ball_hits_paddle_top}")
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_side={ball_hits_paddle_side}, ball_hits_paddle_top={ball_hits_paddle_top}")
                         except Exception as e:
-                            print(f"[ERROR] Ошибка при выводе значений: {e}")
-                            print(f"[AI DEBUG] ball_hits_paddle_side type: {type(ball_hits_paddle_side) if 'ball_hits_paddle_side' in locals() else 'NOT DEFINED'}")
-                            print(f"[AI DEBUG] ball_hits_paddle_top type: {type(ball_hits_paddle_top) if 'ball_hits_paddle_top' in locals() else 'NOT DEFINED'}")
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Перед проверкой if ball_hits_paddle_side...")
+                            logger.error(f"[ERROR] Ошибка при выводе значений: {e}")
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_side type: {type(ball_hits_paddle_side) if 'ball_hits_paddle_side' in locals() else 'NOT DEFINED'}")
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_top type: {type(ball_hits_paddle_top) if 'ball_hits_paddle_top' in locals() else 'NOT DEFINED'}")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Перед проверкой if ball_hits_paddle_side...")
                     if ball_hits_paddle_side:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] ball_hits_paddle_side=True, обрабатываем боковое столкновение")
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Боковое столкновение! Обрабатываем...")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] ball_hits_paddle_side=True, обрабатываем боковое столкновение")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Боковое столкновение! Обрабатываем...")
                         # Мяч попал на боковую сторону платформы - это потеря мяча
                         lives_left -= 1
                         if lives_left > 0:
@@ -2057,8 +2074,8 @@ def main() -> None:
                                     ball, paddle, bricks, score, int(game_start_time)
                                 )
                                 
-                                if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                                    print(f"[AI DEBUG] Игра перезапущена после бокового удара, lives_left={lives_left}")
+                                if frame_counter <= 3:
+                                    logger.debug(f"[AI DEBUG] Игра перезапущена после бокового удара, lives_left={lives_left}")
                                 
                                 continue  # Пропускаем остальную обработку кадра
                         
@@ -2078,12 +2095,12 @@ def main() -> None:
                                 f"ПОТЕРЯ МЯЧА: боковой удар о платформу. Мяч X={ball.rect.centerx}, Платформа X={paddle.rect.centerx}, Платформа left={paddle.rect.left}, right={paddle.rect.right}",
                                 0.0
                             )
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Боковое столкновение обработано, continue")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Боковое столкновение обработано, continue")
                         continue  # Пропускаем проверку верхней поверхности после бокового удара
                     
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] ball_hits_paddle_side=False, проверяем прилипание мяча...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] ball_hits_paddle_side=False, проверяем прилипание мяча...")
                     # КРИТИЧНО: Проверяем, что мяч не "прилип" к платформе
                     # Если мяч находится слишком близко к платформе и не движется вниз - это ошибка
                     # Это может произойти после бокового удара или других ошибок координат
@@ -2099,8 +2116,8 @@ def main() -> None:
                             and not ball_hits_paddle_top  # Не обрабатываем, если это нормальный отскок
                             and game_started  # КРИТИЧНО: Игра должна быть запущена (не начальное состояние ожидания)
                         )
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] ball_stuck={ball_stuck}")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] ball_stuck={ball_stuck}")
                     except Exception as e:
                         if not getattr(sys, "frozen", False):
                             print(f"[ERROR] Ошибка в вычислении ball_stuck: {e}")
@@ -2109,8 +2126,8 @@ def main() -> None:
                         ball_stuck = False
                     
                     if ball_stuck:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Мяч прилип! Обрабатываем...")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Мяч прилип! Обрабатываем...")
                         # КРИТИЧНО: Логируем прилипание мяча для диагностики
                         if auto_mode or training_mode:
                             ai_player.performance_logger.log_ball_paddle_positions(
@@ -2156,12 +2173,12 @@ def main() -> None:
                                 "BALL_STUCK_FIXED"
                             )
                         
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Прилипание обработано, continue")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Прилипание обработано, continue")
                         continue  # Пропускаем обработку отскока, так как мяч уже перемещен
                     
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] ball_stuck=False, проверяем ball_hits_paddle_top...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] ball_stuck=False, проверяем ball_hits_paddle_top...")
                     if ball_hits_paddle_top:
                         # КРИТИЧНО: Логируем столкновение с верхней поверхностью платформы
                         if auto_mode or training_mode:
@@ -2294,8 +2311,8 @@ def main() -> None:
                             # КРИТИЧНО: Сбрасываем отслеживание зоны разделения после отскока
                             ai_player._reevaluate_after_bounce()
                     
-                    if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Проверяем потерю мяча...")
+                    if frame_counter <= 3:
+                        logger.debug(f"[AI DEBUG] Проверяем потерю мяча...")
                     # КРИТИЧНО: Проверяем потерю мяча ПОСЛЕ проверки столкновения с платформой
                     # Если мяч ниже верхней границы платформы И не было столкновения - он потерян
                     if ball.rect.bottom > paddle.rect.top and not ball_hits_paddle_top:
@@ -2365,14 +2382,13 @@ def main() -> None:
                                         print(f"  Сохраненная целевая позиция: {target_pos:.1f} distance={abs(paddle_x - target_pos):.1f}px")
                                 print(f"  Жизни: {lives_left}")
                                 print(f"========================================================")
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Мяч потерян! Обрабатываем...")
                         # Мяч ниже верхней границы платформы и не отскочил - он потерян
                         lives_left -= 1
-                        # КРИТИЧНО: Логируем после уменьшения жизней
+                        # КРИТИЧНО: Логируем после уменьшения жизней (только в файл, не в консоль)
                         if auto_mode or training_mode:
-                            if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, game_over={game_over}")
+                            logger.info(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, game_over={game_over}")
                         if lives_left > 0:
                             ball.reset(paddle.rect)
                             ball.vel_y = 0
@@ -2566,12 +2582,12 @@ def main() -> None:
                     # и мяч находится в области кирпичей (выше зоны разделения)
                     hit_index = -1
                     if bricks and ball.rect.bottom <= SEPARATION_ZONE_TOP + 50:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Проверяем столкновения с кубиками...")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Проверяем столкновения с кубиками...")
                         try:
                             hit_index = ball.rect.collidelist(bricks)
-                            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                                print(f"[AI DEBUG] hit_index={hit_index}")
+                            if frame_counter <= 3:
+                                logger.debug(f"[AI DEBUG] hit_index={hit_index}")
                         except Exception as e:
                             if not getattr(sys, "frozen", False):
                                 print(f"[ERROR] Ошибка в collidelist: {e}")
@@ -2579,8 +2595,8 @@ def main() -> None:
                                 traceback.print_exc()
                             hit_index = -1
                     if hit_index != -1:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Попадание в кубик! hit_index={hit_index}")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Попадание в кубик! hit_index={hit_index}")
                         ball.bounce_vertical()
                         destroyed_brick = bricks.pop(hit_index)
                         score += 1
@@ -2617,8 +2633,8 @@ def main() -> None:
                                 random.randint(0, len(brick_hit_sounds) - 1)
                             ].play()
                     else:
-                        if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                            print(f"[AI DEBUG] Столкновений с кубиками нет")
+                        if frame_counter <= 3:
+                            logger.debug(f"[AI DEBUG] Столкновений с кубиками нет")
                         # КРИТИЧНО: Мяч не попал в кубики - проверяем, был ли отскок от потолка
                         # Если был отскок от потолка и мяч не попал в кубики - это отбитие в пустоту
                         ceiling_bounces = ai_player.empty_bounce_tracker.get("ceiling_bounces", 0) or 0
@@ -2706,14 +2722,12 @@ def main() -> None:
                     if ball.rect.bottom >= SCREEN_HEIGHT:
                         # КРИТИЧНО: Логируем потерю мяча (мяч за границей экрана)
                         if auto_mode or training_mode:
-                            if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Мяч за границей экрана (ball.rect.bottom={ball.rect.bottom} >= SCREEN_HEIGHT={SCREEN_HEIGHT})! lives_left={lives_left}")
+                            logger.info(f"[LIFE LOSS] Мяч за границей экрана (ball.rect.bottom={ball.rect.bottom} >= SCREEN_HEIGHT={SCREEN_HEIGHT})! lives_left={lives_left}")
                         # Уменьшаем жизни (в режиме обучения тоже)
                         lives_left -= 1
-                        # КРИТИЧНО: Логируем потерю жизни для диагностики
+                        # КРИТИЧНО: Логируем потерю жизни для диагностики (только в файл, не в консоль)
                         if auto_mode or training_mode:
-                            if not getattr(sys, "frozen", False):
-                                print(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
+                            logger.info(f"[LIFE LOSS] Жизни уменьшены! lives_left={lives_left}, training_mode={training_mode}, game_over={game_over}")
                         
                         # КРИТИЧНО: Проверяем, не закончились ли жизни
                         if lives_left <= 0:
@@ -3055,16 +3069,16 @@ def main() -> None:
                                     game_start_time = time.time()
 
             # Отладочное сообщение только в первых 3 кадрах
-            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Конец блока if not game_over, переходим к отрисовке")
-                print(f"[AI DEBUG] Начинаем отрисовку, game_over={game_over}, bricks={len(bricks) if 'bricks' in locals() else 'N/A'}")
+            if frame_counter <= 3:
+                logger.debug(f"[AI DEBUG] Конец блока if not game_over, переходим к отрисовке")
+                logger.debug(f"[AI DEBUG] Начинаем отрисовку, game_over={game_over}, bricks={len(bricks) if 'bricks' in locals() else 'N/A'}")
             
             # КРИТИЧНО: Отрисовка игры
-            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Вызываем screen.fill()...")
+            if frame_counter <= 3:
+                logger.debug(f"[AI DEBUG] Вызываем screen.fill()...")
             screen.fill((10, 10, 30))  # Темно-синий фон
-            if frame_counter <= 3 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] screen.fill() завершен")
+            if frame_counter <= 3:
+                logger.debug(f"[AI DEBUG] screen.fill() завершен")
             draw_bricks(screen, bricks)  # Отрисовка кубиков
             # Отрисовка платформы с цветными секциями для подсказки направления отскока
             left_rect = pygame.Rect(
@@ -3135,9 +3149,9 @@ def main() -> None:
             pygame.display.flip()
             clock.tick(FPS)
             
-            # Отладочное сообщение только в первом кадре
-            if frame_counter == 1 and not getattr(sys, "frozen", False):
-                print(f"[AI DEBUG] Первый кадр отрисован, bricks={len(bricks)}, paddle.x={paddle.rect.x}, ball.x={ball.rect.centerx}, game_started={game_started}")
+            # Отладочное сообщение только в первом кадре (только в файл, не в консоль)
+            if frame_counter == 1:
+                logger.debug(f"[AI DEBUG] Первый кадр отрисован, bricks={len(bricks)}, paddle.x={paddle.rect.x}, ball.x={ball.rect.centerx}, game_started={game_started}")
 
             # Проверяем завершение авторежима
             if auto_mode_complete:
@@ -3155,9 +3169,8 @@ def main() -> None:
                         )
                         print("[AI] Данные обучения сохранены.")
                 else:
-                    # КРИТИЧНО: Не сохраняем данные, если не было сыграно ни одной игры
-                    if not getattr(sys, "frozen", False):
-                        print(f"[AI DEBUG] Данные обучения не сохранены - не было сыграно игр (games_played={ai_player.performance_metrics.get('games_played', 0) if ai_player else 0})")
+                    # КРИТИЧНО: Не сохраняем данные, если не было сыграно ни одной игры (только в файл, не в консоль)
+                    logger.debug(f"[AI DEBUG] Данные обучения не сохранены - не было сыграно игр (games_played={ai_player.performance_metrics.get('games_played', 0) if ai_player else 0})")
             except Exception as e:
                 if not getattr(sys, "frozen", False):
                     print(f"[AI] Предупреждение: не удалось сохранить данные обучения: {e}")

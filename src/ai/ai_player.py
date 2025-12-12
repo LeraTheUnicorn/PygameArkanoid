@@ -3213,11 +3213,10 @@ class AIPlayer:
             Адаптивная скорость платформы
         """
         # КРИТИЧНО: Адаптивная базовая скорость на основе скорости мяча
-        # Рекомендация из анализа: paddle_speed = ball_speed * 3.5
-        # Это обеспечивает достаточную скорость реакции платформы
-        base_paddle_speed = int(ball_speed * 3.5)  # Адаптивная базовая скорость
-        min_speed = max(5, int(ball_speed * 1.5))  # Минимальная скорость тоже адаптивная
-        max_speed = max(50, int(ball_speed * 5.0))  # Максимальная скорость адаптивная
+        # Адаптивная скорость с разумными пределами: min=35, max=60, base=ball_speed * 2.5
+        base_paddle_speed = max(35, min(int(ball_speed * 2.5), 60))
+        min_speed = 35  # Минимальная скорость
+        max_speed = 60  # Максимальная скорость
         
         if not self.current_game_state:
             return base_paddle_speed

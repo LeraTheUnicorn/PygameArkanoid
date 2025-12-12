@@ -87,15 +87,9 @@ def get_logger(name: str) -> logging.Logger:
     for handler in logger.handlers:
         handler.setLevel(log_level)
     
-    # Если нет handlers, настраиваем базовую конфигурацию через root logger
-    # Это гарантирует, что сообщения будут записываться
-    if not logger.handlers and not logging.getLogger().handlers:
-        # Настраиваем базовое логирование только если root logger не настроен
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+    # НЕ создаем базовую конфигурацию с StreamHandler
+    # Файловые handlers создаются в ai_player.py при инициализации
+    # Это гарантирует, что логи идут только в файлы, а не в консоль
     
     return logger
 
@@ -107,6 +101,9 @@ def setup_root_logger() -> None:
     
     КРИТИЧНО: Устанавливает уровень для root logger, чтобы ВСЕ дочерние логгеры
     наследовали этот уровень (если их собственный уровень NOTSET).
+    
+    ВАЖНО: Не создает StreamHandler для консоли - все логи идут только в файлы.
+    Сводная статистика после игры выводится через print() в ai_player.py.
     """
     log_level = get_log_level()
     
@@ -117,20 +114,24 @@ def setup_root_logger() -> None:
     # Это критически важно - все дочерние логгеры будут наследовать этот уровень
     root_logger.setLevel(log_level)
     
-    # Обновляем уровень для всех существующих handlers root logger
+    # КРИТИЧНО: Удаляем все StreamHandler (консольные handlers) из root logger
+    # Все логи должны идти только в файлы, а не в консоль
+    handlers_to_remove = []
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handlers_to_remove.append(handler)
+    
+    for handler in handlers_to_remove:
+        root_logger.removeHandler(handler)
+        handler.close()
+    
+    # Обновляем уровень для всех оставшихся handlers root logger
     for handler in root_logger.handlers:
         handler.setLevel(log_level)
     
-    # Если нет handlers, настраиваем базовую конфигурацию
-    if not root_logger.handlers:
-        # Создаем базовую конфигурацию для root logger
-        # Это нужно для модулей, которые не имеют собственных handlers
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-            force=True  # Перезаписываем существующую конфигурацию
-        )
+    # НЕ создаем базовую конфигурацию с StreamHandler
+    # Файловые handlers создаются в ai_player.py при инициализации
+    # Это гарантирует, что логи идут только в файлы, а не в консоль
 
 
 # Автоматически настраиваем root logger при импорте модуля

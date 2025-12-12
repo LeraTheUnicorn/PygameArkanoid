@@ -115,35 +115,49 @@ class TrajectoryPredictor:
         if time_to_paddle <= 0:
             return None
 
-        # Создаем копию мяча для симуляции
-        sim_x = ball_x
-        sim_vel_x = vel_x
-        sim_time = 0
-        max_simulations = 50  # Максимум итераций для предотвращения зацикливания
+        # КРИТИЧНО: Улучшенная симуляция с учетом отскоков от боковых стен
+        # Используем непрерывную симуляцию вместо дискретных шагов для точности
+        ball_radius = 8  # Радиус мяча (BALL_SIZE / 2)
+        sim_x = float(ball_x)
+        sim_vel_x = float(vel_x)
+        remaining_time = float(time_to_paddle)
+        max_iterations = 200  # УВЕЛИЧЕНО с 100 до 200 для более точной симуляции множественных отскоков
 
         # Симулируем движение с учетом отскоков от стен
-        for _ in range(max_simulations):
-            # Рассчитываем следующую позицию
-            next_x = sim_x + sim_vel_x
-
-            # Проверяем отскок от стен
-            if next_x <= 0 or next_x >= self.screen_width:
-                sim_vel_x *= -1
-                next_x = max(0, min(self.screen_width, next_x))
-
-            # Обновляем симуляцию
-            sim_time += 1  # Одна итерация = 1 кадр
-            sim_x = next_x
-
-            # Если достигли платформы
-            if sim_time >= time_to_paddle:
+        for iteration in range(max_iterations):
+            if remaining_time <= 0:
+                break
+            
+            # Рассчитываем время до следующего отскока от стены
+            if sim_vel_x > 0:
+                # Движение вправо - проверяем правую стену
+                distance_to_right_wall = self.screen_width - ball_radius - sim_x
+                time_to_wall = distance_to_right_wall / sim_vel_x if sim_vel_x > 0 else float('inf')
+            elif sim_vel_x < 0:
+                # Движение влево - проверяем левую стену
+                distance_to_left_wall = sim_x - ball_radius
+                time_to_wall = distance_to_left_wall / abs(sim_vel_x) if sim_vel_x < 0 else float('inf')
+            else:
+                # Мяч не движется горизонтально
+                time_to_wall = float('inf')
+            
+            # Определяем, что произойдет раньше: достижение стены или платформы
+            if time_to_wall > 0 and time_to_wall <= remaining_time:
+                # Мяч отскочит от стены до достижения платформы
+                sim_x += sim_vel_x * time_to_wall
+                remaining_time -= time_to_wall
+                sim_vel_x = -sim_vel_x  # Отскок
+                # Корректируем позицию, чтобы мяч не вышел за границы
+                sim_x = max(ball_radius, min(self.screen_width - ball_radius, sim_x))
+            else:
+                # Мяч достигнет платформы раньше, чем отскочит от стены
+                sim_x += sim_vel_x * remaining_time
+                remaining_time = 0
                 break
 
-            # Защита от бесконечного цикла
-            if sim_time > time_to_paddle * 3:
-                break
-
-        result = Point(sim_x, paddle_y)
+        # Ограничиваем результат границами экрана
+        sim_x = max(ball_radius, min(self.screen_width - ball_radius, sim_x))
+        result = Point(int(sim_x), int(paddle_y))
         
         # Сохраняем в кэш
         self._cache_result(self._intersection_cache, cache_key, result)

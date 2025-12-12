@@ -339,15 +339,27 @@ class PaddleMovementStrategy:
         
         distance_to_target = abs(current_x - target_pos)
         # КРИТИЧНО: Используем меньший tolerance для более точного движения
-        # tolerance должен быть меньше скорости движения, чтобы платформа могла двигаться
-        # даже при малых расстояниях (например, 12-15px)
-        # Уменьшено с 33% до 25% для повышения точности
-        tolerance = max(3, int(paddle_speed * 0.25))  # 25% скорости движения, минимум 3px
+        # Для критических случаев (мяч близко или в углу) используем минимальный tolerance
+        ball_y = self.current_game_state.ball_position.y if self.current_game_state else 0
+        paddle_y = self.current_game_state.paddle_position.y if self.current_game_state else 0
+        distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+        is_critical = distance_to_paddle < 50 or target_pos < 100 or target_pos > self.screen_width - 100
         
-        # КРИТИЧНО: Добавляем буферную зону для ранней остановки платформы
-        # Это предотвращает "перелет" из-за инерции
-        # Уменьшено с 0.5 до 0.3 для более точного позиционирования
-        buffer_zone = paddle_speed * 0.3  # Буферная зона = 30% скорости движения (было 50%)
+        if is_critical:
+            tolerance = max(2, int(paddle_speed * 0.1))  # Минимальный tolerance для критических случаев
+        else:
+            tolerance = max(3, int(paddle_speed * 0.25))  # 25% скорости движения, минимум 3px
+        
+        # КРИТИЧНО: Буферная зона для ранней остановки платформы
+        # УМЕНЬШЕНО для критических случаев в углах - платформа должна доезжать до цели
+        # Отключаем буферную зону, если мяч близко к платформе или в углу
+        ball_y = self.current_game_state.ball_position.y if self.current_game_state else 0
+        paddle_y = self.current_game_state.paddle_position.y if self.current_game_state else 0
+        distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+        
+        # Если мяч очень близко к платформе (< 50px) или цель в углу - отключаем буферную зону
+        is_critical = distance_to_paddle < 50 or target_pos < 100 or target_pos > self.screen_width - 100
+        buffer_zone = 0 if is_critical else paddle_speed * 0.15  # Минимальная буферная зона только для некритических случаев
 
         # КРИТИЧНО: Логируем для диагностики проблем с движением
         # Фильтрация по уровню выполняется автоматически системой логирования Python
@@ -414,7 +426,8 @@ class PaddleMovementStrategy:
 
         # КРИТИЧНО: Устанавливаем цель раньше, когда мяч еще далеко
         # Это дает больше времени на движение к цели
-        early_zone_start = separation_zone_start - 100  # На 100px раньше зоны разделения
+        # УВЕЛИЧЕНО с 100px до 200px для более ранней реакции
+        early_zone_start = separation_zone_start - 200  # На 200px раньше зоны разделения
         in_early_zone = early_zone_start <= ball_y < separation_zone_start and ball_vel_y > 0
         in_target_zone = in_separation_zone or in_early_zone
 
@@ -442,7 +455,8 @@ class PaddleMovementStrategy:
             # Мяч уже на уровне или ниже платформы - слишком поздно
             return None
         
-        # Если цель уже установлена, но мяч не сменил направление - не пересчитываем
+        # КРИТИЧНО: В зоне разделения всегда пересчитываем цель для учета изменений траектории
+        # Это особенно важно для мячей, которые отскакивают от боковых стен
         if self.target_tracker.is_target_set():
             # Проверяем, не сменил ли мяч направление
             last_vel_y = self.separation_zone_tracker.last_ball_vel_y
@@ -455,8 +469,30 @@ class PaddleMovementStrategy:
                 )
                 self.target_tracker.reset_target_position()
             else:
-                # Цель уже установлена и направление не изменилось - не пересчитываем
-                return None
+                # КРИТИЧНО: В зоне разделения пересчитываем цель каждый шаг для учета отскоков от стен
+                # Это позволяет платформе реагировать на изменения траектории
+                if in_separation_zone:
+                    # Проверяем, изменилась ли траектория мяча (например, после отскока от стены)
+                    if self.current_game_state:
+                        current_vel_x = (
+                            self.current_game_state.ball_velocity.x
+                            if hasattr(self.current_game_state, "ball_velocity")
+                            else 0
+                        )
+                        saved_vel_x = self.target_tracker.get_saved_velocity()
+                        # Если горизонтальная скорость изменилась - пересчитываем цель
+                        if saved_vel_x is not None and abs(current_vel_x - saved_vel_x) > 1:
+                            self._logger.debug(
+                                f"[NEW TARGET] Траектория изменилась (vel_x: {saved_vel_x:.1f} -> {current_vel_x:.1f}), "
+                                f"пересчитываем цель"
+                            )
+                            self.target_tracker.reset_target_position()
+                        else:
+                            # Траектория не изменилась - не пересчитываем
+                            return None
+                else:
+                    # Вне зоны разделения - не пересчитываем
+                    return None
 
         if not self.current_game_state:
             return None
@@ -482,24 +518,37 @@ class PaddleMovementStrategy:
         if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
             frames_to_reach = distance_to_target / paddle_speed if paddle_speed > 0 else float('inf')
             
-            # КРИТИЧНО: Увеличиваем запас на ошибки до 50% (было 20%)
-            # Это учитывает отскоки мяча от стен, инерцию платформы, время реакции
-            # и другие непредвиденные обстоятельства
-            safety_margin = 1.5  # 50% запас (было 20%)
+            # КРИТИЧНО: Адаптивный запас на ошибки в зависимости от расстояния до платформы
+            # Для критических случаев (мяч близко) используем меньший запас и более агрессивное движение
+            if distance_to_paddle_y < 100:  # Мяч близко к платформе - критический случай
+                safety_margin = 1.2  # Меньший запас для критических случаев
+                max_distance_factor = 0.9  # Более агрессивное ограничение (90% вместо 70%)
+            else:
+                safety_margin = 1.5  # Обычный запас (50%)
+                max_distance_factor = 0.7  # Консервативное ограничение (70%)
             
             if frames_to_reach > time_to_paddle * safety_margin:
                 # Цель недостижима - ограничиваем её до достижимого расстояния
-                # Используем 70% от максимального расстояния для дополнительного запаса (было 80%)
-                max_distance = paddle_speed * time_to_paddle * 0.7
+                max_distance = paddle_speed * time_to_paddle * max_distance_factor
                 self._logger.debug(
                     f"[NEW TARGET] Цель недостижима! distance={distance_to_target:.1f}px, "
                     f"frames_to_reach={frames_to_reach:.1f}, time_to_paddle={time_to_paddle:.1f}, "
-                    f"max_distance={max_distance:.1f}px, ограничиваем цель"
+                    f"max_distance={max_distance:.1f}px, distance_to_paddle_y={distance_to_paddle_y:.1f}, "
+                    f"ограничиваем цель (safety_margin={safety_margin}, factor={max_distance_factor})"
                 )
                 if optimal_x > current_x:
                     optimal_x = min(optimal_x, current_x + max_distance)
                 else:
                     optimal_x = max(optimal_x, current_x - max_distance)
+            else:
+                # КРИТИЧНО: Для критических случаев (мяч очень близко) устанавливаем цель даже если она немного недостижима
+                # Это позволяет платформе попытаться добраться как можно ближе
+                if distance_to_paddle_y < 50 and frames_to_reach <= time_to_paddle * 2.0:
+                    self._logger.debug(
+                        f"[NEW TARGET] Критический случай! Мяч очень близко ({distance_to_paddle_y:.1f}px), "
+                        f"устанавливаем цель даже если она немного недостижима для максимального приближения"
+                    )
+                    # Продолжаем установку цели - платформа попытается добраться как можно ближе
 
         # КРИТИЧНО: Ограничиваем целевую позицию границами экрана
         optimal_x = self._clamp_paddle_position(int(optimal_x))

@@ -130,7 +130,7 @@
     "40_26_39_27_39_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "0_26_1_27_1_27": {
       "accuracy_scores": [],
@@ -185,7 +185,7 @@
     "38_26_39_27_39_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "4_26_4_27_3_27": {
       "accuracy_scores": [],
@@ -870,7 +870,7 @@
     "34_8_33_9_33_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "39_26_39_27_40_27": {
       "accuracy_scores": [],
@@ -940,7 +940,7 @@
     "10_7_10_7_10_8": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "10_7_9_7_9_8": {
       "accuracy_scores": [],
@@ -1185,22 +1185,22 @@
     "34_8_34_8_34_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "32_8_31_9_31_9": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 2
+      "pattern_frequency": 3
     },
     "34_5_34_6_34_6": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "31_6_30_6_30_7": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "13_9_13_10_14_10": {
       "accuracy_scores": [],
@@ -1390,7 +1390,7 @@
     "17_9_17_9_16_10": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 3
+      "pattern_frequency": 4
     },
     "20_7_20_7_21_8": {
       "accuracy_scores": [],
@@ -2410,7 +2410,7 @@
     "38_27_39_27_39_27": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "31_6_30_7_30_7": {
       "accuracy_scores": [],
@@ -2440,7 +2440,7 @@
     "7_2_7_3_6_3": {
       "accuracy_scores": [],
       "success_rates": [],
-      "pattern_frequency": 1
+      "pattern_frequency": 2
     },
     "3_2_2_3_2_3": {
       "accuracy_scores": [],
@@ -2566,13 +2566,124 @@
       "accuracy_scores": [],
       "success_rates": [],
       "pattern_frequency": 1
+    },
+    "27_5_27_6_26_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_5_24_6_23_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "21_5_20_6_20_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "20_5_20_6_19_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "17_5_16_6_16_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "14_5_13_6_13_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "25_6_25_6_24_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "17_10_16_10_16_10": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "31_8_30_8_30_9": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "31_5_30_6_30_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "27_6_27_6_26_7": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_8_24_9_23_9": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "24_5_24_5_23_6": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "19_4_18_4_18_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "12_2_12_3_12_3": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "17_2_16_3_16_3": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "10_4_10_4_9_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "3_2_3_3_2_3": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 1
+    },
+    "11_4_11_4_12_5": {
+      "accuracy_scores": [],
+      "success_rates": [],
+      "pattern_frequency": 2
     }
   },
   "success_factors": {
     "ball_speed": {
-      "total_cases": 2033,
-      "successful_cases": 1693,
+      "total_cases": 2139,
+      "successful_cases": 1796,
       "factor_values": [
+        5,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
         8,
         8,
         8,
@@ -2675,24 +2786,29 @@
         8,
         8,
         5,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8,
-        8
+        10
       ]
     },
     "bricks_remaining": {
-      "total_cases": 2033,
-      "successful_cases": 1693,
+      "total_cases": 2139,
+      "successful_cases": 1796,
       "factor_values": [
+        0,
+        49,
+        48,
+        47,
+        46,
+        45,
+        44,
+        43,
+        42,
+        42,
+        41,
+        40,
+        39,
+        49,
+        48,
+        47,
         46,
         45,
         44,
@@ -2791,28 +2907,22 @@
         5,
         4,
         3,
-        3,
         2,
         1,
         0,
-        49,
-        48,
-        47,
-        46,
-        45,
-        44,
-        43,
-        42,
-        42,
-        41,
-        40,
-        39
+        0,
+        49
       ]
     },
     "paddle_distance": {
-      "total_cases": 2033,
-      "successful_cases": 1693,
+      "total_cases": 2139,
+      "successful_cases": 1796,
       "factor_values": [
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -2930,9 +3040,25 @@
       ]
     },
     "prediction_confidence": {
-      "total_cases": 2033,
-      "successful_cases": 1693,
+      "total_cases": 2139,
+      "successful_cases": 1796,
       "factor_values": [
+        0.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
         1.0,
         1.0,
         1.0,
@@ -3031,31 +3157,20 @@
         1.0,
         1.0,
         1.0,
-        0.0,
+        1.0,
         1.0,
         1.0,
         0.5,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        0.0,
-        1.0,
-        1.0,
         1.0
       ]
     }
   },
   "historical_performance": [],
   "learning_stats": {
-    "total_learning_iterations": 2033,
-    "successful_adaptations": 1693,
-    "failed_adaptations": 340,
-    "average_improvement": 0.8325569861959052
+    "total_learning_iterations": 2139,
+    "successful_adaptations": 1796,
+    "failed_adaptations": 343,
+    "average_improvement": 0.8389681498623504
   },
   "success_prediction_model": null,
   "paddle_speed_factors": {
@@ -3085,10 +3200,35 @@
         1.0,
         1.0,
         1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
         1.0
       ],
-      "success_cases": 51,
-      "total_cases": 51
+      "success_cases": 50,
+      "total_cases": 52
     },
     "10": {
       "speed_multipliers": [
@@ -3209,23 +3349,16 @@
         1.0,
         1.0,
         1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
         1.0
       ],
-      "success_cases": 110,
-      "total_cases": 116
+      "success_cases": 51,
+      "total_cases": 52
     }
   },
   "user_prompt_destruction_control": "",
   "model_metrics": {
-    "last_accuracy": 0.7837837837837838,
-    "training_samples": 145,
+    "last_accuracy": 0.8378378378378378,
+    "training_samples": 144,
     "test_samples": 37,
     "features_count": 1
   }
