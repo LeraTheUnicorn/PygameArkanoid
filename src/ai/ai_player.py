@@ -405,35 +405,53 @@ class AIPlayer:
     @classmethod
     def _cleanup_old_logs(cls, logs_dir: str) -> None:
         """
-        Очищает старые логи ai_player_X.log при запуске программы.
-        Это предотвращает накопление больших файлов логов.
+        Очищает старые логи при запуске программы.
+        Удаляет папки с датами, если в настройках установлен флаг delete_ai_logs_on_start.
         
         Args:
-            logs_dir: Директория с логами
+            logs_dir: Базовая директория с логами (logs/)
         """
         try:
+            # Проверяем настройку удаления логов
+            should_delete = True  # По умолчанию удаляем
+            try:
+                from ..game.settings import SettingsManager
+                settings_manager = SettingsManager(lazy_load=False)
+                should_delete = settings_manager.get_delete_ai_logs_on_start()
+            except Exception as e:
+                # Если не удалось загрузить настройки, используем значение по умолчанию
+                if not is_frozen():
+                    print(f"[LOG] Не удалось загрузить настройки для очистки логов: {e}, используем значение по умолчанию (удалять)")
+            
+            if not should_delete:
+                if not is_frozen():
+                    print("[LOG] Удаление логов при старте отключено в настройках")
+                return
+            
             if not os.path.exists(logs_dir):
                 return
             
-            log_files = []
-            for file in os.listdir(logs_dir):
-                if file.startswith("ai_player_") and file.endswith(".log"):
-                    file_path = os.path.join(logs_dir, file)
-                    try:
-                        mtime = os.path.getmtime(file_path)
-                        log_files.append((mtime, file_path))
-                    except Exception:
-                        log_files.append((0, file_path))
+            # Удаляем все папки с датами (формат: YYYY-MM-DD_HH-MM-SS)
+            import re
+            date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$')
             
-            # Удаляем все старые логи ai_player_X.log
-            for mtime, file_path in log_files:
-                try:
-                    os.remove(file_path)
-                    if not is_frozen():
-                        print(f"[LOG] Удален старый лог при старте: {os.path.basename(file_path)}")
-                except Exception as e:
-                    if not is_frozen():
-                        print(f"[LOG] Не удалось удалить старый лог {file_path}: {e}")
+            deleted_count = 0
+            for item in os.listdir(logs_dir):
+                item_path = os.path.join(logs_dir, item)
+                # Проверяем, является ли это папкой с датой
+                if os.path.isdir(item_path) and date_pattern.match(item):
+                    try:
+                        import shutil
+                        shutil.rmtree(item_path)
+                        deleted_count += 1
+                        if not is_frozen():
+                            print(f"[LOG] Удалена папка с логами: {item}")
+                    except Exception as e:
+                        if not is_frozen():
+                            print(f"[LOG] Не удалось удалить папку {item_path}: {e}")
+            
+            if deleted_count > 0 and not is_frozen():
+                print(f"[LOG] Удалено папок с логами: {deleted_count}")
         except Exception as e:
             # Не блокируем выполнение при ошибке очистки
             if not is_frozen():
@@ -443,7 +461,7 @@ class AIPlayer:
     def _setup_logging(cls) -> logging.Logger:
         """
         Настраивает и возвращает логгер для экземпляра AIPlayer.
-        Логи записываются в файл, а не в консоль.
+        Логи записываются в файл с ротацией по 500 строк в папке с полной датой.
         
         Уровень логирования определяется ТОЛЬКО в logging_config.py через LOG_LEVEL.
         НЕ зависит от параметра debug_mode при создании AIPlayer.
@@ -458,23 +476,61 @@ class AIPlayer:
         
         # Настраиваем handler только если еще не настроен
         if not logger.handlers:
-            # Создаем директорию для логов если её нет
+            # Создаем базовую директорию для логов если её нет
             from .platform_utils import get_ai_directory
             ai_dir = get_ai_directory()
-            logs_dir = os.path.join(ai_dir, "logs")
+            base_logs_dir = os.path.join(ai_dir, "logs")
             try:
-                os.makedirs(logs_dir, exist_ok=True)
+                os.makedirs(base_logs_dir, exist_ok=True)
             except (OSError, PermissionError):
-                logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-                os.makedirs(logs_dir, exist_ok=True)
+                base_logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+                os.makedirs(base_logs_dir, exist_ok=True)
             
             # Очищаем старые логи при первом запуске (когда создается первый экземпляр)
             if cls._instance_counter == 1:
-                cls._cleanup_old_logs(logs_dir)
+                cls._cleanup_old_logs(base_logs_dir)
             
-            # Создаем файловый handler вместо StreamHandler
-            log_file = os.path.join(logs_dir, f"ai_player_{cls._instance_counter}.log")
-            handler = logging.FileHandler(log_file, encoding='utf-8')
+            # Создаем папку с полной датой для текущей сессии
+            # Если папка с такой датой уже существует, добавляем 4-значный номер
+            from datetime import datetime
+            import re
+            base_date_folder = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            logs_dir = os.path.join(base_logs_dir, base_date_folder)
+            
+            # Проверяем, существует ли папка с такой датой
+            if os.path.exists(logs_dir):
+                # Ищем все папки с таким же префиксом даты
+                pattern = re.compile(r'^' + re.escape(base_date_folder) + r'_(\d{4})$')
+                max_number = 0
+                try:
+                    for item in os.listdir(base_logs_dir):
+                        item_path = os.path.join(base_logs_dir, item)
+                        if os.path.isdir(item_path):
+                            match = pattern.match(item)
+                            if match:
+                                number = int(match.group(1))
+                                max_number = max(max_number, number)
+                except Exception:
+                    pass
+                
+                # Создаем папку с увеличенным номером
+                date_folder = f"{base_date_folder}_{max_number + 1:04d}"
+                logs_dir = os.path.join(base_logs_dir, date_folder)
+            
+            try:
+                os.makedirs(logs_dir, exist_ok=True)
+            except (OSError, PermissionError):
+                # Fallback: используем базовую директорию
+                logs_dir = base_logs_dir
+            
+            # Создаем ротирующий handler с инкрементными номерами файлов
+            from .rotating_file_handler import RotatingLinesFileHandler
+            base_log_file = os.path.join(logs_dir, "ai_player.log")
+            handler = RotatingLinesFileHandler(
+                base_log_file,
+                max_lines=500,
+                encoding='utf-8'
+            )
             formatter = logging.Formatter(
                 '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S'
@@ -3156,10 +3212,12 @@ class AIPlayer:
         Returns:
             Адаптивная скорость платформы
         """
-        # Базовые параметры
-        base_paddle_speed = 15  # Увеличено с 9 до 15 для лучшей скорости
-        min_speed = 5
-        max_speed = 50  # Увеличено с 30 до 50 для критических ситуаций
+        # КРИТИЧНО: Адаптивная базовая скорость на основе скорости мяча
+        # Рекомендация из анализа: paddle_speed = ball_speed * 3.5
+        # Это обеспечивает достаточную скорость реакции платформы
+        base_paddle_speed = int(ball_speed * 3.5)  # Адаптивная базовая скорость
+        min_speed = max(5, int(ball_speed * 1.5))  # Минимальная скорость тоже адаптивная
+        max_speed = max(50, int(ball_speed * 5.0))  # Максимальная скорость адаптивная
         
         if not self.current_game_state:
             return base_paddle_speed

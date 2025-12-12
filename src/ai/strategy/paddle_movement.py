@@ -106,6 +106,23 @@ class PaddleMovementStrategy:
                 else 0
             )
             self._logger.debug(f"[MOVE_PADDLE_CALL] ball_y={ball_y:.1f}, ball_vel_y={ball_vel_y:.1f}")
+            
+            # КРИТИЧНО: Проверяем отскоки от верхней границы ДО обработки зон
+            # Это обеспечивает немедленную реакцию на отскоки
+            last_vel_y = self.separation_zone_tracker.last_ball_vel_y
+            if (last_vel_y is not None and 
+                last_vel_y > 0 and  # мяч двигался вниз на предыдущем кадре
+                ball_vel_y < 0):  # мяч теперь двигается вверх (отскок от верхней границы)
+                # Мяч отскочил от верхней границы - сбрасываем цель немедленно
+                self._logger.debug(
+                    f"[EARLY BOUNCE DETECTION] Мяч отскочил от верхней границы! "
+                    f"vel_y изменился с {last_vel_y:.1f} (вниз) на {ball_vel_y:.1f} (вверх), "
+                    f"сбрасываем целевую позицию немедленно"
+                )
+                self.target_tracker.reset_target_position()
+                self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
+                self.separation_zone_tracker.ball_moving_downward_last_frame = False
+                return self._validate_movement(0)  # Не двигаемся, ждем новой цели
 
             # Обработка зоны кубиков
             zones = self.zone_handler.calculate_zones()
@@ -242,10 +259,26 @@ class PaddleMovementStrategy:
         paddle_zone_start = zones["paddle_zone_start"]
         in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
+        # КРИТИЧНО: Проверяем отскок от верхней границы (вниз -> вверх)
+        # Если мяч отскочил от верхней границы, нужно сбросить целевую позицию немедленно
+        last_vel_y = self.separation_zone_tracker.last_ball_vel_y
+        if (last_vel_y is not None and 
+            last_vel_y > 0 and  # мяч двигался вниз на предыдущем кадре
+            ball_vel_y < 0):  # мяч теперь двигается вверх (отскок от верхней границы)
+            # Мяч отскочил от верхней границы - сбрасываем цель немедленно
+            self._logger.debug(
+                f"[TOP BOUNCE] Мяч отскочил от верхней границы! "
+                f"vel_y изменился с {last_vel_y:.1f} (вниз) на {ball_vel_y:.1f} (вверх), "
+                f"сбрасываем целевую позицию"
+            )
+            self.target_tracker.reset_target_position()
+            self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
+            self.separation_zone_tracker.ball_moving_downward_last_frame = False
+            return None  # Возвращаем None, чтобы не двигаться к старой цели
+
         # КРИТИЧНО: Проверяем смену направления мяча (вверх -> вниз)
         # Если мяч только что начал двигаться вниз после движения вверх,
         # нужно сбросить целевую позицию и пересчитать её
-        last_vel_y = self.separation_zone_tracker.last_ball_vel_y
         if (last_vel_y is not None and 
             last_vel_y <= 0 and  # мяч двигался вверх на предыдущем кадре
             ball_vel_y > 0 and  # мяч теперь двигается вниз
@@ -308,18 +341,26 @@ class PaddleMovementStrategy:
         # КРИТИЧНО: Используем меньший tolerance для более точного движения
         # tolerance должен быть меньше скорости движения, чтобы платформа могла двигаться
         # даже при малых расстояниях (например, 12-15px)
-        tolerance = max(3, paddle_speed // 3)  # Около 1/3 скорости движения, минимум 3px
+        # Уменьшено с 33% до 25% для повышения точности
+        tolerance = max(3, int(paddle_speed * 0.25))  # 25% скорости движения, минимум 3px
+        
+        # КРИТИЧНО: Добавляем буферную зону для ранней остановки платформы
+        # Это предотвращает "перелет" из-за инерции
+        # Уменьшено с 0.5 до 0.3 для более точного позиционирования
+        buffer_zone = paddle_speed * 0.3  # Буферная зона = 30% скорости движения (было 50%)
 
         # КРИТИЧНО: Логируем для диагностики проблем с движением
         # Фильтрация по уровню выполняется автоматически системой логирования Python
         self._logger.debug(
             f"[FIXED TARGET] current_x={current_x:.1f}, target_pos={target_pos:.1f}, "
-            f"distance={distance_to_target:.1f}px, tolerance={tolerance}, "
+            f"distance={distance_to_target:.1f}px, tolerance={tolerance}, buffer_zone={buffer_zone:.1f}, "
             f"in_separation_zone={in_separation_zone}, ball_y={ball_y:.1f}, "
             f"paddle_speed={paddle_speed}"
         )
 
-        if distance_to_target > tolerance:
+        # КРИТИЧНО: Используем буферную зону для более плавной остановки
+        if distance_to_target > tolerance + buffer_zone:
+            # Достаточно далеко - двигаемся к цели
             movement = 1 if target_pos > current_x else (-1 if target_pos < current_x else 0)
             if movement != 0:
                 self._update_loop_tracking(movement, int(current_x), int(target_pos))
@@ -327,15 +368,22 @@ class PaddleMovementStrategy:
                 self._log_paddle_movement(current_x, target_pos, "moving_to_fixed_target", 1.0)
                 self._logger.debug(
                     f"[FIXED TARGET] Движение: {movement} (влево=-1, вправо=1, стоп=0), "
-                    f"distance={distance_to_target:.1f}px > tolerance={tolerance}"
+                    f"distance={distance_to_target:.1f}px > tolerance+buffer={tolerance+buffer_zone:.1f}"
                 )
                 return movement
-        else:
-            # КРИТИЧНО: Логируем, почему не двигаемся (достигли цели)
-            # Фильтрация по уровню выполняется автоматически системой логирования Python
+        elif distance_to_target <= tolerance:
+            # Достигли цели - останавливаемся
             self._logger.debug(
                 f"[FIXED TARGET] Достигли цели! distance={distance_to_target:.1f}px <= tolerance={tolerance}, "
                 f"возвращаем 0 (стоп)"
+            )
+            return 0
+        else:
+            # В буферной зоне - останавливаемся раньше, чтобы избежать перелета
+            self._logger.debug(
+                f"[FIXED TARGET] В буферной зоне! distance={distance_to_target:.1f}px "
+                f"(tolerance={tolerance:.1f} < distance <= tolerance+buffer={tolerance+buffer_zone:.1f}), "
+                f"останавливаемся раньше для предотвращения перелета"
             )
             return 0
 
@@ -364,11 +412,17 @@ class PaddleMovementStrategy:
         paddle_zone_start = zones["paddle_zone_start"]
         in_separation_zone = separation_zone_start <= ball_y < paddle_zone_start and ball_vel_y > 0
 
-        # КРИТИЧНО: Устанавливаем новую цель только если:
-        # 1. Мяч в зоне разделения И движется вниз (ball_vel_y > 0)
+        # КРИТИЧНО: Устанавливаем цель раньше, когда мяч еще далеко
+        # Это дает больше времени на движение к цели
+        early_zone_start = separation_zone_start - 100  # На 100px раньше зоны разделения
+        in_early_zone = early_zone_start <= ball_y < separation_zone_start and ball_vel_y > 0
+        in_target_zone = in_separation_zone or in_early_zone
+
+        # КРИТИЧНО: Устанавливаем новую цель если:
+        # 1. Мяч в зоне разделения ИЛИ в ранней зоне И движется вниз (ball_vel_y > 0)
         # 2. Мяч действительно летит к AI (проверяется через ball_vel_y > 0)
         # 3. Цель еще не установлена ИЛИ мяч только что сменил направление на вниз
-        if not in_separation_zone:
+        if not in_target_zone:
             return None
         
         # КРИТИЧНО: Дополнительная проверка - мяч должен двигаться вниз (к AI)
@@ -419,15 +473,29 @@ class PaddleMovementStrategy:
         if optimal_x is None:
             return self._fallback_movement(current_x)
 
-        # Проверяем достижимость цели
+        # КРИТИЧНО: Улучшенная проверка достижимости цели
+        # Учитываем запас на ошибки, отскоки и инерцию
         distance_to_target = abs(current_x - optimal_x)
         distance_to_paddle_y = paddle_y - ball_y if ball_y < paddle_y else 0
         time_to_paddle = distance_to_paddle_y / ball_vel_y if ball_vel_y > 0 and distance_to_paddle_y > 0 else float('inf')
 
         if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
             frames_to_reach = distance_to_target / paddle_speed if paddle_speed > 0 else float('inf')
-            if frames_to_reach > time_to_paddle * 1.1:
-                max_distance = paddle_speed * time_to_paddle * 0.9
+            
+            # КРИТИЧНО: Увеличиваем запас на ошибки до 50% (было 20%)
+            # Это учитывает отскоки мяча от стен, инерцию платформы, время реакции
+            # и другие непредвиденные обстоятельства
+            safety_margin = 1.5  # 50% запас (было 20%)
+            
+            if frames_to_reach > time_to_paddle * safety_margin:
+                # Цель недостижима - ограничиваем её до достижимого расстояния
+                # Используем 70% от максимального расстояния для дополнительного запаса (было 80%)
+                max_distance = paddle_speed * time_to_paddle * 0.7
+                self._logger.debug(
+                    f"[NEW TARGET] Цель недостижима! distance={distance_to_target:.1f}px, "
+                    f"frames_to_reach={frames_to_reach:.1f}, time_to_paddle={time_to_paddle:.1f}, "
+                    f"max_distance={max_distance:.1f}px, ограничиваем цель"
+                )
                 if optimal_x > current_x:
                     optimal_x = min(optimal_x, current_x + max_distance)
                 else:

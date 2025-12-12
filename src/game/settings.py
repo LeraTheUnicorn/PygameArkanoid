@@ -82,6 +82,9 @@ class SettingsConstants:
     MAX_SETTINGS_FILE_SIZE: int = 1024 * 1024  # 1 MB - максимальный размер файла настроек
     SETTINGS_VERSION: int = 1                   # Текущая версия формата настроек
     
+    # Настройки AI логов
+    DEFAULT_DELETE_AI_LOGS_ON_START: bool = True  # Удалять ли логи AI при старте по умолчанию
+    
     @classmethod
     def get_max_ball_speed(cls, auto_mode: bool) -> int:
         """
@@ -167,9 +170,13 @@ class SettingsValidator:
             "version": int(settings.get("version", SettingsConstants.SETTINGS_VERSION)),
             "ball_speed": SettingsValidator.validate_ball_speed(
                 settings.get("ball_speed", SettingsConstants.DEFAULT_BALL_SPEED)
-            )
+            ),
+            "delete_ai_logs_on_start": bool(settings.get(
+                "delete_ai_logs_on_start",
+                SettingsConstants.DEFAULT_DELETE_AI_LOGS_ON_START
+            ))
         }
-        
+
         return validated
 
 
@@ -397,7 +404,8 @@ class SettingsManager:
         # Настройки по умолчанию
         self._settings: Dict[str, Any] = {
             "version": SettingsConstants.SETTINGS_VERSION,
-            "ball_speed": SettingsConstants.DEFAULT_BALL_SPEED
+            "ball_speed": SettingsConstants.DEFAULT_BALL_SPEED,
+            "delete_ai_logs_on_start": SettingsConstants.DEFAULT_DELETE_AI_LOGS_ON_START
         }
         
         # Флаги состояния
@@ -600,6 +608,29 @@ class SettingsManager:
             )
         
         self._settings["ball_speed"] = speed
+        self._dirty = True  # Отмечаем как измененные
+        self.save_settings()
+
+    def get_delete_ai_logs_on_start(self) -> bool:
+        """
+        Возвращает настройку удаления логов AI при старте.
+        
+        Returns:
+            True если логи должны удаляться при старте, False в противном случае
+        """
+        return bool(self.settings.get(
+            "delete_ai_logs_on_start",
+            SettingsConstants.DEFAULT_DELETE_AI_LOGS_ON_START
+        ))
+
+    def set_delete_ai_logs_on_start(self, value: bool) -> None:
+        """
+        Устанавливает настройку удаления логов AI при старте.
+        
+        Args:
+            value: True для удаления логов при старте, False для сохранения
+        """
+        self._settings["delete_ai_logs_on_start"] = bool(value)
         self._dirty = True  # Отмечаем как измененные
         self.save_settings()
 
