@@ -1,0 +1,87 @@
+[tool.poetry]
+name = "arkanoid-game"
+version = "2.3.161"  # Poetry формат: X.Y.Z (соответствует version.py: VERSION_MAJOR=2, VERSION_MINOR=3, VERSION_BUILD=161)
+description = "Игра Арканоид"
+authors = ["Developer <dadbarn@gmail.com>"]
+readme = "README.MD"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pygame = "^2.5.2"  # Установлено: 2.6.1
+numpy = "^2.1.0"  # Установлено: 2.3.5
+scikit-learn = "^1.7.2"  # Установлено: 1.7.2
+pyglet = "^2.0.0"  # Установлено: 2.1.11, для загрузки анимированных GIF
+pillow = "^10.0.0"  # Для работы с изображениями (PIL)
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"  # Установлено: 8.4.2
+mypy = "^1.10.0"  # Установлено: 1.19.0
+pyright = "^1.1.360"  # Установлено: 1.1.407
+
+[build-system]
+requires = [
+    "poetry-core",
+    "setuptools>=45",
+    "wheel",
+    "setuptools-scm[toml]>=6.2"
+]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+show_error_codes = true
+ignore_missing_imports = true
+# Проверка типов для всех файлов, кроме исключенных
+warn_unreachable = true
+warn_unused_coroutines = true
+# Исключаем только документацию и скомпилированные файлы
+# Тесты теперь включены для проверки типов
+exclude = [
+    "src/",
+    "scripts/",
+    "src/resources/",
+    "docs/",
+    ".*\\.pyc$",
+    "__pycache__",
+]
+
+[tool.pyright]
+include = ["."]
+exclude = [
+    "**/src",
+    "**/scripts",
+    "**/resources",
+    "**/docs",
+    "**/__pycache__",
+    "**/.*",
+]
+# Тесты теперь включены для проверки типов
+reportMissingImports = true
+reportMissingTypeStubs = false
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+# Дополнительные проверки для улучшения качества типизации
+reportUnusedVariable = "warning"
+reportUnusedImport = "warning"
+reportUnusedClass = "warning"
+reportUnusedFunction = "warning"
+reportDuplicateImport = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportOptionalCall = "warning"
+reportOptionalIterable = "warning"
+reportOptionalContextManager = "warning"
+reportOptionalOperand = "warning"
+reportGeneralTypeIssues = "warning"
