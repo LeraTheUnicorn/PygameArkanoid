@@ -199,6 +199,11 @@ class AIPlayer:
         self.current_game_state: Optional[GameState] = None
         self.last_paddle_position: Optional[float] = None
         self.last_action_time = time.time()
+        
+        # Адаптивная частота расчетов
+        self._last_calculation_time = 0.0
+        self._calculation_skip_counter = 0
+        self._adaptive_calculation_enabled = True
 
         # Общие метрики
         self.performance_metrics: Dict[str, Any] = {
@@ -640,6 +645,15 @@ class AIPlayer:
             ball, paddle, bricks, score, start_time
         )
         
+        # Адаптивная частота расчетов - пропускаем некоторые обновления когда мяч далеко
+        if self._adaptive_calculation_enabled and self.current_game_state:
+            should_skip = self._should_skip_calculation()
+            if should_skip:
+                # Пропускаем тяжелые расчеты, но обновляем базовое состояние
+                if self.paddle_movement_strategy is not None:
+                    self.paddle_movement_strategy.current_game_state = self.current_game_state
+                return
+        
         # Обновляем current_game_state в стратегии движения
         if self.paddle_movement_strategy is not None:
             self.paddle_movement_strategy.current_game_state = self.current_game_state
@@ -654,12 +668,16 @@ class AIPlayer:
 
         # Логируем предсказание траектории, если включен debug-режим
         if self.debug_mode and self.is_ball_moving_towards_paddle():
-            predicted_trajectory = self.trajectory_predictor.predict_trajectory(
-                self.current_game_state
+            # Используем оптимизированную траекторию для логирования
+            predicted_trajectory = self.trajectory_predictor.get_optimized_trajectory(
+                self.current_game_state, max_relevant_points=40
             )
             self.performance_logger.log_trajectory_prediction(
                 [{"x": p.x, "y": p.y} for p in predicted_trajectory]
             )
+        
+        # Обновляем время последнего расчета
+        self._last_calculation_time = time.time()
 
     # ==========================
     # Работа с кубиками/целями
@@ -4726,14 +4744,64 @@ class AIPlayer:
         # Обновление метрик
         self._update_performance_metrics(action_result)
 
+    def _should_skip_calculation(self) -> bool:
+        """
+        Определяет, следует ли пропустить тяжелые расчеты на этом кадре.
+        Использует адаптивную логику: пропускает расчеты когда мяч далеко от платформы.
+        
+        Returns:
+            True, если расчеты можно пропустить, False иначе
+        """
+        if not self.current_game_state:
+            return False
+        
+        ball_y = self.current_game_state.ball_position.y
+        paddle_y = self.current_game_state.paddle_position.y
+        ball_vel_y = (
+            self.current_game_state.ball_velocity.y
+            if hasattr(self.current_game_state, "ball_velocity")
+            else 0
+        )
+        
+        # Всегда выполняем расчеты если мяч движется к платформе и близко
+        if ball_vel_y > 0:  # Мяч движется вниз
+            distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
+            
+            # Если мяч очень близко (< 100px) - всегда рассчитываем
+            if distance_to_paddle < 100:
+                self._calculation_skip_counter = 0
+                return False
+            
+            # Если мяч на среднем расстоянии (100-300px) - пропускаем каждый 2-й кадр
+            if distance_to_paddle < 300:
+                self._calculation_skip_counter += 1
+                if self._calculation_skip_counter % 2 == 0:
+                    return False
+                return True
+            
+            # Если мяч далеко (> 300px) - пропускаем каждый 3-й кадр
+            self._calculation_skip_counter += 1
+            if self._calculation_skip_counter % 3 == 0:
+                return False
+            return True
+        
+        # Если мяч движется вверх - пропускаем чаще (каждый 2-й кадр)
+        self._calculation_skip_counter += 1
+        if self._calculation_skip_counter % 2 == 0:
+            return False
+        return True
+    
     def _get_current_trajectory_prediction(self) -> Optional[Dict[str, Any]]:
         """Возвращает текущее предсказание траектории мяча (для логирования/обучения)."""
         if not self.current_game_state or not self.is_ball_moving_towards_paddle():
             return None
 
         try:
-            trajectory = self.trajectory_predictor.predict_trajectory(
-                self.current_game_state
+            # Используем адаптивную траекторию для оптимизации
+            ball_y = self.current_game_state.ball_position.y
+            paddle_y = self.current_game_state.paddle_position.y
+            trajectory = self.trajectory_predictor.get_adaptive_trajectory(
+                self.current_game_state, ball_y, paddle_y
             )
             intersection_point = self.trajectory_predictor.predict_paddle_intersection(
                 self.current_game_state,
@@ -5508,9 +5576,9 @@ class AIPlayer:
             if not self.current_game_state:
                 return
                 
-            # Предсказываем траекторию
-            trajectory = self.trajectory_predictor.predict_trajectory(
-                self.current_game_state
+            # Предсказываем траекторию (используем оптимизированную для визуализации)
+            trajectory = self.trajectory_predictor.get_optimized_trajectory(
+                self.current_game_state, max_relevant_points=50
             )
             
             if not trajectory:

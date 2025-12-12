@@ -113,16 +113,40 @@ class PaddleMovementStrategy:
             if (last_vel_y is not None and 
                 last_vel_y > 0 and  # мяч двигался вниз на предыдущем кадре
                 ball_vel_y < 0):  # мяч теперь двигается вверх (отскок от верхней границы)
-                # Мяч отскочил от верхней границы - сбрасываем цель немедленно
+                # Мяч отскочил от верхней границы - сбрасываем цель и НЕМЕДЛЕННО пересчитываем
                 self._logger.debug(
                     f"[EARLY BOUNCE DETECTION] Мяч отскочил от верхней границы! "
                     f"vel_y изменился с {last_vel_y:.1f} (вниз) на {ball_vel_y:.1f} (вверх), "
-                    f"сбрасываем целевую позицию немедленно"
+                    f"сбрасываем целевую позицию и немедленно пересчитываем"
                 )
                 self.target_tracker.reset_target_position()
                 self.separation_zone_tracker.last_ball_vel_y = ball_vel_y
                 self.separation_zone_tracker.ball_moving_downward_last_frame = False
-                return self._validate_movement(0)  # Не двигаемся, ждем новой цели
+                
+                # КРИТИЧНО: НЕМЕДЛЕННО пересчитываем новую цель после отскока
+                # Это позволяет платформе быстро адаптироваться к изменению траектории
+                zones = self.zone_handler.calculate_zones()
+                emergency_result = self._set_new_target(
+                    current_x, paddle_speed, ball_y, ball_vel_y, zones
+                )
+                if emergency_result is not None:
+                    self._logger.debug(
+                        f"[BOUNCE RECOVERY] Новая цель установлена после отскока, "
+                        f"движение: {emergency_result}"
+                    )
+                    return self._validate_movement(emergency_result)
+                
+                # Если не удалось установить цель (мяч движется вверх) - 
+                # упреждающее движение к центру для подготовки к следующей атаке
+                center_movement = self._proactive_center_movement(current_x, ball_y)
+                if center_movement != 0:
+                    self._logger.debug(
+                        f"[BOUNCE RECOVERY] Мяч движется вверх, двигаемся к центру: {center_movement}"
+                    )
+                    return self._validate_movement(center_movement)
+                
+                # Если ничего не подошло - останавливаемся
+                return self._validate_movement(0)
 
             # Обработка зоны кубиков
             zones = self.zone_handler.calculate_zones()
@@ -338,17 +362,16 @@ class PaddleMovementStrategy:
         target_pos = self._clamp_paddle_position(target_pos)
         
         distance_to_target = abs(current_x - target_pos)
-        # КРИТИЧНО: Используем меньший tolerance для более точного движения
-        # Для критических случаев (мяч близко или в углу) используем минимальный tolerance
+        # КРИТИЧНО: Адаптивный tolerance на основе скорости мяча, расстояния и критичности
         ball_y = self.current_game_state.ball_position.y if self.current_game_state else 0
         paddle_y = self.current_game_state.paddle_position.y if self.current_game_state else 0
         distance_to_paddle = paddle_y - ball_y if ball_y < paddle_y else 0
         is_critical = distance_to_paddle < 50 or target_pos < 100 or target_pos > self.screen_width - 100
         
-        if is_critical:
-            tolerance = max(2, int(paddle_speed * 0.1))  # Минимальный tolerance для критических случаев
-        else:
-            tolerance = max(3, int(paddle_speed * 0.25))  # 25% скорости движения, минимум 3px
+        # Используем адаптивный tolerance, который учитывает скорость мяча
+        tolerance = self._get_adaptive_tolerance(
+            ball_vel_y, distance_to_target, paddle_speed, is_critical
+        )
         
         # КРИТИЧНО: Буферная зона для ранней остановки платформы
         # УМЕНЬШЕНО для критических случаев в углах - платформа должна доезжать до цели
@@ -1020,6 +1043,88 @@ class PaddleMovementStrategy:
             return 0
         
         return movement
+
+    def _get_adaptive_tolerance(
+        self, ball_vel_y: float, distance_to_target: float, paddle_speed: int, is_critical: bool
+    ) -> int:
+        """
+        Вычисляет адаптивный допуск на основе скорости мяча, расстояния и критичности.
+        
+        Args:
+            ball_vel_y: Вертикальная скорость мяча
+            distance_to_target: Расстояние до целевой позиции
+            paddle_speed: Скорость платформы
+            is_critical: Критическая ситуация (мяч близко или в углу)
+        
+        Returns:
+            Адаптивный tolerance в пикселях
+        """
+        base_tolerance = 6  # минимальный допуск
+        
+        # Увеличиваем допуск при высокой скорости мяча
+        # Чем быстрее мяч, тем больше допуск (но не более 3x)
+        speed_factor = min(abs(ball_vel_y) / 10.0, 3.0) if ball_vel_y != 0 else 1.0
+        
+        # Уменьшаем допуск при приближении к цели
+        # Чем ближе к цели, тем меньше допуск (но не менее 0.5x)
+        distance_factor = max(1.0 - (distance_to_target / 300.0), 0.5)
+        
+        # Базовый tolerance от скорости платформы
+        if is_critical:
+            paddle_tolerance = max(2, int(paddle_speed * 0.1))  # Минимальный для критических случаев
+        else:
+            paddle_tolerance = max(3, int(paddle_speed * 0.25))  # 25% скорости движения
+        
+        # Комбинируем все факторы
+        adaptive_tolerance = int(paddle_tolerance * speed_factor * distance_factor)
+        
+        # Ограничиваем разумными пределами
+        final_tolerance = max(base_tolerance, min(adaptive_tolerance, 20))
+        
+        self._logger.debug(
+            f"[ADAPTIVE TOLERANCE] ball_vel_y={ball_vel_y:.1f}, distance={distance_to_target:.1f}, "
+            f"speed_factor={speed_factor:.2f}, distance_factor={distance_factor:.2f}, "
+            f"paddle_tolerance={paddle_tolerance}, final={final_tolerance}, is_critical={is_critical}"
+        )
+        
+        return final_tolerance
+
+    def _proactive_center_movement(self, current_x: int, ball_y: float) -> int:
+        """
+        Упреждающее движение к центру при неопределенности.
+        
+        Если мяч далеко и движется от платформы, возвращаемся к центру,
+        готовясь к новой атаке.
+        
+        Args:
+            current_x: Текущая X-координата платформы
+            ball_y: Y-координата мяча
+        
+        Returns:
+            Направление движения (-1, 0, 1) или 0 если движение не требуется
+        """
+        if not self.current_game_state:
+            return 0
+        
+        paddle_y = self.current_game_state.paddle_position.y
+        field_height = self.screen_height
+        
+        # Если мяч далеко (в верхней трети поля) и выше платформы
+        if ball_y < field_height * 0.3 and ball_y < paddle_y:
+            center = self.screen_width // 2
+            distance_to_center = abs(current_x - center)
+            
+            # Если достаточно далеко от центра - двигаемся к нему
+            if distance_to_center > 50:
+                movement = 1 if center > current_x else (-1 if center < current_x else 0)
+                self._logger.debug(
+                    f"[PROACTIVE CENTER] Мяч далеко ({ball_y:.1f}px), "
+                    f"двигаемся к центру: current_x={current_x}, center={center}, "
+                    f"movement={movement}"
+                )
+                return movement
+        
+        return 0
 
     def _clamp_paddle_position(self, position: int) -> int:
         """
