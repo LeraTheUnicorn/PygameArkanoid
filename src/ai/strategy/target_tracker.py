@@ -43,7 +43,8 @@ class TargetTracker:
             current_pos: Текущая позиция платформы (для проверки расстояния)
         """
         # ✅ ДОБАВЛЕНО: Проверка максимального расстояния до цели
-        MAX_TARGET_DISTANCE = 200  # пикселей
+        # УВЕЛИЧЕНО до 250px для большей гибкости (проверка достижимости уже есть в paddle_movement)
+        MAX_TARGET_DISTANCE = 250  # пикселей
         
         if current_pos is not None:
             distance = abs(position - current_pos)
@@ -54,8 +55,8 @@ class TargetTracker:
                 else:
                     position = current_pos - MAX_TARGET_DISTANCE
                 if logger:
-                    logger.warning(
-                        f"[TARGET DISTANCE] Расстояние до цели слишком большое ({distance:.1f}px > {MAX_TARGET_DISTANCE}px), "
+                    logger.debug(
+                        f"[TARGET DISTANCE] Расстояние до цели большое ({distance:.1f}px > {MAX_TARGET_DISTANCE}px), "
                         f"корректируем до {position:.1f}px (reason: {reason})"
                     )
         

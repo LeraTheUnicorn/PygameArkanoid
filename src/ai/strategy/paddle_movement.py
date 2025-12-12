@@ -850,82 +850,33 @@ class PaddleMovementStrategy:
                         )
                         optimal_x = min_left_x
 
-        # ✅ ИСПРАВЛЕНО: Физическая проверка достижимости цели
-        # Учитываем запас на ошибки, отскоки и инерцию
+        # ✅ УПРОЩЕНО: Одна проверка достижимости вместо двух
+        # Учитываем запас на ошибки, но не слишком агрессивно
         distance_to_target = abs(current_x - optimal_x)
+        MAX_TARGET_DISTANCE = 200  # Максимальное расстояние согласно анализу
 
+        # Проверяем достижимость только если мяч действительно летит к платформе
         if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
-            # КРИТИЧНО: paddle_speed уже в px/кадр, поэтому frames_to_reach = distance / speed
-            frames_to_reach = distance_to_target / paddle_speed if paddle_speed > 0 else float('inf')
+            # КРИТИЧНО: paddle_speed уже в px/кадр
+            frames_available = max(1, int(time_to_paddle))
             
-            # ✅ ИСПРАВЛЕНО: Физическая проверка достижимости
-            # Проверяем, успеет ли платформа достичь цели до прибытия мяча
-            # Добавляем запас в 2 кадра на реакцию и ошибки
-            reaction_frames = 2
-            available_frames = int(time_to_paddle) - reaction_frames
+            # ✅ УПРОЩЕНО: Более агрессивное ограничение - используем 95% от доступного времени
+            # Это позволяет платформе двигаться быстрее и достигать целей
+            max_reachable_distance = paddle_speed * frames_available * 0.95
             
-            if available_frames <= 0:
-                # Мяч уже слишком близко - используем минимальное движение
-                available_frames = 1
-            
-            # Максимально достижимое расстояние за доступное время
-            max_reachable_distance = paddle_speed * available_frames
-            
-            # КРИТИЧНО: Адаптивный запас на ошибки в зависимости от расстояния до платформы
-            # Для критических случаев (мяч близко) используем меньший запас и более агрессивное движение
-            if distance_to_paddle_y < 50:  # Мяч очень близко к платформе - экстремальный случай
-                max_distance_factor = 0.95  # 95% от максимально достижимого
-            elif distance_to_paddle_y < 100:  # Мяч близко к платформе - критический случай
-                max_distance_factor = 0.90  # 90% от максимально достижимого
-            else:
-                max_distance_factor = 0.80  # 80% от максимально достижимого (консервативно)
-            
-            max_allowed_distance = max_reachable_distance * max_distance_factor
-            
-            if distance_to_target > max_allowed_distance:
-                # Цель недостижима - ограничиваем её до достижимого расстояния
-                self._logger.warning(
-                    f"[NEW TARGET] Цель физически недостижима! distance={distance_to_target:.1f}px, "
-                    f"max_reachable={max_allowed_distance:.1f}px, time_to_paddle={time_to_paddle:.1f} frames, "
-                    f"available_frames={available_frames}, paddle_speed={paddle_speed}px/frame, "
-                    f"distance_to_paddle_y={distance_to_paddle_y:.1f}px, ограничиваем цель"
-                )
-                if optimal_x > current_x:
-                    optimal_x = min(optimal_x, current_x + max_allowed_distance)
-                else:
-                    optimal_x = max(optimal_x, current_x - max_allowed_distance)
-            else:
-                # Цель достижима
-                self._logger.debug(
-                    f"[NEW TARGET] Цель достижима: distance={distance_to_target:.1f}px, "
-                    f"max_reachable={max_allowed_distance:.1f}px, time_to_paddle={time_to_paddle:.1f} frames"
-                )
-
-        # ✅ ИСПРАВЛЕНО: Жесткое ограничение максимального расстояния до цели (250px)
-        # Это предотвращает установку нереалистично далеких целей
-        distance_to_target = abs(current_x - optimal_x)
-        MAX_TARGET_DISTANCE = 250  # ✅ Уменьшено с 300 до 250px для гарантии достижимости
-        # ✅ ДОБАВЛЕНО: Проверяем достижимость целевой позиции перед ограничением
-        # Это критично для обеспечения успешного перехвата мяча
-        if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
-            # Минимальная скорость платформы во время движения
-            frames_available = int(time_to_paddle)
-            max_reachable_distance = paddle_speed * frames_available * 0.9  # 90% для буфера
-            
+            # Если цель слишком далеко, ограничиваем её
             if distance_to_target > max_reachable_distance:
-                self._logger.warning(
-                    f"[NEW TARGET] Цель недостижима! "
-                    f"distance={distance_to_target:.1f}px, "
-                    f"reachable={max_reachable_distance:.1f}px, "
-                    f"time_to_paddle={time_to_paddle:.1f}, "
-                    f"paddle_speed={paddle_speed}, frames={frames_available}"
+                self._logger.debug(
+                    f"[NEW TARGET] Ограничиваем цель: distance={distance_to_target:.1f}px > "
+                    f"reachable={max_reachable_distance:.1f}px (time={time_to_paddle:.1f} frames)"
                 )
-                # Ограничиваем до максимально достижимого
                 if optimal_x > current_x:
-                    optimal_x = min(optimal_x, current_x + max_reachable_distance)
+                    optimal_x = current_x + int(max_reachable_distance)
                 else:
-                    optimal_x = max(optimal_x, current_x - max_reachable_distance)
+                    optimal_x = current_x - int(max_reachable_distance)
+                distance_to_target = abs(current_x - optimal_x)
         
+        # Жесткое ограничение максимального расстояния (200px согласно анализу)
         if distance_to_target > MAX_TARGET_DISTANCE:
             self._logger.debug(
                 f"[NEW TARGET] Расстояние до цели слишком большое ({distance_to_target:.1f}px > {MAX_TARGET_DISTANCE}px), "
@@ -1149,7 +1100,13 @@ class PaddleMovementStrategy:
         target_x = self._clamp_paddle_position(int(target_x))
 
         distance = target_x - current_x
-        tolerance = 3
+        # ✅ ИСПРАВЛЕНО: Используем адаптивный tolerance вместо фиксированного
+        tolerance = self._get_adaptive_tolerance(
+            vel_y if vel_y != 0 else 5.0,  # Используем скорость мяча или значение по умолчанию
+            abs(distance),
+            paddle_speed,
+            False  # fallback не критический случай
+        )
 
         # КРИТИЧНО: Логируем fallback движение для диагностики
         self._logger.debug(
@@ -1414,7 +1371,8 @@ class PaddleMovementStrategy:
         """
         Вычисляет адаптивный допуск на основе скорости мяча, расстояния и критичности.
         
-        ✅ ИСПРАВЛЕНО: Использует физически обоснованную формулу с учетом FPS.
+        ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Упрощенная формула согласно анализу.
+        Согласно анализу, tolerance должен быть примерно paddle_speed / 3 (17-20 для скорости 52-60).
         
         Args:
             ball_vel_y: Вертикальная скорость мяча (px/кадр)
@@ -1425,51 +1383,39 @@ class PaddleMovementStrategy:
         Returns:
             Адаптивный tolerance в пикселях
         """
-        # КРИТИЧНО: FPS для правильного расчета tolerance
-        FPS = 60  # кадров в секунду
+        # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Простая формула согласно анализу
+        # tolerance = paddle_speed / 3 (как указано в анализе)
+        # Это дает примерно 17-20 для скорости 52-60 px/кадр
         
-        # ✅ ИСПРАВЛЕНО: Физически обоснованная формула tolerance
-        # tolerance = (paddle_speed / FPS) * reaction_frames * safety_factor
-        # где paddle_speed уже в px/кадр, поэтому делим на FPS для получения px/сек
-        paddle_speed_per_frame = paddle_speed  # уже в px/кадр
+        base_tolerance = paddle_speed // 3
         
-        # Время реакции: 2-3 кадра
-        reaction_time_frames = 2.5
+        # Минимальные значения для обеспечения работоспособности
+        if base_tolerance < 10:
+            base_tolerance = 10
         
-        # Коэффициент безопасности
-        safety_factor = 1.5
-        
-        # Базовый tolerance от скорости платформы
-        # Учитываем, что paddle_speed уже в px/кадр
+        # Для критических случаев немного уменьшаем tolerance для точности
         if is_critical:
-            # Для критических случаев используем меньший tolerance для точности
-            paddle_tolerance = max(3, int(paddle_speed_per_frame * reaction_time_frames * 0.4))
+            tolerance = max(12, int(base_tolerance * 0.85))
         else:
-            # Обычный tolerance: скорость * время реакции * коэффициент безопасности
-            paddle_tolerance = max(4, int(paddle_speed_per_frame * reaction_time_frames * safety_factor / 3.0))
+            tolerance = base_tolerance
         
-        # Увеличиваем допуск при высокой скорости мяча
-        # Чем быстрее мяч, тем больше допуск (но не более 2x)
-        speed_factor = min(abs(ball_vel_y) / 10.0, 2.0) if ball_vel_y != 0 else 1.0
+        # Небольшая корректировка на основе скорости мяча (но не слишком агрессивная)
+        # Если мяч очень быстрый, немного увеличиваем tolerance
+        if abs(ball_vel_y) > 10:
+            tolerance = int(tolerance * 1.1)
+        elif abs(ball_vel_y) < 5:
+            tolerance = int(tolerance * 0.95)
         
-        # Уменьшаем допуск при приближении к цели
-        # Чем ближе к цели, тем меньше допуск (но не менее 0.5x)
-        distance_factor = max(1.0 - (distance_to_target / 300.0), 0.5)
-        
-        # Комбинируем все факторы
-        adaptive_tolerance = int(paddle_tolerance * speed_factor * distance_factor)
-        
-        # Ограничиваем разумными пределами (15-25px для обычных случаев, 10-20px для критических)
+        # Ограничиваем разумными пределами
         if is_critical:
-            final_tolerance = max(10, min(adaptive_tolerance, 20))
+            final_tolerance = max(12, min(tolerance, 22))
         else:
-            final_tolerance = max(15, min(adaptive_tolerance, 25))
+            final_tolerance = max(15, min(tolerance, 25))
         
         self._logger.debug(
             f"[ADAPTIVE TOLERANCE] ball_vel_y={ball_vel_y:.1f}, distance={distance_to_target:.1f}, "
-            f"speed_factor={speed_factor:.2f}, distance_factor={distance_factor:.2f}, "
-            f"paddle_tolerance={paddle_tolerance}, final={final_tolerance}, is_critical={is_critical}, "
-            f"paddle_speed={paddle_speed}px/frame"
+            f"paddle_speed={paddle_speed}px/frame, base={base_tolerance}, final={final_tolerance}, "
+            f"is_critical={is_critical}"
         )
         
         return final_tolerance
