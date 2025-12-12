@@ -536,13 +536,17 @@ class PaddleMovementStrategy:
                 self.target_tracker.update_saved_velocity(current_vel_x)
                 return None
 
-            # КРИТИЧНО: Проверяем, летит ли мяч к стене и должен отскочить
-            # Если да, сбрасываем цель для пересчета с учетом максимальной позиции у стены
+            # ✅ ИСПРАВЛЕНО: Проверка отскока от стены только если мяч ОЧЕНЬ близко к стене
+            # Слишком агрессивная проверка мешала платформе достичь цели
+            # Проверяем только если мяч достигнет стены в ближайшие 3 кадра
             ball_x = self.current_game_state.ball_position.x
             ball_radius = getattr(self.config, 'ball', None)
             ball_radius = ball_radius.radius if ball_radius and hasattr(ball_radius, 'radius') else 8
             distance_to_paddle_y = paddle_y - ball_y if ball_y < paddle_y else 0
             time_to_paddle = distance_to_paddle_y / ball_vel_y if ball_vel_y > 0 and distance_to_paddle_y > 0 else float('inf')
+            
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем отскок только если мяч очень близко к стене (менее 3 кадров)
+            WALL_BOUNCE_THRESHOLD = 3  # кадров до стены
             
             if time_to_paddle != float('inf') and time_to_paddle > 0:
                 # Проверяем, летит ли мяч к правой стене
@@ -550,12 +554,12 @@ class PaddleMovementStrategy:
                     distance_to_right_wall = self.screen_width - ball_radius - ball_x
                     if distance_to_right_wall > 0:
                         time_to_right_wall = distance_to_right_wall / current_vel_x if current_vel_x > 0 else float('inf')
-                        # Если мяч достигнет правой стены до платформы, сбрасываем цель для пересчета
-                        if time_to_right_wall < time_to_paddle and time_to_right_wall > 0:
+                        # ✅ ИСПРАВЛЕНО: Сбрасываем цель ТОЛЬКО если мяч достигнет стены очень скоро (менее 3 кадров)
+                        if 0 < time_to_right_wall < WALL_BOUNCE_THRESHOLD and time_to_right_wall < time_to_paddle:
                             self._logger.debug(
-                                f"[FIXED TARGET WALL CHECK] Мяч летит к правой стене! "
-                                f"time_to_wall={time_to_right_wall:.1f} < time_to_paddle={time_to_paddle:.1f}, "
-                                f"сбрасываем цель для пересчета с максимальной правой позицией"
+                                f"[FIXED TARGET WALL CHECK] Мяч очень близко к правой стене! "
+                                f"time_to_wall={time_to_right_wall:.1f} < {WALL_BOUNCE_THRESHOLD}, "
+                                f"сбрасываем цель для пересчета"
                             )
                             self.target_tracker.reset_target_position()
                             self.target_tracker.update_saved_velocity(current_vel_x)
@@ -566,12 +570,12 @@ class PaddleMovementStrategy:
                     distance_to_left_wall = ball_x - ball_radius
                     if distance_to_left_wall > 0:
                         time_to_left_wall = distance_to_left_wall / abs(current_vel_x) if current_vel_x < 0 else float('inf')
-                        # Если мяч достигнет левой стены до платформы, сбрасываем цель для пересчета
-                        if time_to_left_wall < time_to_paddle and time_to_left_wall > 0:
+                        # ✅ ИСПРАВЛЕНО: Сбрасываем цель ТОЛЬКО если мяч достигнет стены очень скоро (менее 3 кадров)
+                        if 0 < time_to_left_wall < WALL_BOUNCE_THRESHOLD and time_to_left_wall < time_to_paddle:
                             self._logger.debug(
-                                f"[FIXED TARGET WALL CHECK] Мяч летит к левой стене! "
-                                f"time_to_wall={time_to_left_wall:.1f} < time_to_paddle={time_to_paddle:.1f}, "
-                                f"сбрасываем цель для пересчета с максимальной левой позицией"
+                                f"[FIXED TARGET WALL CHECK] Мяч очень близко к левой стене! "
+                                f"time_to_wall={time_to_left_wall:.1f} < {WALL_BOUNCE_THRESHOLD}, "
+                                f"сбрасываем цель для пересчета"
                             )
                             self.target_tracker.reset_target_position()
                             self.target_tracker.update_saved_velocity(current_vel_x)
@@ -853,7 +857,7 @@ class PaddleMovementStrategy:
         # ✅ УПРОЩЕНО: Одна проверка достижимости вместо двух
         # Учитываем запас на ошибки, но не слишком агрессивно
         distance_to_target = abs(current_x - optimal_x)
-        MAX_TARGET_DISTANCE = 200  # Максимальное расстояние согласно анализу
+        MAX_TARGET_DISTANCE = 250  # ✅ ИСПРАВЛЕНО: Увеличено до 250px для большей гибкости
 
         # Проверяем достижимость только если мяч действительно летит к платформе
         if time_to_paddle != float('inf') and time_to_paddle > 0 and distance_to_target > 0:
